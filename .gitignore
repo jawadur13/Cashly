@@ -1,0 +1,25 @@
+# Environment
+.env.local
+.env
+.env*.local
+
+# Build output
+.next/
+out/
+
+# Dependencies
+node_modules/
+
+# Build cache
+tsconfig.tsbuildinfo
+*.tsbuildinfo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
