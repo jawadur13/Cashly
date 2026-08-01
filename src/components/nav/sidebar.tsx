@@ -31,19 +31,11 @@ export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
         collapsed ? 'w-16' : 'w-60'
       )}
     >
-      <div className={cn('flex items-center px-3 py-5', collapsed ? 'justify-center' : 'justify-between gap-2.5 px-5')}>
+      <div className={cn('flex items-center px-3 py-5', collapsed ? 'justify-center' : 'gap-2.5 px-5')}>
         <div className="flex items-center gap-2.5 overflow-hidden">
           <img src="/cashly-logo.svg" alt="" aria-hidden="true" className="size-9 shrink-0" />
           {!collapsed && <span className="text-lg font-bold text-text-primary">Cashly</span>}
         </div>
-        <button
-          type="button"
-          onClick={onToggleCollapse}
-          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          className="hidden size-8 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary md:inline-flex"
-        >
-          {collapsed ? <ChevronRight className="size-4" /> : <ChevronLeft className="size-4" />}
-        </button>
       </div>
       <nav className={cn('flex-1 space-y-1 px-3', collapsed && 'px-2')}>
         {sidebarItems.map((item) => {
@@ -69,8 +61,18 @@ export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
           )
         })}
       </nav>
-      <div className={cn('px-5 py-4 text-xs text-text-tertiary', collapsed && 'px-2 text-center')}>
-        {collapsed ? '' : resolvedTheme === 'dark' ? 'Dark mode' : 'Light mode'}
+      <div className={cn('mt-auto border-t border-border px-3 py-3', collapsed && 'px-2')}>
+        <div className={cn('flex items-center gap-2', collapsed ? 'justify-center' : 'justify-between')}>
+          {!collapsed && <span className="text-xs text-text-tertiary">{resolvedTheme === 'dark' ? 'Dark mode' : 'Light mode'}</span>}
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            className="inline-flex size-8 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary"
+          >
+            {collapsed ? <ChevronRight className="size-4" /> : <ChevronLeft className="size-4" />}
+          </button>
+        </div>
       </div>
     </aside>
   )
