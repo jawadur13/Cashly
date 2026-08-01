@@ -14,6 +14,11 @@ export const metadata: Metadata = {
   title: 'Cashly — Personal Finance',
   description: 'Simple income and expense tracking.',
   manifest: '/manifest.webmanifest',
+  icons: {
+    icon: '/cashly-favicon.svg',
+    shortcut: '/cashly-favicon.svg',
+    apple: '/cashly-favicon.svg',
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',

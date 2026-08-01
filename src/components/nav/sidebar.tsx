@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { usePathname } from 'next/navigation'
-import { Home, ArrowLeftRight, FolderKanban, Settings, Landmark, Wallet } from 'lucide-react'
+import { Home, ArrowLeftRight, FolderKanban, Settings, Landmark } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTheme } from '@/providers/theme-provider'
 
@@ -22,9 +22,7 @@ export function Sidebar() {
   return (
     <aside className="fixed left-0 top-0 z-40 hidden h-dvh w-60 flex-col border-r border-border bg-surface md:flex">
       <div className="flex items-center gap-2.5 px-5 py-5">
-        <span className="flex size-9 items-center justify-center rounded-[var(--radius-md)] bg-accent text-white">
-          <Wallet className="size-5" />
-        </span>
+        <img src="/cashly-logo.svg" alt="" aria-hidden="true" className="size-9 shrink-0" />
         <span className="text-lg font-bold text-text-primary">Cashly</span>
       </div>
       <nav className="flex-1 space-y-1 px-3">
