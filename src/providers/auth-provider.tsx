@@ -28,6 +28,21 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
+const APPWRITE_CONNECTION_HINT =
+  'Cashly could not reach Appwrite from this domain. In Appwrite Cloud, add your Vercel domain under Platforms > Web and verify the endpoint, project id, and database id.'
+
+function normalizeAuthError(error: unknown, fallbackMessage: string): Error {
+  if (error instanceof Error) {
+    const message = error.message.trim()
+    if (/failed to fetch|networkerror|cors|fetch/i.test(message)) {
+      return new Error(`${fallbackMessage} ${APPWRITE_CONNECTION_HINT}`)
+    }
+    return error
+  }
+
+  return new Error(fallbackMessage)
+}
+
 async function seedNewUser(userId: string): Promise<void> {
   await account.updatePrefs({ defaultCurrency: DEFAULT_CURRENCY })
   for (const acc of DEFAULT_ACCOUNTS) {
@@ -62,16 +77,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [refresh])
 
   const signIn = useCallback(async (email: string, password: string) => {
-    await account.createEmailPasswordSession(email, password)
-    await refresh()
+    try {
+      await account.createEmailPasswordSession(email, password)
+      await refresh()
+    } catch (error) {
+      throw normalizeAuthError(error, 'Log in failed.')
+    }
   }, [refresh])
 
   const signUp = useCallback(async (name: string, email: string, password: string) => {
-    await account.create(ID.unique(), email, password, name)
-    await account.createEmailPasswordSession(email, password)
-    const res = await account.get()
-    await seedNewUser(res.$id)
-    await refresh()
+    try {
+      await account.create(ID.unique(), email, password, name)
+      await account.createEmailPasswordSession(email, password)
+      const res = await account.get()
+      await seedNewUser(res.$id)
+      await refresh()
+    } catch (error) {
+      throw normalizeAuthError(error, 'Registration failed.')
+    }
   }, [refresh])
 
   const signOut = useCallback(async () => {
@@ -84,7 +107,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const resetPassword = useCallback(async (email: string) => {
-    await account.createRecovery(email, `${window.location.origin}/auth/reset-password`)
+    try {
+      await account.createRecovery(email, `${window.location.origin}/auth/reset-password`)
+    } catch (error) {
+      throw normalizeAuthError(error, 'Could not send reset email.')
+    }
   }, [])
 
   return (
