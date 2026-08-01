@@ -1,19 +1,29 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
+import { Menu } from 'lucide-react'
 import { useAuth } from '@/providers/auth-provider'
 import { BottomNav } from '@/components/nav/bottom-nav'
-import { Sidebar } from '@/components/nav/sidebar'
+import { Sidebar, sidebarItems } from '@/components/nav/sidebar'
+import { Button } from '@/components/ui/button'
+import { Sheet } from '@/components/ui/sheet'
+import { cn } from '@/lib/utils'
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { status } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   useEffect(() => {
     if (status === 'anonymous') router.replace('/auth/login')
   }, [status, router])
+
+  useEffect(() => {
+    setMobileMenuOpen(false)
+  }, [pathname])
 
   if (status !== 'authenticated') {
     return (
@@ -25,8 +35,23 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-dvh bg-bg">
-      <Sidebar />
-      <div className="pb-28 md:pl-60 md:pb-12">
+      <Sidebar collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed((value) => !value)} />
+      <header className="fixed left-0 right-0 top-0 z-30 flex items-center justify-between border-b border-border bg-bg/95 px-4 py-3 backdrop-blur md:hidden">
+        <button
+          type="button"
+          onClick={() => setMobileMenuOpen(true)}
+          aria-label="Open navigation menu"
+          className="inline-flex size-10 items-center justify-center rounded-[var(--radius-md)] border border-border bg-surface text-text-primary"
+        >
+          <Menu className="size-5" />
+        </button>
+        <div className="flex items-center gap-2.5">
+          <img src="/cashly-logo.svg" alt="" aria-hidden="true" className="size-8 shrink-0" />
+          <span className="text-base font-bold text-text-primary">Cashly</span>
+        </div>
+        <div className="size-10" />
+      </header>
+      <div className={cn('pb-28 md:pb-12', sidebarCollapsed ? 'md:pl-16' : 'md:pl-60', 'pt-16 md:pt-6')}>
         <main className="mx-auto w-full max-w-2xl px-4 pt-6">
           <div key={pathname}>{children}</div>
         </main>
@@ -34,6 +59,34 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="md:hidden">
         <BottomNav />
       </div>
+      <Sheet open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} title="Cashly navigation">
+        <div className="space-y-2">
+          {sidebarItems.map((item) => {
+            const Icon = item.icon
+            const active = pathname === item.href
+            return (
+              <button
+                key={item.href}
+                type="button"
+                onClick={() => {
+                  router.push(item.href)
+                  setMobileMenuOpen(false)
+                }}
+                aria-current={active ? 'page' : undefined}
+                className={cn(
+                  'flex w-full items-center gap-3 rounded-[var(--radius-md)] px-3.5 py-3 text-left text-sm font-medium transition-colors',
+                  active
+                    ? 'bg-accent-soft text-accent'
+                    : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
+                )}
+              >
+                <Icon className="size-5" />
+                {item.label}
+              </button>
+            )
+          })}
+        </div>
+      </Sheet>
     </div>
   )
 }
