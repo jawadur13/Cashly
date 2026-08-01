@@ -11,8 +11,9 @@ Public pages: auth only.
 | `/auth/login` | public | Login | Email + password sign-in. |
 | `/auth/register` | public | Register | Create account. On success → auto sign-in → `/app`. |
 | `/auth/forgot-password` | public | Forgot password | Email input → Appwrite sends recovery link. |
-| `/app` | protected | Home (Dashboard) | Balance card, quick add buttons, recent transactions. |
-| `/app/transactions` | protected | Transactions | Full list, filter by type + currency, add/edit/delete. |
+| `/app` | protected | Home (Dashboard) | Current balance (based on accounts), monthly income/expense/savings, recent transactions, quick add buttons. |
+| `/app/accounts` | protected | Accounts | List accounts with balances; create / edit / delete accounts. |
+| `/app/transactions` | protected | Transactions | Full list, filters (type, currency, account) + text search, add/edit/delete. |
 | `/app/transactions/new` | protected | New transaction | Form to create a transaction. |
 | `/app/transactions/[id]` | protected | Edit transaction | Form to edit/delete an existing transaction. |
 | `/app/categories` | protected | Categories | View predefined categories, add custom ones. |
@@ -35,7 +36,9 @@ Public pages: auth only.
 
 ### `/auth/register`
 - Form: name (display name), email, password, confirm password.
-- Submit → Appwrite `account.create`, then create session, then seed categories.
+- Submit → Appwrite `account.create`, then create session, then **seed data**:
+  default prefs (`defaultCurrency: "BDT"`), default accounts (Cash, Bank,
+  bKash, Nagad).
 - Client + server validation (email format, password ≥ 8 chars).
 - On success → `/app`.
 
@@ -46,27 +49,45 @@ Public pages: auth only.
 
 ### `/app` — Home (Dashboard)
 Mobile-first layout.
-- **Balance card:** current balance in default currency.
+- **Balance card:** current balance across accounts (default currency).
+- **Account balances:** per-account balances (based on the user's accounts).
+- **Monthly summary:** Monthly Income, Monthly Expense, Monthly Savings
+  (default currency, current month).
 - **Quick actions:** "+ Income" and "+ Expense" buttons → open new-transaction
   flow pre-filled with type.
 - **Recent transactions:** last ~10, tap to edit.
 - **Link:** "See all transactions" → `/app/transactions`.
 
+### `/app/accounts`
+- List of the user's accounts, each showing name, type icon, balance.
+- **Add account:** bottom sheet with name + type (cash / bank / mobile-wallet)
+  + currency (defaults to user default).
+- **Edit / delete** account (delete blocked with message if the account has
+  transactions).
+- Default accounts (Cash, Bank, bKash, Nagad) appear here after sign-up.
+
 ### `/app/transactions`
-- Full list, newest first.
-- **Filters:** type (all / income / expense), currency (all / specific).
+- Full list, newest first, with **Load More** button (infinite scroll) — no
+  page-number pagination.
+- **Filters:** type (all / income / expense), currency (all / specific),
+  account (all / specific).
+- **Search:** text input matching note text or category name, combined with the
+  filters above.
 - **Summary line:** total of the visible list per selected currency.
-- Each row: category icon + name, note, date, amount (+/- colour, currency symbol).
+- Each row: category icon + name, payee, note, date, amount (+/- colour,
+  currency symbol).
 - **FAB (+):** quick add → `/app/transactions/new`.
 - Empty state with CTA when no transactions match.
 
 ### `/app/transactions/new`
 - Form fields:
   - Type segmented control: Income / Expense (default: Expense).
+  - Account (dropdown/chips of the user's accounts; defaults to first account).
   - Amount (numeric, positive).
-  - Currency (defaults to user's default currency).
+  - Currency (defaults to the selected account's currency, else user default).
   - Category (chip grid filtered by selected type).
-  - Date (defaults to today).
+  - Merchant / Payee (optional, separate from note).
+  - Date (defaults to today; stored as full DateTime).
   - Note (optional, free text).
 - Save → create document → redirect to `/app/transactions`.
 - Cancel → back.
@@ -86,6 +107,7 @@ Mobile-first layout.
 
 ### `/app/settings`
 - **Default currency:** select from supported currencies.
+- **Theme:** dark / light toggle (default follows system).
 - **Account info:** display name + email (read-only in v1).
 - **Sign out** button.
 - App version footer.
@@ -99,10 +121,10 @@ The protected area (`/app/**`) uses a shared layout:
 
 - **Mobile (default):**
   - Top app bar: page title, avatar/menu on right.
-  - Bottom navigation (4 tabs): Home, Transactions, Categories, Settings.
+  - Bottom navigation (5 tabs): Home, Transactions, Accounts, Categories, Settings.
   - FAB for quick add on Home and Transactions.
 - **Desktop (≥ 768px):**
-  - Left sidebar navigation with the same 4 items.
+  - Left sidebar navigation with the same 5 items.
   - Top bar with page title + settings menu.
   - Content area with max-width container.
 

@@ -13,7 +13,11 @@ Principles:
 
 ## 1. Colour Tokens
 
-Light theme only in v1.
+Both **light** and **dark** themes are defined from the start (Phase 0).
+Tokens are CSS variables; `[data-theme="dark"]` swaps the set. Default follows
+`prefers-color-scheme` via `ThemeProvider` (see `architecture.md` §7).
+
+### Light theme (default)
 
 | Token | Hex | Usage |
 | --- | --- | --- |
@@ -32,9 +36,29 @@ Light theme only in v1.
 | `--expense-soft` | `#FDECEC` | Expense chip backgrounds |
 | `--danger` | `#DC2626` | Destructive actions (delete) |
 
+### Dark theme
+
+| Token | Hex | Usage |
+| --- | --- | --- |
+| `--bg` | `#0E0E11` | App background |
+| `--surface` | `#191A1F` | Cards, sheets, inputs |
+| `--surface-hover` | `#23242A` | Hover / pressed surfaces |
+| `--border` | `#2C2D34` | Hairline dividers, input borders |
+| `--text-primary` | `#F4F4F5` | Headings, amounts |
+| `--text-secondary` | `#A1A1AA` | Labels, meta text |
+| `--text-tertiary` | `#71717A` | Placeholders, disabled |
+| `--accent` | `#3B82F6` (blue) | Primary buttons, links, focus rings, active tab |
+| `--accent-soft` | `#1E2A4A` | Accent backgrounds, selected chips |
+| `--income` | `#22C55E` (green) | Income amounts, income accents |
+| `--income-soft` | `#12261A` | Income chip backgrounds |
+| `--expense` | `#EF4444` (red) | Expense amounts, expense accents |
+| `--expense-soft` | `#2B1416` | Expense chip backgrounds |
+| `--danger` | `#EF4444` | Destructive actions (delete) |
+
 Semantic mapping: `--accent` = primary interactive; `--income` / `--expense`
 are data-colour only (amounts, type filters, category chips), never used for
-large buttons.
+large buttons. Dark shadows are removed/softened (dark surfaces need less
+shadow, more border).
 
 ## 2. Typography
 
@@ -97,33 +121,65 @@ large buttons.
 
 ### Transaction row
 ```
-[icon in tinted circle]  Category name           - $12.50
-                         Note · Today 12:30   (expense red / income green)
+[icon in tinted circle]  Category name           - ৳12.50
+                         Payee · Note · Today 12:30   (expense red / income green)
 ```
 - Icon circle: 40px, `--income-soft`/`--expense-soft` bg with matching icon.
+- Payee (if present) shown as strong text on the second line, then note.
 - Full row is tappable → edit screen.
+
+### Account card / picker
+- **AccountCard:** 48px icon in a tinted circle (Cash=Wallet, Bank=Landmark,
+  bKash/Nagad=Smartphone/mobile-wallet glyph), name, type label, balance.
+- **AccountPicker** (transaction form): horizontal chips or a dropdown of the
+  user's accounts; selected shows a check.
+- Account type → icon map: `cash` → Wallet, `bank` → Landmark,
+  `mobile-wallet` → Smartphone.
 
 ### Balance card (Home)
 - `--accent` soft gradient or clean `--surface` with `--shadow-sm`.
 - Label "Current balance", `display` amount with currency symbol, caption
-  "in USD" hint when other currencies exist.
-- Two side-by-side summary chips: income this… / expense this… (period = all
-  time in v1).
+  "in BDT" hint when other currencies exist.
+- Below: **Monthly summary** chips — Monthly Income (green), Monthly Expense
+  (red), Monthly Savings (income − expense, neutral; red when negative).
+- Account balances are listed separately under the card (`AccountBalances`),
+  each row: account name + icon, balance in the account's currency.
 
-### Chips (category picker, filters)
+### MonthlySummary (Home)
+- Three small stat tiles: Income, Expense, Savings for the current month.
+- Uses the user's default currency; values per `database-schema.md` §7.
+
+### SearchBar
+- Full-width input (48px) with search icon, clear (`x`) button when non-empty.
+- Debounced (~300ms) so typing doesn't fire a query per keystroke.
+- Used on the Transactions page; combines with active filters.
+
+### LoadMoreButton
+- Full-width ghost button at the bottom of a list: "Load more".
+- Replaces page-number pagination. When loading shows a small spinner.
+- (Optional enhancement: IntersectionObserver-based infinite scroll.)
+
+### Chips (category picker, filters, account picker)
 - 32–36px pill, `--surface` bg + `--border`; selected = `--accent-soft` bg +
   accent border + accent text. Icon + label.
 
 ### Sheets / Dialogs
 - Mobile: bottom sheet (`--radius-lg` top corners, slide-up).
 - Desktop: centred modal with overlay.
-- Used for: add-transaction quick flow, confirm delete, custom-category form.
+- Used for: add-transaction quick flow, add/edit account form, confirm delete,
+  custom-category form.
 
 ### Nav
-- **Mobile bottom nav:** 4 items (Home, Transactions, Categories, Settings),
-  icon + label, active tab accent-filled icon. Height ~64px + safe-area inset.
-- **Desktop sidebar:** fixed left, 4 items with icon + label, active = accent
+- **Mobile bottom nav:** 5 items (Home, Transactions, Accounts, Categories,
+  Settings), icon + label, active tab accent-filled icon. Height ~64px +
+  safe-area inset.
+- **Desktop sidebar:** fixed left, 5 items with icon + label, active = accent
   pill background.
+
+### Theme toggle
+- In Settings: segmented control Light / Dark / System.
+- Also a quick moon/sun icon button in the top app bar on mobile and sidebar on
+  desktop.
 
 ### Toasts
 - Small pill bottom/centre: success ("Transaction saved"), error, destructive
@@ -147,12 +203,13 @@ large buttons.
 ## 7. Accessibility
 
 - Colour is never the only signal: income/expense also use `+` / `-` signs and
-  labels.
+  labels; savings shown with sign + label.
 - Focus-visible outlines on all interactive elements (2px accent ring).
 - Minimum touch target 44×44px (48px buttons/rows where practical).
 - Form labels linked to inputs; error text via `aria-describedby`.
 - Semantic HTML: `<main>`, `<nav>`, `<button>`, `<label>`, proper heading order.
 - Respect `prefers-reduced-motion`: disable slide/skeleton animations.
+- Theme toggle state is announced; `aria-pressed` on the toggle button.
 
 ## 8. Responsive Behaviour
 
@@ -166,8 +223,8 @@ large buttons.
 
 - App icon set: 192×192, 512×512 PNG (and maskable variants with padding).
 - Apple touch icon 180×180.
-- Manifest name "Cashly", short name "Cashly", theme colour `#FAFAFA`,
-  background colour `#FAFAFA`.
+- Manifest name "Cashly", short name "Cashly", theme colour `#0E0E11`
+  (matches dark bg) with `background_color` `#FAFAFA`.
 - Favicon + `apple-touch-icon` in `src/app/`.
 - All generated in `build-roadmap.md` phase 8 via a simple script or exported
   from a single SVG source.

@@ -14,35 +14,46 @@ Estimated sequence only — sizes are per-phase, total is a small app.
 
 - [ ] `create-next-app` with TypeScript, App Router, ESLint; `src/` dir.
 - [ ] Tailwind CSS v4 + design tokens in `globals.css` (`design.md` §1–3).
+      Define **both light and dark token sets** from the start.
 - [ ] Inter font via `next/font/google`.
 - [ ] Prettier config; `.gitignore` with `.env.local`, `.next`, `node_modules`.
 - [ ] Git repo init + first commit (if user approves).
 - [ ] Add `lucide-react`, `appwrite` deps.
 - [ ] Appwrite Cloud project + DB + collections created (per
-  `architecture.md` §4 / `database-schema.md`); `.env.local` filled.
+  `architecture.md` §4 / `database-schema.md`): `accounts`, `transactions`,
+  `categories`; `.env.local` filled.
 - [ ] Seed predefined categories via console or setup script (run once).
 
 **Acceptance:** `npm run dev` → blank page renders; `npm run lint` clean;
-env vars read from `.env.local`.
+env vars read from `.env.local`; both themes render.
 
 ---
 
-## Phase 1 — Auth
+## Phase 1 — Auth, Dark Mode & Accounts
 
-**Goal:** register, login, logout, recovery, protected routing.
+**Goal:** register, login, logout, recovery, protected routing, dark mode,
+and account setup (default accounts per new user).
 
 - [ ] `lib/appwrite/client.ts`, `lib/appwrite/auth.ts` wrappers.
 - [ ] `AuthProvider` + `useAuth` hook (session state machine).
 - [ ] `/auth/login` — email/password, error handling, links.
 - [ ] `/auth/register` — validation (email format, password ≥ 8, match), create
-  account, auto sign-in, **seed default prefs** (`defaultCurrency: "USD"`).
+  account, auto sign-in, then **seed data**:
+  default prefs (`defaultCurrency: "BDT"`) + default accounts
+  (Cash, Bank, bKash, Nagad).
 - [ ] `/auth/forgot-password` — sends recovery email via Appwrite.
 - [ ] Root `/` redirect logic; `/auth/*` redirect to `/app` when logged in.
 - [ ] `src/app/app/layout.tsx` auth guard (loader → redirect when anonymous).
+- [ ] `ThemeProvider` + `data-theme` on `<html>`; light/dark/system
+  (defaults to system). Both token sets already in CSS.
+- [ ] `/app/accounts` page: list seeded accounts, create/edit/delete
+  (`useAccounts` hook), delete blocked if account has transactions.
 - [ ] Sign out (from Settings later in Phase 7; provide dev-only button here).
 
 **Acceptance:** can register, log out, log back in, request recovery; refresh
-keeps session; `/app` redirects anonymous users to login.
+keeps session; `/app` redirects anonymous users to login; new user gets Cash/
+Bank/bKash/Nagad accounts; theme toggle switches light/dark; default currency
+is BDT.
 
 ---
 
@@ -50,20 +61,23 @@ keeps session; `/app` redirects anonymous users to login.
 
 **Goal:** hooks + CRUD utilities against Appwrite.
 
-- [ ] `lib/appwrite/collections.ts`: `listTransactions`, `create/update/delete
-  Transaction`, `listCategories`, `create/deleteCategory` (owner permissions,
-  queries from `database-schema.md` §2–3).
-- [ ] `lib/currency/currencies.ts` (supported codes + locales) and
-  `lib/currency/format.ts` (`formatCurrency(amount, currency)` via Intl).
-- [ ] `lib/constants/categories.ts` (predefined presets + icon map from
-  `database-schema.md` §3).
-- [ ] Hooks: `useTransactions(filters)`, `useCategories()`,
+- [ ] `lib/appwrite/collections.ts`: `listAccounts`, `create/update/delete
+  Account`, `listTransactions`, `create/update/delete Transaction`,
+  `listCategories`, `create/deleteCategory` (owner permissions, queries from
+  `database-schema.md` §2–4).
+- [ ] `searchTransactions(term)` — note search (`Query.search`) + category-name
+  search (match category ids) per `database-schema.md` §3.
+- [ ] `lib/currency/currencies.ts` (supported codes incl. **BDT** + locales)
+  and `lib/currency/format.ts` (`formatCurrency(amount, currency)` via Intl).
+- [ ] `lib/constants/` — category presets, icon map, default account seeds.
+- [ ] Hooks: `useTransactions(filters)`, `useAccounts()`, `useCategories()`,
   `useUserPrefs()`/`SettingsProvider`.
 - [ ] Validation helper (`lib/utils.ts`): positive amount, supported currency,
-  matching category type, trimmed note.
+  valid accountId, matching category type, trimmed note/payee, valid datetime.
 
 **Acceptance:** each hook returns data for the current user only; Appwrite
-console shows correct permissions; invalid inputs rejected at hook level.
+console shows correct permissions; invalid inputs rejected at hook level;
+search returns matches on note and category name.
 
 ---
 
@@ -72,15 +86,19 @@ console shows correct permissions; invalid inputs rejected at hook level.
 **Goal:** navigable shell + reusable components (no data yet).
 
 - [ ] UI kit per `design.md` §5: `Button`, `Input`, `SegmentedControl`, `Chip`,
-  `Sheet` (bottom sheet + desktop modal), `Toast`, `Skeleton`, `EmptyState`.
-- [ ] `TransactionRow` component (income/expense styling).
-- [ ] Nav: `BottomNav` (mobile), `Sidebar` (desktop), `TopBar`, `FAB`.
-- [ ] `/app` layout wiring nav; placeholders for Home/Transactions/Categories/
-  Settings pages (skeleton states).
+  `Sheet` (bottom sheet + desktop modal), `Toast`, `Skeleton`, `EmptyState`,
+  `SearchBar`, `LoadMoreButton`.
+- [ ] `TransactionRow`, `AccountCard`, `AccountPicker`, `MonthlySummary`
+  components (light + dark styling).
+- [ ] Nav: `BottomNav` (mobile, 5 tabs), `Sidebar` (desktop, 5 tabs), `TopBar`
+  (with theme toggle), `FAB`.
+- [ ] `/app` layout wiring nav; placeholders for Home/Accounts/Transactions/
+  Categories/Settings pages (skeleton states).
 - [ ] Not-found page.
 
-**Acceptance:** nav works at all breakpoints; FAB + sheets animate (respecting
-`prefers-reduced-motion`); tabs active state correct.
+**Acceptance:** nav works at all breakpoints with 5 tabs; FAB + sheets animate
+(respecting `prefers-reduced-motion`); tabs active state correct; both themes
+look right on all components.
 
 ---
 
@@ -88,35 +106,41 @@ console shows correct permissions; invalid inputs rejected at hook level.
 
 **Goal:** full create / read / update / delete of transactions.
 
-- [ ] `/app/transactions` list page: filter bar (type + currency), pagination
-  (20/page), empty state, per-currency total line.
-- [ ] `/app/transactions/new` form: type toggle, amount (decimal keypad),
-  currency (defaults to user default), category chip grid (filtered by type),
-  date (default today), note. Client validation.
+- [ ] `/app/transactions` list page: filter bar (type + currency + account),
+  **SearchBar** (note/category text), **Load More** button (no page numbers),
+  empty state, per-currency total line.
+- [ ] `/app/transactions/new` form: type toggle, account picker, amount
+  (decimal keypad), currency (defaults to selected account's currency),
+  category chip grid (filtered by type), merchant/payee (optional), date
+  (default today), note. Client validation.
 - [ ] `/app/transactions/[id]` edit form (same component) + delete with confirm
   sheet/dialog.
+- [ ] Dates stored as full ISO **DateTime**; UI may display date only.
 - [ ] Toasts on save/delete success & errors; refetch after mutations.
 
 **Acceptance:** create/edit/delete work end-to-end for the logged-in user;
 values survive refresh; second user's data is invisible; invalid dates/amounts
-blocked.
+blocked; search + filters combine correctly; Load More appends more rows.
 
 ---
 
 ## Phase 5 — Home Dashboard
 
-**Goal:** balance + recent transactions + quick add.
+**Goal:** balance, monthly summary, recent transactions, quick add.
 
-- [ ] `BalanceCard`: balance in default currency (income − expense, per
-  `database-schema.md` §6), caption when other currencies exist.
+- [ ] `BalanceCard`: current balance across accounts in default currency
+  (income − expense, per `database-schema.md` §7).
+- [ ] `AccountBalances`: per-account balances list.
+- [ ] `MonthlySummary`: **Monthly Income**, **Monthly Expense**, **Monthly
+  Savings** (current month, default currency; no charts).
 - [ ] Quick-add buttons (+ Income / + Expense) → pre-filled new-transaction
   flow.
 - [ ] `RecentTransactions` (last 10) → "See all" link.
-- [ ] Income/expense summary chips on card.
 - [ ] Loading skeletons + empty state CTA.
 
-**Acceptance:** balance is correct for default currency; recent list matches
-latest transactions; quick add sets the right type.
+**Acceptance:** balances correct per account and overall (default currency);
+monthly income/expense/savings correct; recent list matches latest
+transactions; quick add sets the right type.
 
 ---
 
@@ -138,13 +162,15 @@ all fields validated.
 
 ## Phase 7 — Settings
 
-**Goal:** default currency + account info + sign out.
+**Goal:** default currency + theme + account info + sign out.
 
-- [ ] `/app/settings`: default-currency select (persisted via User Prefs),
-  read-only name/email, sign out, version footer.
+- [ ] `/app/settings`: default-currency select (persisted via User Prefs,
+  default BDT), **theme selector** (Light / Dark / System), read-only
+  name/email, sign out, version footer.
 
-**Acceptance:** changing default currency updates balance on Home and the
-default in new-transaction form immediately; persists after refresh.
+**Acceptance:** changing default currency updates balance on Home, monthly
+summary, and the default in new-transaction form immediately; persists after
+refresh; theme choice persists and follows system when set to System.
 
 ---
 
@@ -170,11 +196,12 @@ loads offline.
 
 - [ ] Empty/loading/error states reviewed on every page.
 - [ ] Accessibility pass per `design.md` §7 (focus, contrast, labels,
-  reduced-motion).
+  reduced-motion); both light and dark contrast checked.
 - [ ] Keyboard navigation on forms.
 - [ ] Responsive pass: 360px, 768px, 1280px widths.
 - [ ] Edge cases: very large amounts, leading/trailing zeros, midnight/date
-  boundaries, rapid double-submit, slow network.
+  boundaries (full datetime), rapid double-submit, slow network, empty account
+  list, delete-account-in-use block, search with no results.
 - [ ] `npm run lint` + `npm run build` clean; manual smoke test checklist run
   against live Appwrite Cloud.
 

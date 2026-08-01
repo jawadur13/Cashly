@@ -25,11 +25,15 @@ and expense transactions so a user always knows how much money they have.
 | Backend | **Appwrite Cloud** (appwrite.io, hosted) |
 | Database | Appwrite Cloud database (collections) |
 | Auth | Appwrite Auth — email/password accounts |
-| Users | Multiple accounts, each user sees only their own data |
-| Core features | Income & expense tracking (add / edit / delete), categories, balance + recent transactions on home, multi-currency with a user-chosen default currency, responsive PWA |
+| Users | Multiple accounts (Appwrite Auth), each user sees only their own data |
+| Core features | Income & expense tracking (add / edit / delete) tied to **accounts**, categories, search, merchant/payee, dashboard with balance + monthly summary, multi-currency with a user-chosen default currency, responsive PWA |
+| Accounts | Users can create / edit / delete **accounts** (e.g. Cash, Bank, bKash, Nagad). Every transaction belongs to exactly one account. Dashboard balances are based on these accounts. |
 | Categories | Predefined categories seeded for new users + user-created custom categories |
-| Visual style | Minimal, modern, intuitive; light theme |
-| Design/UX focus | Mobile-first, accessible, fast |
+| Dark mode | Supported from Phase 1; light + dark theme tokens defined from the start, toggle in settings |
+| Reports | Two simple monthly values only (Monthly Income, Monthly Expense) — **no charts / full analytics module** |
+| Default currency | **BDT** (Bangladeshi Taka) for new users, changeable in settings |
+| Visual style | Minimal, modern, intuitive; light + dark themes |
+| Design/UX focus | Mobile-first, accessible, fast; smooth "Load More" scrolling on lists |
 
 ## 3. In-Scope Features (v1)
 
@@ -38,40 +42,57 @@ and expense transactions so a user always knows how much money they have.
    - Login / Logout
    - Password recovery (forgot password) — part of standard email/password auth
    - Protected routes (must be logged in to use the app)
-2. **Transactions (core)**
+2. **Accounts**
+   - Users can create, edit and delete accounts
+   - Default accounts seeded for every new user: **Cash, Bank, bKash, Nagad**
+   - Every transaction belongs to exactly one account
+   - Dashboard displays balances based on these accounts
+   - Transfers between accounts are **NOT** part of v1
+3. **Transactions (core)**
    - Create income or expense transaction
    - Edit a transaction
    - Delete a transaction
-   - Fields: type, amount, currency, category, note, date
-   - Full transaction list with type filter and currency filter
-3. **Categories**
+   - Fields: type, amount, currency, account, category, merchant/payee, note, date
+   - Full transaction list with type filter, currency filter and text search
+   - Date stored as full ISO DateTime (UI may display date only)
+4. **Categories**
    - Predefined categories seeded on first sign-up (split income vs expense)
    - User can add custom categories
-4. **Home / Dashboard**
-   - Current balance
+5. **Home / Dashboard**
+   - Current Balance (based on accounts)
+   - Monthly Income
+   - Monthly Expense
+   - Monthly Savings
    - Recent transactions (last N)
    - Quick actions to add income / expense
-5. **Multi-currency**
-   - User picks a **default currency** in settings
+6. **Search**
+   - Search transactions by note text or category name, in addition to existing
+     type / currency filters
+7. **Reports (simple)**
+   - Two report values only: **Monthly Income** and **Monthly Expense**
+   - No charts, no advanced analytics
+8. **Multi-currency**
+   - User picks a **default currency** in settings (new users start with **BDT**)
    - Every transaction records its own currency (defaults to the user's default)
    - Amounts display with correct symbol/format per currency
    - Cross-currency conversion is **out of scope for v1** (see limitation note below)
-6. **Settings**
+9. **Settings**
    - Set default currency
+   - Toggle dark / light theme
    - Sign out
-7. **PWA**
-   - Installable on mobile + desktop
-   - App manifest + icons
-   - Service worker with offline shell (basic caching)
+10. **PWA**
+    - Installable on mobile + desktop
+    - App manifest + icons
+    - Service worker with offline shell (basic caching)
 
 ## 4. Out of Scope (explicitly deferred)
 
 These are intentionally NOT in v1. Do not build them unless the user asks.
 
 - Budgets / spending limits
-- Reports, charts, analytics
+- Full reports / charts / analytics module (only two monthly values in scope)
 - Recurring / scheduled transactions
-- Multiple accounts / wallets
+- Transfers between accounts
 - Cross-currency conversion & exchange rates
 - Export to CSV/PDF
 - Sharing / family mode
@@ -83,8 +104,12 @@ These are intentionally NOT in v1. Do not build them unless the user asks.
 **Balance with multi-currency:** Without exchange rates, adding up amounts in
 different currencies is not meaningful. For v1:
 
-- The **balance card on Home** shows the sum of transactions in the user's
-  **default currency only** (labelled with that currency).
+- Each **account** has its own balance = sum of that account's transactions
+  (income − expense), computed per currency.
+- The **balance card on Home** shows the total across accounts, but only counts
+  transactions in the user's **default currency** (labelled with that currency).
+  If an account holds a different currency, its own balance is shown per
+  currency within that account.
 - Transactions in other currencies still appear in the list, each shown with
   its own symbol.
 - A currency filter on the Transactions page lets the user see totals per
