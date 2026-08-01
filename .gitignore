@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+
+# Environment — NEVER commit secrets
+.env
+.env.local
+.env*.local
+
+# Misc
+.DS_Store
+*.pem
+npm-debug.log*
+
+# Service worker / PWA build output (Serwist)
+sw/
