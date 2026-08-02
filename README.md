@@ -1,16 +1,20 @@
 # Cashly
 
-Cashly is a personal finance web app built with Next.js and Appwrite. It helps users manage accounts, categories, and transactions with a simple mobile-friendly experience, including authentication, balances, monthly summaries, and transaction history.
+Cashly is a personal finance web app built with Next.js and Appwrite. It helps users manage accounts, categories, and transactions with a simple mobile-friendly experience, including authentication, balances, summaries, and transaction history.
+
+🔗 **Live app:** [https://cashly.mvp.bd/](https://cashly.mvp.bd/)
 
 ## Overview
 
 ### What the app includes
-- User authentication with Appwrite Auth
+- User authentication with Appwrite Auth (register, login, password reset)
 - Account management and balance tracking
-- Categories for income and expenses
-- Transaction creation, editing, and filtering
-- Monthly summaries and recent transaction views
-- Responsive UI designed for mobile-first use
+- Categories for income and expenses with a large built-in icon set
+- Transaction creation, editing, and filtering (search, type, account)
+- Summary tab with monthly / yearly / all-time views, opening & closing balances, savings rate, and category breakdowns
+- Multi-currency support with exchange-rate conversion
+- Balance privacy: hidden by default with a 5-second "peek" eye toggle
+- Responsive mobile-first UI (bottom nav on phones, sidebar on desktop)
 - Progressive Web App support via service worker registration
 
 ### Tech stack
