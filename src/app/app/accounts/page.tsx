@@ -11,11 +11,13 @@ import { AccountForm } from '@/components/accounts/account-form'
 import { useAccounts } from '@/hooks/use-accounts'
 import { useAccountBalances } from '@/hooks/use-account-balances'
 import { useToast } from '@/providers/toast-provider'
+import { useSettings } from '@/providers/settings-provider'
 import type { Account } from '@/lib/types'
 
 export default function AccountsPage() {
+  const { defaultCurrency } = useSettings()
   const { accounts, loading, add, update, remove } = useAccounts()
-  const { balances, loading: balancesLoading } = useAccountBalances()
+  const { balances, loading: balancesLoading } = useAccountBalances(defaultCurrency)
   const { toast } = useToast()
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<Account | null>(null)
@@ -50,7 +52,7 @@ export default function AccountsPage() {
         <div className="space-y-2">
           {accounts.map((account) => (
             <div key={account.$id} className="group relative">
-              <AccountCard account={account} balance={balances[account.$id] ?? 0} onClick={() => { setEditing(account); setFormOpen(true) }} />
+              <AccountCard account={account} balance={balances[account.$id] ?? 0} defaultCurrency={defaultCurrency} onClick={() => { setEditing(account); setFormOpen(true) }} />
               <button
                 onClick={() => setDeleting(account)}
                 aria-label={`Delete ${account.name}`}

@@ -2,14 +2,17 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { listTransactions } from '@/lib/appwrite/collections'
+import { convertCurrency } from '@/lib/currency/currencies'
 import { useAuth } from '@/providers/auth-provider'
 import { useAccounts } from './use-accounts'
+import { useExchangeRates } from './use-exchange-rates'
 
-export function useAccountBalances() {
+export function useAccountBalances(defaultCurrency?: string) {
   const { user } = useAuth()
   const { accounts, loading: accountsLoading } = useAccounts()
   const [balances, setBalances] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
+  const { rates } = useExchangeRates()
 
   const refresh = useCallback(async () => {
     if (!user) {
@@ -37,7 +40,13 @@ export function useAccountBalances() {
     refresh()
   }, [refresh])
 
-  const total = accounts.reduce((sum, a) => sum + (balances[a.$id] ?? 0), 0)
+  const total = accounts.reduce((sum, a) => {
+    const balance = balances[a.$id] ?? 0
+    if (defaultCurrency && defaultCurrency !== a.currency) {
+      return sum + convertCurrency(balance, a.currency, defaultCurrency, rates)
+    }
+    return sum + balance
+  }, 0)
 
   return { balances, total, loading: loading || accountsLoading, refresh }
 }

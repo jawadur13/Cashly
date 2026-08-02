@@ -45,3 +45,38 @@ export function isSupportedCurrency(code: string): code is CurrencyCode {
 export function getCurrency(code: string): CurrencyInfo {
   return CURRENCIES.find((c) => c.code === code) ?? CURRENCIES[0]
 }
+
+export interface ExchangeRate {
+  from: CurrencyCode
+  to: CurrencyCode
+  rate: number
+}
+
+export const RATES_RELATIVE_TO_BDT: Record<CurrencyCode, number> = {
+  BDT: 1,
+  USD: 123.25,
+  EUR: 135,
+  GBP: 155,
+  INR: 1.47,
+  JPY: 0.82,
+  CAD: 89,
+  AUD: 78,
+  CHF: 142,
+  BRL: 24,
+  SGD: 91,
+  HKD: 16,
+  CNY: 17,
+}
+
+export function convertCurrency(
+  amount: number,
+  from: string,
+  to: string,
+  rates: Record<string, number> = RATES_RELATIVE_TO_BDT
+): number {
+  if (from === to) return amount
+  const fromRate = rates[from]
+  const toRate = rates[to]
+  if (fromRate == null || toRate == null) return amount
+  return (amount * fromRate) / toRate
+}

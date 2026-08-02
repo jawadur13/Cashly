@@ -7,10 +7,11 @@ import type { Account } from '@/lib/types'
 interface AccountBalancesProps {
   accounts: Account[]
   balances: Record<string, number>
+  defaultCurrency?: string
   loading?: boolean
 }
 
-export function AccountBalances({ accounts, balances, loading }: AccountBalancesProps) {
+export function AccountBalances({ accounts, balances, defaultCurrency, loading }: AccountBalancesProps) {
   return (
     <section className="space-y-2">
       <h2 className="text-sm font-semibold text-text-primary">Accounts</h2>
@@ -21,7 +22,7 @@ export function AccountBalances({ accounts, balances, loading }: AccountBalances
         </div>
       ) : (
         accounts.map((account) => (
-          <AccountCard key={account.$id} account={account} balance={balances[account.$id] ?? 0} />
+          <AccountCard key={account.$id} account={account} balance={balances[account.$id] ?? 0} defaultCurrency={defaultCurrency} maskable />
         ))
       )}
     </section>
