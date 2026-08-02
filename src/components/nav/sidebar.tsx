@@ -2,12 +2,13 @@
 
 import { useRouter } from 'next/navigation'
 import { usePathname } from 'next/navigation'
-import { ChevronLeft, ChevronRight, Home, ArrowLeftRight, FolderKanban, Settings, Landmark } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Home, ArrowLeftRight, FolderKanban, Settings, Landmark, PieChart } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTheme } from '@/providers/theme-provider'
 
 export const sidebarItems = [
   { href: '/app', label: 'Home', icon: Home },
+  { href: '/app/summary', label: 'Summary', icon: PieChart },
   { href: '/app/transactions', label: 'Transactions', icon: ArrowLeftRight },
   { href: '/app/accounts', label: 'Accounts', icon: Landmark },
   { href: '/app/categories', label: 'Categories', icon: FolderKanban },
