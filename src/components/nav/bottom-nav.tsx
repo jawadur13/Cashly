@@ -30,12 +30,12 @@ export function BottomNav() {
               onClick={() => router.push(item.href)}
               aria-current={active ? 'page' : undefined}
               className={cn(
-                'flex flex-1 flex-col items-center justify-center gap-0.5 text-[0.6875rem] font-medium transition-colors',
+                'flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-0.5 text-[0.625rem] font-medium transition-colors',
                 active ? 'text-accent' : 'text-text-tertiary hover:text-text-secondary'
               )}
             >
-              <Icon className="size-5" strokeWidth={active ? 2.4 : 1.8} />
-              {item.label}
+              <Icon className="size-5 shrink-0" strokeWidth={active ? 2.4 : 1.8} />
+              <span className="max-w-full truncate">{item.label}</span>
             </button>
           )
         })}
