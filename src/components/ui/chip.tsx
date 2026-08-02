@@ -10,6 +10,7 @@ interface ChipProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 export function Chip({ selected = false, icon, className, children, ...props }: ChipProps) {
   return (
     <button
+      type="button"
       aria-pressed={selected}
       className={cn(
         'inline-flex h-9 items-center gap-1.5 rounded-[var(--radius-full)] border px-3.5 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-accent',

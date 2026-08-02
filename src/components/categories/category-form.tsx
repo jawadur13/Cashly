@@ -52,7 +52,7 @@ export function CategoryForm({ initial, onSubmit, onCancel, submitLabel }: Categ
       />
       <div>
         <span className="mb-1.5 block text-[0.8125rem] font-medium text-text-secondary">Icon</span>
-        <div className="flex flex-wrap gap-2">
+        <div className="grid max-h-44 grid-cols-8 gap-2 overflow-y-auto rounded-[var(--radius-md)] border border-border bg-bg p-2.5">
           {Object.entries(CATEGORY_ICONS).map(([key, Icon]) => (
             <button
               key={key}
@@ -60,13 +60,13 @@ export function CategoryForm({ initial, onSubmit, onCancel, submitLabel }: Categ
               onClick={() => setIcon(key)}
               aria-pressed={icon === key}
               className={cn(
-                'flex size-10 items-center justify-center rounded-full border transition-colors',
+                'flex aspect-square w-full items-center justify-center rounded-full border transition-colors',
                 icon === key
                   ? 'border-accent bg-accent-soft text-accent'
                   : 'border-border bg-surface text-text-secondary hover:bg-surface-hover'
               )}
             >
-              <Icon className="size-5" />
+              <Icon className="size-[1.15rem]" />
             </button>
           ))}
         </div>
