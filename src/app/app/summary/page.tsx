@@ -7,11 +7,20 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/ui/empty-state'
 import { CategoryIcon } from '@/components/ui/category-icon'
 import { Select } from '@/components/ui/select'
+import { SegmentedControl } from '@/components/ui/segmented-control'
 import { formatCurrency } from '@/lib/currency/format'
 import { cn } from '@/lib/utils'
 import { useSettings } from '@/providers/settings-provider'
 import { useCategories } from '@/hooks/use-categories'
-import { useSummary, type CategoryBreakdownItem } from '@/hooks/use-summary'
+import { useSummary, type CategoryBreakdownItem, type SummaryRange } from '@/hooks/use-summary'
+
+type Scope = 'month' | 'year' | 'all'
+
+const SCOPE_OPTIONS = [
+  { value: 'month' as const, label: 'Month' },
+  { value: 'year' as const, label: 'Year' },
+  { value: 'all' as const, label: 'All time' },
+]
 
 /** Build the last 24 month options as { key: 'YYYY-MM', label: 'Month YYYY' }. */
 function buildMonthOptions() {
@@ -26,14 +35,44 @@ function buildMonthOptions() {
   return options
 }
 
+/** Build the last 6 year options. */
+function buildYearOptions() {
+  const current = new Date().getFullYear()
+  return Array.from({ length: 6 }, (_, i) => current - i)
+}
+
 export default function SummaryPage() {
   const monthOptions = useMemo(() => buildMonthOptions(), [])
+  const yearOptions = useMemo(() => buildYearOptions(), [])
+
+  const [scope, setScope] = useState<Scope>('month')
   const [monthKey, setMonthKey] = useState(monthOptions[0].key)
+  const [year, setYear] = useState(yearOptions[0])
+
   const { defaultCurrency } = useSettings()
   const { categories } = useCategories()
-  const { data, loading } = useSummary(monthKey)
 
-  const monthLabel = monthOptions.find((m) => m.key === monthKey)?.label ?? ''
+  const { range, periodLabel } = useMemo<{ range: SummaryRange; periodLabel: string }>(() => {
+    if (scope === 'all') {
+      return {
+        range: { start: -Infinity, end: Infinity, hasOpening: false },
+        periodLabel: 'All time',
+      }
+    }
+    if (scope === 'year') {
+      return {
+        range: { start: Date.UTC(year, 0, 1), end: Date.UTC(year + 1, 0, 1), hasOpening: true },
+        periodLabel: String(year),
+      }
+    }
+    const [y, m] = monthKey.split('-').map(Number)
+    return {
+      range: { start: Date.UTC(y, m - 1, 1), end: Date.UTC(y, m, 1), hasOpening: true },
+      periodLabel: monthOptions.find((o) => o.key === monthKey)?.label ?? '',
+    }
+  }, [scope, monthKey, year, monthOptions])
+
+  const { data, loading } = useSummary(range)
 
   const categoryName = useMemo(() => {
     const map = new Map(categories.map((c) => [c.$id, c]))
@@ -49,56 +88,72 @@ export default function SummaryPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-end justify-between gap-3">
-        <div>
-          <h1 className="text-lg font-semibold text-text-primary">Summary</h1>
-          <p className="text-sm text-text-secondary">{monthLabel}</p>
-        </div>
-        <div className="w-40">
+      <div>
+        <h1 className="text-lg font-semibold text-text-primary">Summary</h1>
+        <p className="text-sm text-text-secondary">{periodLabel}</p>
+      </div>
+
+      {/* Scope + period picker */}
+      <div className="space-y-3">
+        <SegmentedControl value={scope} onChange={(s) => setScope(s)} options={SCOPE_OPTIONS} />
+        {scope === 'month' && (
           <Select name="month" value={monthKey} onChange={(e) => setMonthKey(e.target.value)}>
             {monthOptions.map((m) => (
               <option key={m.key} value={m.key}>{m.label}</option>
             ))}
           </Select>
-        </div>
+        )}
+        {scope === 'year' && (
+          <Select name="year" value={year} onChange={(e) => setYear(Number(e.target.value))}>
+            {yearOptions.map((y) => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </Select>
+        )}
       </div>
 
       {loading ? (
         <div className="space-y-3">
-          <Skeleton className="h-24 rounded-[var(--radius-lg)]" />
-          <div className="grid grid-cols-2 gap-3">
-            <Skeleton className="h-20 rounded-[var(--radius-md)]" />
-            <Skeleton className="h-20 rounded-[var(--radius-md)]" />
+          <Skeleton className="h-20 rounded-[var(--radius-lg)]" />
+          <div className="grid grid-cols-3 gap-3">
+            <Skeleton className="h-16 rounded-[var(--radius-md)]" />
+            <Skeleton className="h-16 rounded-[var(--radius-md)]" />
+            <Skeleton className="h-16 rounded-[var(--radius-md)]" />
           </div>
         </div>
       ) : (
         <>
-          {/* Opening / closing balance */}
-          <section className="grid grid-cols-2 gap-3">
-            <div className="rounded-[var(--radius-md)] border border-border bg-surface px-3.5 py-3 shadow-[var(--shadow-sm)]">
-              <p className="text-xs text-text-secondary">Opening balance</p>
-              <p className="mt-1 text-base font-semibold tabular-nums text-text-primary">{fmt(data.openingBalance)}</p>
-              <p className="mt-0.5 text-[0.6875rem] text-text-tertiary">Start of {monthLabel}</p>
-            </div>
-            <div className="rounded-[var(--radius-md)] border border-border bg-surface px-3.5 py-3 shadow-[var(--shadow-sm)]">
-              <p className="text-xs text-text-secondary">Closing balance</p>
-              <p
-                className={cn(
-                  'mt-1 text-base font-semibold tabular-nums',
-                  data.closingBalance >= data.openingBalance ? 'text-text-primary' : 'text-expense'
-                )}
-              >
-                {fmt(data.closingBalance)}
-              </p>
-              <p className="mt-0.5 text-[0.6875rem] text-text-tertiary">End of {monthLabel}</p>
-            </div>
-          </section>
+          {/* Classic income / expense / savings summary */}
+          <IncomeExpenseSavings income={data.income} expense={data.expense} savings={data.savings} fmt={fmt} />
+
+          {/* Opening / closing balance (not meaningful for "all time") */}
+          {range.hasOpening && (
+            <section className="grid grid-cols-2 gap-3">
+              <div className="rounded-[var(--radius-md)] border border-border bg-surface px-3.5 py-3 shadow-[var(--shadow-sm)]">
+                <p className="text-xs text-text-secondary">Opening balance</p>
+                <p className="mt-1 text-base font-semibold tabular-nums text-text-primary">{fmt(data.openingBalance)}</p>
+                <p className="mt-0.5 text-[0.6875rem] text-text-tertiary">Start of {periodLabel}</p>
+              </div>
+              <div className="rounded-[var(--radius-md)] border border-border bg-surface px-3.5 py-3 shadow-[var(--shadow-sm)]">
+                <p className="text-xs text-text-secondary">Closing balance</p>
+                <p
+                  className={cn(
+                    'mt-1 text-base font-semibold tabular-nums',
+                    data.closingBalance >= data.openingBalance ? 'text-text-primary' : 'text-expense'
+                  )}
+                >
+                  {fmt(data.closingBalance)}
+                </p>
+                <p className="mt-0.5 text-[0.6875rem] text-text-tertiary">End of {periodLabel}</p>
+              </div>
+            </section>
+          )}
 
           {!hasData ? (
             <EmptyState
               icon={<TrendingUp className="size-6" />}
-              title="No activity in this month"
-              description="No income or expenses were recorded in this period."
+              title="No activity in this period"
+              description="No income or expenses were recorded here."
             />
           ) : (
             <>
@@ -167,6 +222,42 @@ export default function SummaryPage() {
 
       <FAB />
     </div>
+  )
+}
+
+function IncomeExpenseSavings({
+  income,
+  expense,
+  savings,
+  fmt,
+}: {
+  income: number
+  expense: number
+  savings: number
+  fmt: (v: number) => string
+}) {
+  const cell = (label: string, value: number, tone: 'income' | 'expense' | 'neutral') => (
+    <div className="rounded-[var(--radius-md)] border border-border bg-surface px-3 py-3 shadow-[var(--shadow-sm)]">
+      <p className="text-xs text-text-secondary">{label}</p>
+      <p
+        className={cn(
+          'mt-1 text-base font-semibold tabular-nums',
+          tone === 'income' && 'text-income',
+          tone === 'expense' && 'text-expense',
+          tone === 'neutral' && savings < 0 && 'text-expense',
+          tone === 'neutral' && savings >= 0 && 'text-text-primary'
+        )}
+      >
+        {fmt(value)}
+      </p>
+    </div>
+  )
+  return (
+    <section className="grid grid-cols-3 gap-3">
+      {cell('Income', income, 'income')}
+      {cell('Expense', expense, 'expense')}
+      {cell('Savings', savings, 'neutral')}
+    </section>
   )
 }
 
