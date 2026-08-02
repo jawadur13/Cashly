@@ -61,12 +61,13 @@ export async function createCategory(data: {
   name: string
   icon: string
 }): Promise<Category> {
+  const { userId, ...rest } = data
   return databases.createDocument<Category>(
     DATABASE_ID,
     COLLECTIONS.categories,
     ID.unique(),
-    { ...data, color: '', isCustom: true, ownerId: data.userId },
-    ownerPermissions(data.userId)
+    { ...rest, color: '', isCustom: true, ownerId: userId },
+    ownerPermissions(userId)
   )
 }
 

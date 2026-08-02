@@ -72,6 +72,7 @@ export default function RegisterPage() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           error={errors.password}
+          showPasswordToggle
         />
         <Input
           name="confirm"
@@ -81,6 +82,7 @@ export default function RegisterPage() {
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
           error={errors.confirm}
+          showPasswordToggle
         />
         {errors.form && (
           <p className="rounded-[var(--radius-md)] bg-expense-soft px-3.5 py-2.5 text-sm text-expense">{errors.form}</p>
