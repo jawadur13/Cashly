@@ -22,6 +22,7 @@ export interface TransactionFormValues {
   payee: string
   note: string
   date: string
+  time: string
 }
 
 interface TransactionFormProps {
@@ -37,6 +38,7 @@ interface TransactionFormProps {
     payee: string
     note: string
     date: string
+    time: string
   }) => Promise<void>
   onDelete?: () => Promise<void>
   onCancel: () => void
@@ -62,8 +64,20 @@ export function TransactionForm({
   const [payee, setPayee] = useState(initial?.payee ?? '')
   const [note, setNote] = useState(initial?.note ?? '')
   const [date, setDate] = useState(() => {
-    if (initial?.date) return initial.date.slice(0, 10)
-    return new Date().toISOString().slice(0, 10)
+    if (initial?.date) {
+      const d = new Date(initial.date)
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    }
+    const now = new Date()
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  })
+  const [time, setTime] = useState(() => {
+    if (initial?.date) {
+      const d = new Date(initial.date)
+      return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+    }
+    const now = new Date()
+    return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
@@ -87,6 +101,7 @@ export function TransactionForm({
     if (!amount || Number(amount) <= 0) next.amount = 'Enter an amount greater than zero'
     if (!categoryId) next.categoryId = 'Choose a category'
     if (!date) next.date = 'Choose a date'
+    if (!time) next.time = 'Choose a time'
     setErrors(next)
     return Object.keys(next).length === 0
   }
@@ -104,7 +119,7 @@ export function TransactionForm({
         categoryId,
         payee: payee.trim(),
         note: note.trim(),
-        date: new Date(date + 'T12:00:00').toISOString(),
+        date: new Date(date + 'T' + time).toISOString(),
       })
       router.push('/app/transactions')
     } catch (err) {
@@ -207,14 +222,24 @@ export function TransactionForm({
         onChange={(e) => setNote(e.target.value)}
       />
 
-      <Input
-        name="date"
-        label="Date"
-        type="date"
-        value={date}
-        onChange={(e) => setDate(e.target.value)}
-        error={errors.date}
-      />
+      <div className="grid grid-cols-2 gap-3">
+        <Input
+          name="date"
+          label="Date"
+          type="date"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          error={errors.date}
+        />
+        <Input
+          name="time"
+          label="Time"
+          type="time"
+          value={time}
+          onChange={(e) => setTime(e.target.value)}
+          error={errors.time}
+        />
+      </div>
 
       {errors.form && (
         <p className="rounded-[var(--radius-md)] bg-expense-soft px-3.5 py-2.5 text-sm text-expense">
