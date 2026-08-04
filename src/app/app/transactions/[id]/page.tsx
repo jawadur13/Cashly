@@ -11,11 +11,14 @@ import { useToast } from '@/providers/toast-provider'
 import { getTransaction } from '@/lib/appwrite/collections'
 import type { Transaction } from '@/lib/types'
 
+import { usePeople } from '@/hooks/use-people'
+
 export default function EditTransactionPage() {
   const params = useParams<{ id: string }>()
   const router = useRouter()
   const { accounts, loading: accountsLoading } = useAccounts()
   const { categories, loading: categoriesLoading } = useCategories()
+  const { people, loading: peopleLoading } = usePeople()
   const { update, remove } = useTransactions({})
   const { toast } = useToast()
   const [initial, setInitial] = useState<Transaction | null>(null)
@@ -51,7 +54,7 @@ export default function EditTransactionPage() {
         <h1 className="text-lg font-semibold text-text-primary">Edit transaction</h1>
         <p className="text-sm text-text-secondary">Update the details below</p>
       </div>
-      {loading || accountsLoading || categoriesLoading ? (
+      {loading || accountsLoading || categoriesLoading || peopleLoading ? (
         <p className="text-sm text-text-tertiary">Loading...</p>
       ) : error ? (
         <p className="rounded-[var(--radius-md)] bg-expense-soft px-3.5 py-2.5 text-sm text-expense">
@@ -61,6 +64,7 @@ export default function EditTransactionPage() {
         <TransactionForm
           accounts={accounts}
           categories={categories}
+          people={people}
           initial={initial}
           submitLabel="Save changes"
           onCancel={() => router.back()}

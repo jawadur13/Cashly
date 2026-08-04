@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { usePathname } from 'next/navigation'
-import { ChevronLeft, ChevronRight, Home, ArrowLeftRight, FolderKanban, Settings, Landmark, PieChart, LogOut } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Home, ArrowLeftRight, FolderKanban, Settings, Landmark, PieChart, LogOut, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTheme } from '@/providers/theme-provider'
 import { useAuth } from '@/providers/auth-provider'
@@ -13,6 +13,7 @@ export const sidebarItems = [
   { href: '/app/transactions', label: 'Transactions', icon: ArrowLeftRight },
   { href: '/app/accounts', label: 'Accounts', icon: Landmark },
   { href: '/app/categories', label: 'Categories', icon: FolderKanban },
+  { href: '/app/people', label: 'People', icon: Users },
   { href: '/app/settings', label: 'Settings', icon: Settings },
 ]
 

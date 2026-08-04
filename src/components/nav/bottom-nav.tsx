@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { usePathname } from 'next/navigation'
-import { Home, ArrowLeftRight, FolderKanban, Settings, Landmark, PieChart } from 'lucide-react'
+import { Home, ArrowLeftRight, FolderKanban, Settings, Landmark, PieChart, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const items = [
@@ -11,6 +11,7 @@ const items = [
   { href: '/app/transactions', label: 'Transactions', icon: ArrowLeftRight },
   { href: '/app/accounts', label: 'Accounts', icon: Landmark },
   { href: '/app/categories', label: 'Categories', icon: FolderKanban },
+  { href: '/app/people', label: 'People', icon: Users },
   { href: '/app/settings', label: 'Settings', icon: Settings },
 ]
 

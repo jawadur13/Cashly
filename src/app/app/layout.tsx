@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { Menu } from 'lucide-react'
+import { Menu, LogOut } from 'lucide-react'
 import { useAuth } from '@/providers/auth-provider'
 import { BottomNav } from '@/components/nav/bottom-nav'
 import { Sidebar, sidebarItems } from '@/components/nav/sidebar'
@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils'
 import { BalanceVisibilityProvider } from '@/providers/balance-visibility-provider'
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const { status } = useAuth()
+  const { status, signOut } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -87,6 +87,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 </button>
               )
             })}
+          </div>
+          <div className="mt-3 border-t border-border pt-2">
+            <button
+              type="button"
+              onClick={() => { signOut(); router.replace('/auth/login') }}
+              className="flex w-full items-center gap-3 rounded-[var(--radius-md)] px-3.5 py-3 text-left text-sm font-medium text-text-secondary hover:bg-surface-hover hover:text-expense transition-colors"
+            >
+              <LogOut className="size-5" />
+              Sign out
+            </button>
           </div>
         </Sheet>
       </div>

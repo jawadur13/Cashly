@@ -11,7 +11,7 @@ import { Sheet } from '@/components/ui/sheet'
 import { CategoryIcon } from '@/components/ui/category-icon'
 import { CURRENCIES } from '@/lib/currency/currencies'
 import { useSettings } from '@/providers/settings-provider'
-import type { Account, Category, Transaction, TransactionType } from '@/lib/types'
+import type { Account, Category, Person, Transaction, TransactionType } from '@/lib/types'
 
 export interface TransactionFormValues {
   accountId: string
@@ -32,6 +32,7 @@ export interface TransactionFormValues {
 interface TransactionFormProps {
   accounts: Account[]
   categories: Category[]
+  people: Person[]
   initial?: Transaction
   onSubmit: (values: {
     accountId: string
@@ -46,6 +47,7 @@ interface TransactionFormProps {
     toAccountId?: string
     fromAmount?: number
     toAmount?: number
+    personId?: string
   }) => Promise<void>
   onDelete?: () => Promise<void>
   onCancel: () => void
@@ -55,6 +57,7 @@ interface TransactionFormProps {
 export function TransactionForm({
   accounts,
   categories,
+  people,
   initial,
   onSubmit,
   onDelete,
@@ -93,8 +96,10 @@ export function TransactionForm({
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [personId, setPersonId] = useState(initial?.personId ?? '')
 
   const isExchange = type === 'exchange'
+  const isGiveTake = type === 'give' || type === 'take'
   const filteredCategories = useMemo(
     () => categories.filter((c) => c.type === type),
     [categories, type]
@@ -122,6 +127,10 @@ export function TransactionForm({
       if (fromAccountId && toAccountId && !sameCurrencyExchange) next.toAccountId = 'Both accounts must use the same currency'
       if (!fromAmount || Number(fromAmount) <= 0) next.fromAmount = 'Enter an amount greater than zero'
       if (!toAmount || Number(toAmount) <= 0) next.toAmount = 'Enter an amount greater than zero'
+    } else if (isGiveTake) {
+      if (!currentAccountId) next.accountId = 'Choose an account'
+      if (!personId) next.personId = 'Choose a person'
+      if (!amount || Number(amount) <= 0) next.amount = 'Enter an amount greater than zero'
     } else {
       if (!currentAccountId) next.accountId = 'Choose an account'
       if (!amount || Number(amount) <= 0) next.amount = 'Enter an amount greater than zero'
@@ -143,10 +152,11 @@ export function TransactionForm({
         type,
         amount: isExchange ? Math.abs(Number(toAmount) - Number(fromAmount)) : Number(amount),
         currency: isExchange ? exchangeCurrency : effectiveCurrency,
-        categoryId: isExchange ? '' : categoryId,
+        categoryId: isExchange || isGiveTake ? '' : categoryId,
         payee: payee.trim(),
         note: note.trim(),
         date: new Date(date + 'T' + time).toISOString(),
+        ...(isGiveTake ? { personId } : {}),
         ...(isExchange ? {
           fromAccountId,
           toAccountId,
@@ -179,11 +189,13 @@ export function TransactionForm({
     <form onSubmit={handleSubmit} className="space-y-5 pb-8">
       <SegmentedControl
         value={type}
-        onChange={(t) => { setType(t); setCategoryId('') }}
+        onChange={(t) => { setType(t); setCategoryId(''); setPersonId('') }}
         options={[
           { value: 'expense', label: 'Expense' },
           { value: 'income', label: 'Income' },
           { value: 'exchange', label: 'Exchange' },
+          { value: 'give', label: 'Give' },
+          { value: 'take', label: 'Take' },
         ]}
       />
 
@@ -253,6 +265,63 @@ export function TransactionForm({
             {fromAccount && toAccount && !sameCurrencyExchange && (
               <p className="mt-1 text-xs text-expense">Accounts must share the same currency to exchange between them.</p>
             )}
+          </div>
+        </>
+      ) : isGiveTake ? (
+        <>
+          <Select
+            name="account"
+            label="Account"
+            value={currentAccountId}
+            onChange={(e) => { setAccountId(e.target.value); setCurrency(accounts.find((a) => a.$id === e.target.value)?.currency ?? defaultCurrency) }}
+            error={errors.accountId}
+          >
+            {accounts.length === 0 && <option value="">No accounts — create one first</option>}
+            {accounts.map((a) => (
+              <option key={a.$id} value={a.$id}>{a.name}</option>
+            ))}
+          </Select>
+
+          <div>
+            <span className="mb-1.5 block text-[0.8125rem] font-medium text-text-secondary">Person</span>
+            {people.length === 0 ? (
+              <p className="text-sm text-text-tertiary">No people added yet.</p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {people.map((p) => {
+                  const selected = personId === p.$id
+                  return (
+                    <Chip
+                      key={p.$id}
+                      selected={selected}
+                      onClick={() => setPersonId(p.$id)}
+                    >
+                      {p.name}
+                    </Chip>
+                  )
+                })}
+              </div>
+            )}
+            {errors.personId && <p className="mt-1 text-xs text-expense">{errors.personId}</p>}
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              name="amount"
+              label="Amount"
+              type="number"
+              inputMode="decimal"
+              step="any"
+              min="0"
+              placeholder="0.00"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              error={errors.amount}
+            />
+            <div className="rounded-[var(--radius-md)] border border-border bg-surface-hover px-3.5 py-2.5">
+              <span className="block text-[0.8125rem] font-medium text-text-secondary">Currency</span>
+              <span className="block text-sm text-text-primary tabular-nums">{effectiveCurrency}</span>
+            </div>
           </div>
         </>
       ) : (

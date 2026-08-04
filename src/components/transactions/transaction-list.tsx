@@ -5,12 +5,13 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/ui/empty-state'
 import { ReceiptText } from 'lucide-react'
 import { TransactionRow } from './transaction-row'
-import type { Account, Category, Transaction } from '@/lib/types'
+import type { Account, Category, Person, Transaction } from '@/lib/types'
 
 interface TransactionListProps {
   transactions: Transaction[]
   categories: Category[]
   accounts: Account[]
+  people?: Person[]
   loading: boolean
   onSelect: (id: string) => void
   emptyTitle?: string
@@ -22,6 +23,7 @@ export function TransactionList({
   transactions,
   categories,
   accounts,
+  people = [],
   loading,
   onSelect,
   emptyTitle = 'No transactions yet',
@@ -33,6 +35,7 @@ export function TransactionList({
     [categories]
   )
   const accountMap = useMemo(() => new Map(accounts.map((a) => [a.$id, a])), [accounts])
+  const personMap = useMemo(() => new Map(people.map((p) => [p.$id, p])), [people])
 
   if (loading) {
     return (
@@ -70,6 +73,7 @@ export function TransactionList({
           category={categoryMap.get(t.categoryId)}
           account={accountMap.get(t.accountId)}
           toAccount={t.type === 'exchange' ? accountMap.get(t.toAccountId ?? '') : undefined}
+          person={personMap.get(t.personId ?? '')}
           onClick={() => onSelect(t.$id)}
         />
       ))}

@@ -7,6 +7,7 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { ReceiptText } from 'lucide-react'
 import { useCategories } from '@/hooks/use-categories'
 import { useAccounts } from '@/hooks/use-accounts'
+import { usePeople } from '@/hooks/use-people'
 import type { Transaction } from '@/lib/types'
 
 interface RecentTransactionsProps {
@@ -19,6 +20,7 @@ export function RecentTransactions({ transactions, loading, onSeeAll }: RecentTr
   const router = useRouter()
   const { categories } = useCategories()
   const { accounts } = useAccounts()
+  const { people } = usePeople()
 
   return (
     <section className="space-y-2">
@@ -42,6 +44,7 @@ export function RecentTransactions({ transactions, loading, onSeeAll }: RecentTr
           transactions={transactions.slice(0, 5)}
           categories={categories}
           accounts={accounts}
+          people={people}
           loading={loading ?? false}
           onSelect={(id) => router.push(`/app/transactions/${id}`)}
         />

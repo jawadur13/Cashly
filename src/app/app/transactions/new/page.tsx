@@ -8,10 +8,13 @@ import { useCategories } from '@/hooks/use-categories'
 import { useTransactions } from '@/hooks/use-transactions'
 import { useToast } from '@/providers/toast-provider'
 
+import { usePeople } from '@/hooks/use-people'
+
 export default function NewTransactionPage() {
   const router = useRouter()
   const { accounts, loading: accountsLoading } = useAccounts()
   const { categories, loading: categoriesLoading } = useCategories()
+  const { people, loading: peopleLoading } = usePeople()
   const { add } = useTransactions({})
   const { toast } = useToast()
 
@@ -27,12 +30,13 @@ export default function NewTransactionPage() {
         <h1 className="text-lg font-semibold text-text-primary">New transaction</h1>
         <p className="text-sm text-text-secondary">Record income, expense, or exchange</p>
       </div>
-      {(accountsLoading || categoriesLoading) ? (
+      {(accountsLoading || categoriesLoading || peopleLoading) ? (
         <p className="text-sm text-text-tertiary">Loading...</p>
       ) : (
         <TransactionForm
           accounts={accounts}
           categories={categories}
+          people={people}
           submitLabel="Save transaction"
           onCancel={() => router.back()}
           onSubmit={async (values) => {

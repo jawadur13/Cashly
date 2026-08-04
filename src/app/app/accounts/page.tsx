@@ -69,7 +69,7 @@ export default function AccountsPage() {
       ) : (
         <div className="space-y-2">
           {accounts.map((account) => (
-            <div key={account.$id} className="group relative">
+            <div key={account.$id} className="group relative pr-12">
               <AccountCard account={account} balance={balances[account.$id] ?? 0} defaultCurrency={defaultCurrency} onClick={() => { setEditing(account); setFormOpen(true) }} />
               <button
                 onClick={() => handleSetDeleting(account)}

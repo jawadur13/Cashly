@@ -11,9 +11,10 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   showPasswordToggle?: boolean
 }
 
-export function Input({ label, error, hint, className, id, showPasswordToggle, ...props }: InputProps) {
+export function Input({ label, error, hint, className, id, showPasswordToggle, onWheel, ...props }: InputProps) {
   const [visible, setVisible] = useState(false)
   const isPassword = props.type === 'password'
+  const isNumber = props.type === 'number'
   const inputId = id ?? props.name
 
   return (
@@ -36,6 +37,10 @@ export function Input({ label, error, hint, className, id, showPasswordToggle, .
             showPasswordToggle && isPassword ? 'pr-11' : undefined,
             className
           )}
+          onWheel={(e) => {
+            if (isNumber) e.currentTarget.blur()
+            onWheel?.(e)
+          }}
           {...props}
           type={isPassword ? (visible ? 'text' : 'password') : props.type}
         />

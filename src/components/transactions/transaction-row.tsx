@@ -14,12 +14,17 @@ interface TransactionRowProps {
   account?: { $id: string; name: string }
   /** Destination account, only meaningful for exchanges. */
   toAccount?: { $id: string; name: string }
+  /** Person for give/take transactions. */
+  person?: { $id: string; name: string }
   onClick?: () => void
 }
 
-export function TransactionRow({ transaction, category, account, toAccount, onClick }: TransactionRowProps) {
+export function TransactionRow({ transaction, category, account, toAccount, person, onClick }: TransactionRowProps) {
   const income = transaction.type === 'income'
   const isExchange = transaction.type === 'exchange'
+  const isGive = transaction.type === 'give'
+  const isTake = transaction.type === 'take'
+  const isPersonType = isGive || isTake
   const secondLine = [
     transaction.payee,
     transaction.note,
@@ -54,18 +59,25 @@ export function TransactionRow({ transaction, category, account, toAccount, onCl
       <span
         className={cn(
           'flex size-10 shrink-0 items-center justify-center rounded-full',
-          isExchange ? 'bg-exchange-soft text-exchange' : income ? 'bg-income-soft text-income' : 'bg-expense-soft text-expense'
+          isExchange && 'bg-exchange-soft text-exchange',
+          isPersonType && isGive && 'bg-expense-soft text-expense',
+          isPersonType && isTake && 'bg-income-soft text-income',
+          !isExchange && !isPersonType && (income ? 'bg-income-soft text-income' : 'bg-expense-soft text-expense')
         )}
       >
-        <CategoryIcon name={isExchange ? 'arrow-left-right' : category?.icon} className="size-5" />
+        <CategoryIcon name={isExchange ? 'arrow-left-right' : isPersonType ? 'users' : category?.icon} className="size-5" />
       </span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[0.9375rem] font-medium text-text-primary">
-          {isExchange ? 'Exchange' : (category?.name ?? 'Uncategorized')}
+          {isExchange ? 'Exchange' : isPersonType ? (person?.name ?? 'Unknown') : (category?.name ?? 'Uncategorized')}
         </span>
         {isExchange && account && toAccount ? (
           <span className="block truncate text-xs text-text-secondary">
             {account.name} → {toAccount.name}
+          </span>
+        ) : isPersonType ? (
+          <span className="block truncate text-xs text-text-secondary">
+            {isGive ? 'Given to' : 'Received from'} {person?.name} · via {account?.name}
           </span>
         ) : (
           <span className="block truncate text-xs text-text-secondary">
@@ -78,7 +90,9 @@ export function TransactionRow({ transaction, category, account, toAccount, onCl
           </span>
         )}
         {!isExchange && (
-          <span className="block text-xs text-text-tertiary">{formatDateTime(transaction.date)}</span>
+          <span className="block text-xs text-text-tertiary">
+            {isPersonType && transaction.note ? transaction.note : formatDateTime(transaction.date)}
+          </span>
         )}
       </span>
       {isExchange ? (
@@ -94,6 +108,10 @@ export function TransactionRow({ transaction, category, account, toAccount, onCl
           {exchangeGainLoss !== null && exchangeGainLoss < 0 ? formatCurrency(exchangeGainLoss, transaction.currency) : null}
           {exchangeGainLoss === 0 ? '—' : null}
         </span>
+      ) : isPersonType ? (
+        <span className={cn('shrink-0 text-[0.9375rem] font-semibold tabular-nums', isGive ? 'text-expense' : 'text-income')}>
+          {formatSignedAmount(transaction.amount, transaction.currency, isGive ? 'expense' : 'income')}
+        </span>
       ) : (
         <span
           className={cn(
@@ -101,7 +119,7 @@ export function TransactionRow({ transaction, category, account, toAccount, onCl
             income ? 'text-income' : 'text-expense'
           )}
         >
-          {formatSignedAmount(transaction.amount, transaction.currency, transaction.type)}
+          {formatSignedAmount(transaction.amount, transaction.currency, income ? 'income' : 'expense')}
         </span>
       )}
     </button>

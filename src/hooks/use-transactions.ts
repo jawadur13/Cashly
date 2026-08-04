@@ -153,6 +153,7 @@ export function useTransactions(query: TransactionQuery = {}) {
       toAccountId?: string
       fromAmount?: number
       toAmount?: number
+      personId?: string
     }) => {
       if (!user) throw new Error('Not authenticated')
       const created = await createTransaction({ userId: user.$id, ...data })
@@ -178,6 +179,7 @@ export function useTransactions(query: TransactionQuery = {}) {
         toAccountId: string
         fromAmount: number
         toAmount: number
+        personId: string
       }>
     ) => {
       const updated = await updateTransaction(transactionId, data)

@@ -41,7 +41,9 @@ export function useMonthlySummary() {
       for (const t of res.documents) {
         const normalized = convertCurrency(t.amount, t.currency, defaultCurrency, rates)
         if (t.type === 'income') income += normalized
+        else if (t.type === 'take') income += normalized
         else if (t.type === 'expense') expense += normalized
+        else if (t.type === 'give') expense += normalized
         else if (t.type === 'exchange') {
           const diff = Math.abs((t.fromAmount ?? 0) - (t.toAmount ?? 0))
           exchange += convertCurrency(diff, t.currency, defaultCurrency, rates)

@@ -1,7 +1,7 @@
 import { ID, Permission, Query, Role } from 'appwrite'
 import { databases } from './client'
 import { COLLECTIONS, DATABASE_ID } from './config'
-import type { Account, AccountType, Category, Transaction, TransactionType } from '@/lib/types'
+import type { Account, AccountType, Category, Person, Transaction, TransactionType } from '@/lib/types'
 
 const ownerPermissions = (userId: string) => [
   Permission.read(Role.user(userId)),
@@ -58,6 +58,41 @@ export async function countTransactionsByAccount(
   return res.total
 }
 
+/* ---------------- People ---------------- */
+
+export async function listPeople(userId: string): Promise<Person[]> {
+  const res = await databases.listDocuments<Person>(DATABASE_ID, COLLECTIONS.people, [
+    Query.equal('userId', userId),
+    Query.orderAsc('name'),
+  ])
+  return res.documents
+}
+
+export async function createPerson(data: {
+  userId: string
+  name: string
+  note?: string
+}): Promise<Person> {
+  return databases.createDocument<Person>(
+    DATABASE_ID,
+    COLLECTIONS.people,
+    ID.unique(),
+    { userId: data.userId, name: data.name, note: data.note ?? '' },
+    ownerPermissions(data.userId)
+  )
+}
+
+export async function updatePerson(
+  personId: string,
+  data: { name?: string; note?: string }
+): Promise<Person> {
+  return databases.updateDocument<Person>(DATABASE_ID, COLLECTIONS.people, personId, data)
+}
+
+export async function deletePerson(personId: string): Promise<void> {
+  await databases.deleteDocument(DATABASE_ID, COLLECTIONS.people, personId)
+}
+
 /* ---------------- Categories ---------------- */
 
 export async function listCategories(userId: string): Promise<Category[]> {
@@ -95,6 +130,7 @@ export interface TransactionFilters {
   type?: TransactionType
   currency?: string
   accountId?: string
+  personId?: string
   search?: string
   categoryIds?: string[]
   from?: string
@@ -110,6 +146,7 @@ export async function listTransactions(
   if (filters.type) queries.push(Query.equal('type', filters.type))
   if (filters.currency) queries.push(Query.equal('currency', filters.currency))
   if (filters.accountId) queries.push(Query.equal('accountId', filters.accountId))
+  if (filters.personId) queries.push(Query.equal('personId', filters.personId))
   if (filters.categoryIds && filters.categoryIds.length > 0) {
     queries.push(Query.equal('categoryId', filters.categoryIds))
   }
@@ -142,6 +179,7 @@ export async function createTransaction(data: {
   toAccountId?: string
   fromAmount?: number
   toAmount?: number
+  personId?: string
 }): Promise<Transaction> {
   const base = {
     userId: data.userId,
@@ -153,6 +191,7 @@ export async function createTransaction(data: {
     payee: data.payee ?? '',
     note: data.note ?? '',
     date: data.date,
+    personId: data.personId,
   }
   const doc =
     data.fromAccountId != null
@@ -189,6 +228,7 @@ export async function updateTransaction(
     toAccountId: string
     fromAmount: number
     toAmount: number
+    personId: string
   }>
 ): Promise<Transaction> {
   const doc = Object.fromEntries(
@@ -221,4 +261,5 @@ export async function deleteUserData(userId: string): Promise<void> {
   await batchDeleteAll(COLLECTIONS.transactions, [Query.equal('userId', userId)])
   await batchDeleteAll(COLLECTIONS.accounts, [Query.equal('userId', userId)])
   await batchDeleteAll(COLLECTIONS.categories, [Query.equal('ownerId', userId)])
+  await batchDeleteAll(COLLECTIONS.people, [Query.equal('userId', userId)])
 }
