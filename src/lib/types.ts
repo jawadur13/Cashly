@@ -1,6 +1,6 @@
 import type { Models } from 'appwrite'
 
-export type TransactionType = 'income' | 'expense'
+export type TransactionType = 'income' | 'expense' | 'exchange'
 export type AccountType = 'cash' | 'bank' | 'mobile-wallet'
 
 export interface Account extends Models.Document {
@@ -21,6 +21,10 @@ export interface Transaction extends Models.Document {
   payee: string
   note: string
   date: string
+  fromAccountId?: string
+  toAccountId?: string
+  fromAmount?: number
+  toAmount?: number
 }
 
 export interface Category extends Models.Document {

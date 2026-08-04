@@ -17,11 +17,12 @@ export function formatCurrency(amount: number, currencyCode: string): string {
 export function formatSignedAmount(
   amount: number,
   currencyCode: string,
-  type: 'income' | 'expense'
+  type: 'income' | 'expense' | 'exchange'
 ): string {
   const formatted = formatCurrency(Math.abs(amount), currencyCode)
   if (type === 'income') return `+${formatted}`
-  return `-${formatted}`
+  if (type === 'expense') return `-${formatted}`
+  return formatted
 }
 
 export function formatDate(date: string | Date): string {

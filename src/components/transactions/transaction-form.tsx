@@ -23,6 +23,10 @@ export interface TransactionFormValues {
   note: string
   date: string
   time: string
+  fromAccountId?: string
+  toAccountId?: string
+  fromAmount?: string
+  toAmount?: string
 }
 
 interface TransactionFormProps {
@@ -38,7 +42,10 @@ interface TransactionFormProps {
     payee: string
     note: string
     date: string
-    time: string
+    fromAccountId?: string
+    toAccountId?: string
+    fromAmount?: number
+    toAmount?: number
   }) => Promise<void>
   onDelete?: () => Promise<void>
   onCancel: () => void
@@ -57,7 +64,7 @@ export function TransactionForm({
   const router = useRouter()
   const { defaultCurrency } = useSettings()
   const [type, setType] = useState<TransactionType>(initial?.type ?? 'expense')
-  const [accountId, setAccountId] = useState(initial?.accountId ?? '')
+  const [accountId, setAccountId] = useState(initial?.accountId ?? (accounts[0]?.$id ?? ''))
   const [amount, setAmount] = useState(initial ? String(initial.amount) : '')
   const [currency, setCurrency] = useState(initial?.currency ?? defaultCurrency)
   const [categoryId, setCategoryId] = useState(initial?.categoryId ?? '')
@@ -79,10 +86,15 @@ export function TransactionForm({
     const now = new Date()
     return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
   })
+  const [fromAccountId, setFromAccountId] = useState(initial?.fromAccountId ?? '')
+  const [toAccountId, setToAccountId] = useState(initial?.toAccountId ?? '')
+  const [fromAmount, setFromAmount] = useState(initial?.fromAmount != null ? String(initial.fromAmount) : '')
+  const [toAmount, setToAmount] = useState(initial?.toAmount != null ? String(initial.toAmount) : '')
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
+  const isExchange = type === 'exchange'
   const filteredCategories = useMemo(
     () => categories.filter((c) => c.type === type),
     [categories, type]
@@ -96,10 +108,25 @@ export function TransactionForm({
   const currentAccountId = selectAccount?.$id ?? accountId
   const effectiveCurrency = initial ? currency : (selectAccount?.currency ?? defaultCurrency)
 
+  const fromAccount = accounts.find((a) => a.$id === fromAccountId)
+  const toAccount = accounts.find((a) => a.$id === toAccountId)
+  const exchangeCurrency = fromAccount?.currency ?? defaultCurrency
+  const sameCurrencyExchange = fromAccount && toAccount && fromAccount.currency === toAccount.currency
+
   function validate(): boolean {
     const next: Record<string, string> = {}
-    if (!amount || Number(amount) <= 0) next.amount = 'Enter an amount greater than zero'
-    if (!categoryId) next.categoryId = 'Choose a category'
+    if (isExchange) {
+      if (!fromAccountId) next.fromAccountId = 'Choose a source account'
+      if (!toAccountId) next.toAccountId = 'Choose a destination account'
+      if (fromAccountId && toAccountId && fromAccountId === toAccountId) next.toAccountId = 'Choose a different account'
+      if (fromAccountId && toAccountId && !sameCurrencyExchange) next.toAccountId = 'Both accounts must use the same currency'
+      if (!fromAmount || Number(fromAmount) <= 0) next.fromAmount = 'Enter an amount greater than zero'
+      if (!toAmount || Number(toAmount) <= 0) next.toAmount = 'Enter an amount greater than zero'
+    } else {
+      if (!currentAccountId) next.accountId = 'Choose an account'
+      if (!amount || Number(amount) <= 0) next.amount = 'Enter an amount greater than zero'
+      if (!categoryId) next.categoryId = 'Choose a category'
+    }
     if (!date) next.date = 'Choose a date'
     if (!time) next.time = 'Choose a time'
     setErrors(next)
@@ -112,14 +139,20 @@ export function TransactionForm({
     setSubmitting(true)
     try {
       await onSubmit({
-        accountId: currentAccountId,
+        accountId: isExchange ? fromAccountId : currentAccountId,
         type,
-        amount: Number(amount),
-        currency: effectiveCurrency,
-        categoryId,
+        amount: isExchange ? Math.abs(Number(toAmount) - Number(fromAmount)) : Number(amount),
+        currency: isExchange ? exchangeCurrency : effectiveCurrency,
+        categoryId: isExchange ? '' : categoryId,
         payee: payee.trim(),
         note: note.trim(),
         date: new Date(date + 'T' + time).toISOString(),
+        ...(isExchange ? {
+          fromAccountId,
+          toAccountId,
+          fromAmount: Number(fromAmount),
+          toAmount: Number(toAmount),
+        } : {}),
       })
       router.push('/app/transactions')
     } catch (err) {
@@ -137,82 +170,164 @@ export function TransactionForm({
       router.push('/app/transactions')
     } catch (err) {
       setErrors({ form: err instanceof Error ? err.message : 'Failed to delete' })
+    } finally {
       setSubmitting(false)
     }
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5 pb-8">
-      <SegmentedControl value={type} onChange={(t) => { setType(t); setCategoryId('') }} />
-
-      <Select
-        name="account"
-        label="Account"
-        value={currentAccountId}
-        onChange={(e) => { setAccountId(e.target.value); setCurrency(accounts.find((a) => a.$id === e.target.value)?.currency ?? defaultCurrency) }}
-      >
-        {accounts.length === 0 && <option value="">No accounts — create one first</option>}
-        {accounts.map((a) => (
-          <option key={a.$id} value={a.$id}>{a.name}</option>
-        ))}
-      </Select>
-
-      <div className="grid grid-cols-2 gap-3">
-        <Input
-          name="amount"
-          label="Amount"
-          type="number"
-          inputMode="decimal"
-          step="any"
-          min="0"
-          placeholder="0.00"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          error={errors.amount}
-        />
-        <Select
-          name="currency"
-          label="Currency"
-          value={effectiveCurrency}
-          onChange={(e) => setCurrency(e.target.value)}
-        >
-          {CURRENCIES.map((c) => (
-            <option key={c.code} value={c.code}>{c.code}</option>
-          ))}
-        </Select>
-      </div>
-
-      <div>
-        <span className="mb-1.5 block text-[0.8125rem] font-medium text-text-secondary">Category</span>
-        {filteredCategories.length === 0 ? (
-          <p className="text-sm text-text-tertiary">No {type} categories available.</p>
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            {filteredCategories.map((c) => {
-              const selected = categoryId === c.$id
-              return (
-                <Chip
-                  key={c.$id}
-                  selected={selected}
-                  onClick={() => setCategoryId(c.$id)}
-                  icon={<CategoryIcon name={c.icon} className="size-4" />}
-                >
-                  {c.name}
-                </Chip>
-              )
-            })}
-          </div>
-        )}
-        {errors.categoryId && <p className="mt-1 text-xs text-expense">{errors.categoryId}</p>}
-      </div>
-
-      <Input
-        name="payee"
-        label="Merchant / Payee (optional)"
-        placeholder="e.g. Starbucks, Salary"
-        value={payee}
-        onChange={(e) => setPayee(e.target.value)}
+      <SegmentedControl
+        value={type}
+        onChange={(t) => { setType(t); setCategoryId('') }}
+        options={[
+          { value: 'expense', label: 'Expense' },
+          { value: 'income', label: 'Income' },
+          { value: 'exchange', label: 'Exchange' },
+        ]}
       />
+
+      {isExchange ? (
+        <>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <span className="mb-1.5 block text-[0.8125rem] font-medium text-text-secondary">From Account</span>
+              <Select
+                name="fromAccount"
+                value={fromAccountId}
+                onChange={(e) => { setFromAccountId(e.target.value); if (toAccountId && e.target.value === toAccountId) setToAccountId('') }}
+              >
+                <option value="">Select account</option>
+                {accounts.map((a) => (
+                  <option key={a.$id} value={a.$id}>{a.name}</option>
+                ))}
+              </Select>
+              {errors.fromAccountId && <p className="mt-1 text-xs text-expense">{errors.fromAccountId}</p>}
+            </div>
+            <div>
+              <span className="mb-1.5 block text-[0.8125rem] font-medium text-text-secondary">To Account</span>
+              <Select
+                name="toAccount"
+                value={toAccountId}
+                onChange={(e) => setToAccountId(e.target.value)}
+              >
+                <option value="">Select account</option>
+                {accounts.filter((a) => a.$id !== fromAccountId && (fromAccount ? a.currency === fromAccount.currency : true)).map((a) => (
+                  <option key={a.$id} value={a.$id}>{a.name}</option>
+                ))}
+              </Select>
+              {errors.toAccountId && <p className="mt-1 text-xs text-expense">{errors.toAccountId}</p>}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              name="fromAmount"
+              label="From Amount"
+              type="number"
+              inputMode="decimal"
+              step="any"
+              min="0"
+              placeholder="0.00"
+              value={fromAmount}
+              onChange={(e) => { setFromAmount(e.target.value); if (!toAmount) setToAmount(e.target.value) }}
+              error={errors.fromAmount}
+            />
+            <Input
+              name="toAmount"
+              label="To Amount"
+              type="number"
+              inputMode="decimal"
+              step="any"
+              min="0"
+              placeholder="0.00"
+              value={toAmount}
+              onChange={(e) => setToAmount(e.target.value)}
+              error={errors.toAmount}
+            />
+          </div>
+
+          <div className="rounded-[var(--radius-md)] border border-border bg-surface-hover px-3.5 py-2.5">
+            <span className="block text-[0.8125rem] font-medium text-text-secondary">Currency</span>
+            <span className="block text-sm text-text-primary tabular-nums">{exchangeCurrency}</span>
+            {fromAccount && toAccount && !sameCurrencyExchange && (
+              <p className="mt-1 text-xs text-expense">Accounts must share the same currency to exchange between them.</p>
+            )}
+          </div>
+        </>
+      ) : (
+        <>
+          <Select
+            name="account"
+            label="Account"
+            value={currentAccountId}
+            onChange={(e) => { setAccountId(e.target.value); setCurrency(accounts.find((a) => a.$id === e.target.value)?.currency ?? defaultCurrency) }}
+            error={errors.accountId}
+          >
+            {accounts.length === 0 && <option value="">No accounts — create one first</option>}
+            {accounts.map((a) => (
+              <option key={a.$id} value={a.$id}>{a.name}</option>
+            ))}
+          </Select>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              name="amount"
+              label="Amount"
+              type="number"
+              inputMode="decimal"
+              step="any"
+              min="0"
+              placeholder="0.00"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              error={errors.amount}
+            />
+            <Select
+              name="currency"
+              label="Currency"
+              value={effectiveCurrency}
+              onChange={(e) => setCurrency(e.target.value)}
+            >
+              {CURRENCIES.map((c) => (
+                <option key={c.code} value={c.code}>{c.code}</option>
+              ))}
+            </Select>
+          </div>
+
+          <div>
+            <span className="mb-1.5 block text-[0.8125rem] font-medium text-text-secondary">Category</span>
+            {filteredCategories.length === 0 ? (
+              <p className="text-sm text-text-tertiary">No {type} categories available.</p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {filteredCategories.map((c) => {
+                  const selected = categoryId === c.$id
+                  return (
+                    <Chip
+                      key={c.$id}
+                      selected={selected}
+                      onClick={() => setCategoryId(c.$id)}
+                      icon={<CategoryIcon name={c.icon} className="size-4" />}
+                    >
+                      {c.name}
+                    </Chip>
+                  )
+                })}
+              </div>
+            )}
+            {errors.categoryId && <p className="mt-1 text-xs text-expense">{errors.categoryId}</p>}
+          </div>
+
+          <Input
+            name="payee"
+            label="Merchant / Payee (optional)"
+            placeholder="e.g. Starbucks, Salary"
+            value={payee}
+            onChange={(e) => setPayee(e.target.value)}
+          />
+        </>
+      )}
 
       <Input
         name="note"
@@ -262,9 +377,7 @@ export function TransactionForm({
               This will permanently delete this transaction. This action cannot be undone.
             </p>
             <div className="flex gap-3">
-              <Button type="button" variant="secondary" fullWidth onClick={() => setConfirmDelete(false)}>
-                Cancel
-              </Button>
+              <Button type="button" variant="secondary" fullWidth onClick={() => setConfirmDelete(false)}>Cancel</Button>
               <Button type="button" variant="danger" fullWidth loading={submitting} onClick={handleDelete}>
                 Delete
               </Button>

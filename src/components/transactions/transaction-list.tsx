@@ -25,7 +25,7 @@ export function TransactionList({
   loading,
   onSelect,
   emptyTitle = 'No transactions yet',
-  emptyDescription = 'Add your first income or expense to get started.',
+  emptyDescription = 'Add your first income, expense, or exchange to get started.',
   rows = 8,
 }: TransactionListProps) {
   const categoryMap = useMemo(
@@ -69,6 +69,7 @@ export function TransactionList({
           transaction={t}
           category={categoryMap.get(t.categoryId)}
           account={accountMap.get(t.accountId)}
+          toAccount={t.type === 'exchange' ? accountMap.get(t.toAccountId ?? '') : undefined}
           onClick={() => onSelect(t.$id)}
         />
       ))}

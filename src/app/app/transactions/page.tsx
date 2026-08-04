@@ -19,7 +19,7 @@ export default function TransactionsPage() {
   const router = useRouter()
   const { accounts } = useAccounts()
   const { categories } = useCategories()
-  const [type, setType] = useState<TransactionType | 'all'>('all')
+  const [type, setType] = useState<TransactionType | 'all' | 'exchange'>('all')
   const [accountId, setAccountId] = useState('')
   const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
@@ -29,8 +29,9 @@ export default function TransactionsPage() {
     return () => clearTimeout(t)
   }, [searchInput])
 
+  const resolvedType = type === 'all' ? undefined : type
   const { transactions, loading, loadingMore, error, hasMore, loadMore } = useTransactions({
-    type: type === 'all' ? undefined : type,
+    type: resolvedType,
     accountId: accountId || undefined,
     search: search || undefined,
   })
@@ -48,7 +49,7 @@ export default function TransactionsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-semibold text-text-primary">Transactions</h1>
-          <p className="text-sm text-text-secondary">All your income and expenses</p>
+          <p className="text-sm text-text-secondary">All your income, expenses, and exchanges</p>
         </div>
         <Button onClick={() => router.push('/app/transactions/new')} aria-label="Add transaction">
           <Plus className="size-5" />
@@ -63,6 +64,7 @@ export default function TransactionsPage() {
             { value: 'all', label: 'All' },
             { value: 'income', label: 'Income' },
             { value: 'expense', label: 'Expense' },
+            { value: 'exchange', label: 'Exchange' },
           ]}
         />
         <SearchBar value={searchInput} onChange={setSearchInput} placeholder="Search by note or category…" />
@@ -92,7 +94,7 @@ export default function TransactionsPage() {
               description={
                 filtersActive
                   ? 'Try a different search or filter.'
-                  : 'Tap + to add your first income or expense.'
+                  : 'Tap + to add your first income, expense, or exchange.'
               }
               action={
                 <Button variant="secondary" onClick={filtersActive ? clearFilters : () => router.push('/app/transactions/new')}>

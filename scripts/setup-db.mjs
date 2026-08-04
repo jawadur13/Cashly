@@ -79,10 +79,17 @@ async function ensureDatetime(collectionId, key, required) {
 
 async function ensureEnum(collectionId, key, values, required) {
   try {
-    await db.createEnumAttribute(databaseId, collectionId, key, values, required)
+    await db.createEnumAttribute(databaseId, collectionId, key, values, required, null)
     log(`  + enum ${key}`)
   } catch (e) {
-    log(`  enum ${key}: ${e.message}`)
+    log(`  enum ${key} (create): ${e.message}`)
+    // If it already exists, try updating it to include new values
+    try {
+      await db.updateEnumAttribute(databaseId, collectionId, key, values, required, null)
+      log(`  + enum ${key} (updated)`)
+    } catch (e2) {
+      log(`  enum ${key} (update): ${e2.message}`)
+    }
   }
 }
 
@@ -135,13 +142,17 @@ await ensureCollection(TRANSACTIONS, 'Transactions')
 await ensureCreatePermission(TRANSACTIONS)
 await ensureString(TRANSACTIONS, 'userId', true, 36)
 await ensureString(TRANSACTIONS, 'accountId', true, 36)
-await ensureEnum(TRANSACTIONS, 'type', ['income', 'expense'], true)
+await ensureEnum(TRANSACTIONS, 'type', ['income', 'expense', 'exchange'], true)
 await ensureDouble(TRANSACTIONS, 'amount', true)
 await ensureString(TRANSACTIONS, 'currency', true, 3)
 await ensureString(TRANSACTIONS, 'categoryId', true, 36)
 await ensureString(TRANSACTIONS, 'payee', false, 200)
 await ensureString(TRANSACTIONS, 'note', false, 500)
 await ensureDatetime(TRANSACTIONS, 'date', true)
+await ensureString(TRANSACTIONS, 'fromAccountId', false, 36)
+await ensureString(TRANSACTIONS, 'toAccountId', false, 36)
+await ensureDouble(TRANSACTIONS, 'fromAmount', false)
+await ensureDouble(TRANSACTIONS, 'toAmount', false)
 await wait(1500)
 await ensureIndex(TRANSACTIONS, 'by_user_date', 'key', ['userId', 'date'], 'DESC')
 await ensureIndex(TRANSACTIONS, 'by_user_account', 'key', ['userId', 'accountId', 'date'], 'DESC')
@@ -154,7 +165,7 @@ await wait(1500)
 const CATEGORIES = 'categories'
 await ensureCollection(CATEGORIES, 'Categories')
 await ensureCreatePermission(CATEGORIES)
-await ensureEnum(CATEGORIES, 'type', ['income', 'expense'], true)
+await ensureEnum(CATEGORIES, 'type', ['income', 'expense', 'exchange'], true)
 await ensureString(CATEGORIES, 'name', true, 40)
 await ensureString(CATEGORIES, 'icon', true, 40)
 await ensureString(CATEGORIES, 'color', false, 9)

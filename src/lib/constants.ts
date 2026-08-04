@@ -16,4 +16,5 @@ export const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
 export const TRANSACTION_TYPE_LABELS: Record<TransactionType, string> = {
   income: 'Income',
   expense: 'Expense',
+  exchange: 'Exchange',
 }

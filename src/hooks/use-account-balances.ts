@@ -25,7 +25,12 @@ export function useAccountBalances(defaultCurrency?: string) {
       const res = await listTransactions({ userId: user.$id, limit: 500 })
       const map: Record<string, number> = {}
       for (const t of res.documents) {
-        map[t.accountId] = (map[t.accountId] ?? 0) + (t.type === 'income' ? t.amount : -t.amount)
+        if (t.type === 'exchange') {
+          if (t.fromAccountId) map[t.fromAccountId] = (map[t.fromAccountId] ?? 0) - (t.fromAmount ?? 0)
+          if (t.toAccountId) map[t.toAccountId] = (map[t.toAccountId] ?? 0) + (t.toAmount ?? 0)
+        } else {
+          map[t.accountId] = (map[t.accountId] ?? 0) + (t.type === 'income' ? t.amount : -t.amount)
+        }
       }
       setBalances(map)
     } catch {

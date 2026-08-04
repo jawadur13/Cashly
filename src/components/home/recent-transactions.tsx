@@ -34,7 +34,7 @@ export function RecentTransactions({ transactions, loading, onSeeAll }: RecentTr
         <EmptyState
           icon={<ReceiptText className="size-6" />}
           title="No transactions yet"
-          description="Tap + to add your first income or expense."
+          description="Tap + to add your first income, expense, or exchange."
           action={<Button onClick={() => router.push('/app/transactions/new')}>Add transaction</Button>}
         />
       ) : (

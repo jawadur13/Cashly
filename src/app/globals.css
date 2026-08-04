@@ -14,6 +14,8 @@
   --income-soft: #eaf7ef;
   --expense: #dc2626;
   --expense-soft: #fdecec;
+  --exchange: #2563eb;
+  --exchange-soft: #dbeafe;
   --danger: #dc2626;
   --shadow-sm: 0 1px 2px rgba(17, 17, 19, 0.06);
   --shadow-md: 0 4px 12px rgba(17, 17, 19, 0.08);
@@ -36,6 +38,8 @@
   --income-soft: #12261a;
   --expense: #ef4444;
   --expense-soft: #2b1416;
+  --exchange: #3b82f6;
+  --exchange-soft: #1e2a4a;
   --danger: #ef4444;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
@@ -55,6 +59,8 @@
   --color-income-soft: var(--income-soft);
   --color-expense: var(--expense);
   --color-expense-soft: var(--expense-soft);
+  --color-exchange: var(--exchange);
+  --color-exchange-soft: var(--exchange-soft);
   --color-danger: var(--danger);
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
     "Segoe UI", Roboto, sans-serif;

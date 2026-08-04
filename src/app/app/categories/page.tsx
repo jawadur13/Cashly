@@ -55,7 +55,7 @@ export default function CategoriesPage() {
   const [deleting, setDeleting] = useState<Category | null>(null)
   const [busy, setBusy] = useState(false)
 
-  const grouped: Record<TransactionType, Category[]> = {
+  const grouped: Record<string, Category[]> = {
     income: categories.filter((c) => c.type === 'income'),
     expense: categories.filter((c) => c.type === 'expense'),
   }

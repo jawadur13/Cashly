@@ -41,7 +41,14 @@ export function CategoryForm({ initial, onSubmit, onCancel, submitLabel }: Categ
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-      <SegmentedControl value={type} onChange={setType} />
+      <SegmentedControl
+        value={type}
+        onChange={setType}
+        options={[
+          { value: 'income', label: 'Income' },
+          { value: 'expense', label: 'Expense' },
+        ]}
+      />
       <Input
         name="name"
         label="Category name"
