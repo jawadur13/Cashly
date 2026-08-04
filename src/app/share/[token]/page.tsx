@@ -91,7 +91,7 @@ export default function SharePage() {
         )}>
           {balance > 0 ? 'You owe' : balance < 0 ? 'You are owed' : 'Settled'}
         </p>
-        {person.note && <p className="mt-2 text-sm text-text-secondary">{person.note}</p>}
+        {person.sharedByName && <p className="mt-2 text-sm text-text-secondary">Shared by {person.sharedByName}</p>}
       </section>
 
       <section className="mt-6 space-y-1">

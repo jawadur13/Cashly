@@ -40,7 +40,7 @@ export default function PersonDetailPage() {
     try {
       let token = person.shareToken || shareToken
       if (!token) {
-        token = await generateShareToken(person.$id)
+        token = await generateShareToken(person.$id, user?.name)
         setShareToken(token)
       }
       const url = `${window.location.origin}/share/${token}`

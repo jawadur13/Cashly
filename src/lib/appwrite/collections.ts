@@ -102,9 +102,9 @@ export async function getPersonByShareToken(token: string): Promise<Person> {
   return res.documents[0]
 }
 
-export async function generateShareToken(personId: string): Promise<string> {
+export async function generateShareToken(personId: string, sharedByName?: string): Promise<string> {
   const token = ID.unique()
-  await databases.updateDocument(DATABASE_ID, COLLECTIONS.people, personId, { shareToken: token })
+  await databases.updateDocument(DATABASE_ID, COLLECTIONS.people, personId, { shareToken: token, sharedByName: sharedByName ?? '' })
   return token
 }
 
