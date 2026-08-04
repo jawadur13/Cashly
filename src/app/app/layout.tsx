@@ -7,6 +7,7 @@ import { useAuth } from '@/providers/auth-provider'
 import { BottomNav } from '@/components/nav/bottom-nav'
 import { Sidebar, sidebarItems } from '@/components/nav/sidebar'
 import { Sheet } from '@/components/ui/sheet'
+import { Loader } from '@/components/ui/loader'
 import { cn } from '@/lib/utils'
 import { BalanceVisibilityProvider } from '@/providers/balance-visibility-provider'
 
@@ -28,8 +29,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   if (status !== 'authenticated') {
     return (
-      <div className="flex min-h-dvh items-center justify-center text-sm text-text-tertiary">
-        Loading…
+      <div className="flex min-h-dvh items-center justify-center bg-bg">
+        <Loader text="Loading Cashly" />
       </div>
     )
   }

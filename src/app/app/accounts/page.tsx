@@ -69,12 +69,14 @@ export default function AccountsPage() {
       ) : (
         <div className="space-y-2">
           {accounts.map((account) => (
-            <div key={account.$id} className="group relative pr-12">
-              <AccountCard account={account} balance={balances[account.$id] ?? 0} defaultCurrency={defaultCurrency} onClick={() => { setEditing(account); setFormOpen(true) }} />
+            <div key={account.$id} className="relative">
+              <div className="pr-12">
+                <AccountCard account={account} balance={balances[account.$id] ?? 0} defaultCurrency={defaultCurrency} onClick={() => { setEditing(account); setFormOpen(true) }} />
+              </div>
               <button
                 onClick={() => handleSetDeleting(account)}
                 aria-label={`Delete ${account.name}`}
-                className="absolute right-3 top-1/2 hidden size-8 -translate-y-1/2 items-center justify-center rounded-full text-text-tertiary hover:text-expense group-hover:flex"
+                className="absolute right-3 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full text-text-tertiary hover:text-expense"
               >
                 <Trash2 className="size-4" />
               </button>

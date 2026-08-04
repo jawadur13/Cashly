@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { ChevronLeft } from 'lucide-react'
+import { Loader } from '@/components/ui/loader'
 import { TransactionForm } from '@/components/transactions/transaction-form'
 import { useAccounts } from '@/hooks/use-accounts'
 import { useCategories } from '@/hooks/use-categories'
@@ -31,7 +32,7 @@ export default function NewTransactionPage() {
         <p className="text-sm text-text-secondary">Record income, expense, or exchange</p>
       </div>
       {(accountsLoading || categoriesLoading || peopleLoading) ? (
-        <p className="text-sm text-text-tertiary">Loading...</p>
+        <Loader className="py-12" />
       ) : (
         <TransactionForm
           accounts={accounts}

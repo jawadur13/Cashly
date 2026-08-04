@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { ChevronLeft } from 'lucide-react'
+import { Loader } from '@/components/ui/loader'
 import { TransactionForm } from '@/components/transactions/transaction-form'
 import { useAccounts } from '@/hooks/use-accounts'
 import { useCategories } from '@/hooks/use-categories'
@@ -55,7 +56,7 @@ export default function EditTransactionPage() {
         <p className="text-sm text-text-secondary">Update the details below</p>
       </div>
       {loading || accountsLoading || categoriesLoading || peopleLoading ? (
-        <p className="text-sm text-text-tertiary">Loading...</p>
+        <Loader className="py-12" />
       ) : error ? (
         <p className="rounded-[var(--radius-md)] bg-expense-soft px-3.5 py-2.5 text-sm text-expense">
           {error}

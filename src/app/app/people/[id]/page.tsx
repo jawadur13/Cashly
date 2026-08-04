@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { ChevronLeft, ArrowUpRight, ArrowDownRight } from 'lucide-react'
 import { TransactionList } from '@/components/transactions/transaction-list'
-import { Skeleton } from '@/components/ui/skeleton'
+import { Loader } from '@/components/ui/loader'
 import { formatCurrency } from '@/lib/currency/format'
 import { useAuth } from '@/providers/auth-provider'
 import { useSettings } from '@/providers/settings-provider'
@@ -50,9 +50,8 @@ export default function PersonDetailPage() {
 
   if (peopleLoading) {
     return (
-      <div className="space-y-5">
-        <Skeleton className="h-6 w-32" />
-        <Skeleton className="h-20 rounded-[var(--radius-lg)]" />
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <Loader />
       </div>
     )
   }

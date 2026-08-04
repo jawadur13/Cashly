@@ -60,7 +60,7 @@ export default function PeoplePage() {
       ) : (
         <div className="space-y-2">
           {people.map((person) => (
-            <div key={person.$id} className="group relative">
+            <div key={person.$id} className="relative"> 
               <button
                 onClick={() => router.push(`/app/people/${person.$id}`)}
                 className="flex w-full items-center gap-3 rounded-[var(--radius-md)] border border-border bg-surface px-3.5 py-3 pr-16 text-left shadow-[var(--shadow-sm)] transition-colors hover:bg-surface-hover"
@@ -94,14 +94,14 @@ export default function PeoplePage() {
               <button
                 onClick={(e) => { e.stopPropagation(); setEditing(person); setName(person.name); setNote(person.note); setFormOpen(true) }}
                 aria-label={`Edit ${person.name}`}
-                className="absolute right-9 top-1/2 hidden size-8 -translate-y-1/2 items-center justify-center rounded-full text-text-tertiary hover:text-accent group-hover:flex"
+                className="absolute right-9 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full text-text-tertiary hover:text-accent"
               >
                 <Pencil className="size-4" />
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); setDeleting(person) }}
                 aria-label={`Delete ${person.name}`}
-                className="absolute right-3 top-1/2 hidden size-8 -translate-y-1/2 items-center justify-center rounded-full text-text-tertiary hover:text-expense group-hover:flex"
+                className="absolute right-3 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full text-text-tertiary hover:text-expense"
               >
                 <Trash2 className="size-4" />
               </button>
