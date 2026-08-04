@@ -75,6 +75,7 @@ import {
   Trees,
   Flower,
   Cigarette,
+  ArrowLeftRight,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -159,6 +160,7 @@ export const CATEGORY_ICONS: Record<string, LucideIcon> = {
   sun: Sun,
   trees: Trees,
   flower: Flower,
+  'arrow-left-right': ArrowLeftRight,
 }
 
 export const ACCOUNT_ICONS: Record<string, LucideIcon> = {

@@ -2,9 +2,10 @@
 
 import { useRouter } from 'next/navigation'
 import { usePathname } from 'next/navigation'
-import { ChevronLeft, ChevronRight, Home, ArrowLeftRight, FolderKanban, Settings, Landmark, PieChart } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Home, ArrowLeftRight, FolderKanban, Settings, Landmark, PieChart, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTheme } from '@/providers/theme-provider'
+import { useAuth } from '@/providers/auth-provider'
 
 export const sidebarItems = [
   { href: '/app', label: 'Home', icon: Home },
@@ -24,6 +25,7 @@ export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const { resolvedTheme } = useTheme()
+  const { signOut } = useAuth()
 
   return (
     <aside
@@ -62,7 +64,20 @@ export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
           )
         })}
       </nav>
-      <div className={cn('mt-auto border-t border-border px-3 py-3', collapsed && 'px-2')}>
+      <div className={cn('border-t border-border px-3 py-2', collapsed && 'px-2')}>
+        <button
+          onClick={() => { signOut(); router.replace('/auth/login') }}
+          title={collapsed ? 'Sign out' : undefined}
+          className={cn(
+            'flex w-full items-center rounded-[var(--radius-md)] py-2.5 text-sm font-medium text-text-secondary transition-colors hover:bg-surface-hover hover:text-expense',
+            collapsed ? 'justify-center px-2' : 'gap-3 px-3.5'
+          )}
+        >
+          <LogOut className="size-5" />
+          {!collapsed && 'Sign out'}
+        </button>
+      </div>
+      <div className={cn('border-t border-border px-3 py-3', collapsed && 'px-2')}>
         <div className={cn('flex items-center gap-2', collapsed ? 'justify-center' : 'justify-between')}>
           {!collapsed && <span className="text-xs text-text-tertiary">{resolvedTheme === 'dark' ? 'Dark mode' : 'Light mode'}</span>}
           <button

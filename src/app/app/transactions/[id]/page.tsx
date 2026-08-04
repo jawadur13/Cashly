@@ -52,7 +52,7 @@ export default function EditTransactionPage() {
         <p className="text-sm text-text-secondary">Update the details below</p>
       </div>
       {loading || accountsLoading || categoriesLoading ? (
-        <p className="text-sm text-text-tertiary">Loadingâ€¦</p>
+        <p className="text-sm text-text-tertiary">Loading...</p>
       ) : error ? (
         <p className="rounded-[var(--radius-md)] bg-expense-soft px-3.5 py-2.5 text-sm text-expense">
           {error}

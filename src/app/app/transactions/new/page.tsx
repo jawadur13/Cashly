@@ -25,10 +25,10 @@ export default function NewTransactionPage() {
       </button>
       <div>
         <h1 className="text-lg font-semibold text-text-primary">New transaction</h1>
-        <p className="text-sm text-text-secondary">Record income or an expense</p>
+        <p className="text-sm text-text-secondary">Record income, expense, or exchange</p>
       </div>
       {(accountsLoading || categoriesLoading) ? (
-        <p className="text-sm text-text-tertiary">Loadingâ€¦</p>
+        <p className="text-sm text-text-tertiary">Loading...</p>
       ) : (
         <TransactionForm
           accounts={accounts}

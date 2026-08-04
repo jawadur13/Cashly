@@ -43,7 +43,7 @@ function buildYearOptions() {
 
 export default function SummaryPage() {
   const monthOptions = useMemo(() => buildMonthOptions(), [])
-  const yearOptions = useMemo(() => buildYearOptions(), [])
+  const yearOptions = buildYearOptions()
 
   const [scope, setScope] = useState<Scope>('month')
   const [monthKey, setMonthKey] = useState(monthOptions[0].key)
@@ -115,7 +115,8 @@ export default function SummaryPage() {
       {loading ? (
         <div className="space-y-3">
           <Skeleton className="h-20 rounded-[var(--radius-lg)]" />
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-4 gap-3">
+            <Skeleton className="h-16 rounded-[var(--radius-md)]" />
             <Skeleton className="h-16 rounded-[var(--radius-md)]" />
             <Skeleton className="h-16 rounded-[var(--radius-md)]" />
             <Skeleton className="h-16 rounded-[var(--radius-md)]" />
@@ -124,7 +125,7 @@ export default function SummaryPage() {
       ) : (
         <>
           {/* Classic income / expense / savings summary */}
-          <IncomeExpenseSavings income={data.income} expense={data.expense} savings={data.savings} fmt={fmt} />
+          <IncomeExpenseSavings income={data.income} expense={data.expense} exchange={data.exchange} savings={data.savings} fmt={fmt} />
 
           {/* Opening / closing balance (not meaningful for "all time") */}
           {range.hasOpening && (
@@ -153,7 +154,7 @@ export default function SummaryPage() {
             <EmptyState
               icon={<TrendingUp className="size-6" />}
               title="No activity in this period"
-              description="No income or expenses were recorded here."
+              description="No income, expenses, or exchanges were recorded here."
             />
           ) : (
             <>
@@ -228,15 +229,17 @@ export default function SummaryPage() {
 function IncomeExpenseSavings({
   income,
   expense,
+  exchange,
   savings,
   fmt,
 }: {
   income: number
   expense: number
+  exchange: number
   savings: number
   fmt: (v: number) => string
 }) {
-  const cell = (label: string, value: number, tone: 'income' | 'expense' | 'neutral') => (
+  const cell = (label: string, value: number, tone: 'income' | 'expense' | 'exchange' | 'neutral') => (
     <div className="rounded-[var(--radius-md)] border border-border bg-surface px-3 py-3 shadow-[var(--shadow-sm)]">
       <p className="text-xs text-text-secondary">{label}</p>
       <p
@@ -244,6 +247,7 @@ function IncomeExpenseSavings({
           'mt-1 text-base font-semibold tabular-nums',
           tone === 'income' && 'text-income',
           tone === 'expense' && 'text-expense',
+          tone === 'exchange' && 'text-exchange',
           tone === 'neutral' && savings < 0 && 'text-expense',
           tone === 'neutral' && savings >= 0 && 'text-text-primary'
         )}
@@ -253,9 +257,10 @@ function IncomeExpenseSavings({
     </div>
   )
   return (
-    <section className="grid grid-cols-3 gap-3">
+    <section className="grid grid-cols-4 gap-3">
       {cell('Income', income, 'income')}
       {cell('Expense', expense, 'expense')}
+      {cell('Exchange', exchange, 'exchange')}
       {cell('Savings', savings, 'neutral')}
     </section>
   )
@@ -276,7 +281,7 @@ function StatTile({ icon, label, value }: { icon: React.ReactNode; label: string
 interface BreakdownProps {
   title: string
   items: CategoryBreakdownItem[]
-  tone: 'income' | 'expense'
+  tone: 'income' | 'expense' | 'exchange'
   fmt: (v: number) => string
   name: (id: string) => string
   icon: (id: string) => string | undefined
@@ -294,7 +299,7 @@ function Breakdown({ title, items, tone, fmt, name, icon }: BreakdownProps) {
               <span
                 className={cn(
                   'flex size-8 shrink-0 items-center justify-center rounded-full',
-                  tone === 'income' ? 'bg-income-soft text-income' : 'bg-expense-soft text-expense'
+                  tone === 'income' ? 'bg-income-soft text-income' : tone === 'expense' ? 'bg-expense-soft text-expense' : 'bg-exchange-soft text-exchange'
                 )}
               >
                 <CategoryIcon name={icon(item.categoryId)} className="size-4" />
@@ -311,7 +316,7 @@ function Breakdown({ title, items, tone, fmt, name, icon }: BreakdownProps) {
             </div>
             <div className="ml-[2.625rem] h-1.5 overflow-hidden rounded-full bg-surface-hover">
               <div
-                className={cn('h-full rounded-full', tone === 'income' ? 'bg-income' : 'bg-expense')}
+                className={cn('h-full rounded-full', tone === 'income' ? 'bg-income' : tone === 'expense' ? 'bg-expense' : 'bg-exchange')}
                 style={{ width: `${Math.max(item.share * 100, 2)}%` }}
               />
             </div>

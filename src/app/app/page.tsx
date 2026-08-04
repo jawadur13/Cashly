@@ -9,9 +9,11 @@ import { useAccountBalances } from '@/hooks/use-account-balances'
 import { useAccounts } from '@/hooks/use-accounts'
 import { useTransactions } from '@/hooks/use-transactions'
 import { useSettings } from '@/providers/settings-provider'
+import { useAuth } from '@/providers/auth-provider'
 
 export default function HomePage() {
   const router = useRouter()
+  const { user } = useAuth()
   const { defaultCurrency } = useSettings()
   const { accounts, loading: accountsLoading } = useAccounts()
   const { balances, total, loading: balancesLoading } = useAccountBalances(defaultCurrency)
@@ -23,7 +25,9 @@ export default function HomePage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-semibold text-text-primary">Home</h1>
+          <h1 className="text-lg font-semibold text-text-primary">
+            Welcome back{user?.name ? `, ${user.name}` : ''}
+          </h1>
           <p className="text-sm text-text-secondary">Your money at a glance</p>
         </div>
       </div>
