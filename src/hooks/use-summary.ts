@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { listTransactions } from '@/lib/appwrite/collections'
 import { convertCurrency } from '@/lib/currency/currencies'
 import { useAuth } from '@/providers/auth-provider'
@@ -18,6 +18,7 @@ export interface CategoryBreakdownItem {
 export interface SummaryData {
   income: number
   expense: number
+  exchange: number
   savings: number
   savingsRate: number
   openingBalance: number
@@ -25,6 +26,7 @@ export interface SummaryData {
   transactionCount: number
   incomeCount: number
   expenseCount: number
+  exchangeCount: number
   avgIncome: number
   avgExpense: number
   largestExpense: number
@@ -65,6 +67,7 @@ function buildBreakdown(
 const EMPTY: SummaryData = {
   income: 0,
   expense: 0,
+  exchange: 0,
   savings: 0,
   savingsRate: 0,
   openingBalance: 0,
@@ -72,6 +75,7 @@ const EMPTY: SummaryData = {
   transactionCount: 0,
   incomeCount: 0,
   expenseCount: 0,
+  exchangeCount: 0,
   avgIncome: 0,
   avgExpense: 0,
   largestExpense: 0,
@@ -85,6 +89,7 @@ export function useSummary(range: SummaryRange) {
   const { rates } = useExchangeRates()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
+  const ignoreRef = useRef(false)
 
   const refresh = useCallback(async () => {
     if (!user) {
@@ -94,18 +99,36 @@ export function useSummary(range: SummaryRange) {
     }
     setLoading(true)
     try {
-      const res = await listTransactions({ userId: user.$id, limit: 1000 })
-      setTransactions(res.documents)
+      const PAGE_SIZE = 500
+      let allDocs: Transaction[] = []
+      let offset = 0
+      let total = 0
+
+      do {
+        const res = await listTransactions({ userId: user.$id, limit: PAGE_SIZE, offset })
+        if (ignoreRef.current) return
+        allDocs = allDocs.concat(res.documents)
+        total = res.total
+        offset += res.documents.length
+      } while (offset < total)
+
+      if (!ignoreRef.current) {
+        setTransactions(allDocs)
+      }
     } catch {
-      setTransactions([])
+      if (!ignoreRef.current) setTransactions([])
     } finally {
-      setLoading(false)
+      if (!ignoreRef.current) setLoading(false)
     }
   }, [user])
 
   useEffect(() => {
+    ignoreRef.current = false
     // eslint-disable-next-line react-hooks/set-state-in-effect
     refresh()
+    return () => {
+      ignoreRef.current = true
+    }
   }, [refresh])
 
   const data = useMemo<SummaryData>(() => {
@@ -116,6 +139,9 @@ export function useSummary(range: SummaryRange) {
     let openingBalance = 0
     let income = 0
     let expense = 0
+    let exchange = 0
+    let exchangeNetImpact = 0
+    let exchangeCount = 0
     let incomeCount = 0
     let expenseCount = 0
     let largestExpense = 0
@@ -128,8 +154,13 @@ export function useSummary(range: SummaryRange) {
       const signed = t.type === 'income' ? value : -value
 
       if (ts < start) {
-        // Everything before the range start contributes to the opening balance.
-        if (hasOpening) openingBalance += signed
+        if (hasOpening) {
+          if (t.type === 'exchange') {
+            openingBalance += toDefault((t.toAmount ?? 0) - (t.fromAmount ?? 0), t.currency)
+          } else {
+            openingBalance += signed
+          }
+        }
         continue
       }
       if (ts >= end) continue
@@ -138,15 +169,20 @@ export function useSummary(range: SummaryRange) {
         income += value
         incomeCount += 1
         incomeRows.push({ categoryId: t.categoryId, amount: value })
-      } else {
+      } else if (t.type === 'expense') {
         expense += value
         expenseCount += 1
         largestExpense = Math.max(largestExpense, value)
         expenseRows.push({ categoryId: t.categoryId, amount: value })
+      } else if (t.type === 'exchange') {
+        const diff = Math.abs((t.fromAmount ?? 0) - (t.toAmount ?? 0))
+        exchange += diff
+        exchangeCount += 1
+        exchangeNetImpact += toDefault((t.toAmount ?? 0) - (t.fromAmount ?? 0), t.currency)
       }
     }
 
-    const transactionCount = incomeCount + expenseCount
+    const transactionCount = incomeCount + expenseCount + exchangeCount
     if (transactionCount === 0) {
       return { ...EMPTY, openingBalance, closingBalance: openingBalance }
     }
@@ -155,13 +191,15 @@ export function useSummary(range: SummaryRange) {
     return {
       income,
       expense,
+      exchange,
       savings,
       savingsRate: income > 0 ? savings / income : 0,
       openingBalance,
-      closingBalance: openingBalance + savings,
+      closingBalance: openingBalance + savings + exchangeNetImpact,
       transactionCount,
       incomeCount,
       expenseCount,
+      exchangeCount,
       avgIncome: incomeCount > 0 ? income / incomeCount : 0,
       avgExpense: expenseCount > 0 ? expense / expenseCount : 0,
       largestExpense,

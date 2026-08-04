@@ -46,10 +46,23 @@ export async function deleteAccount(accountId: string): Promise<void> {
   await databases.deleteDocument(DATABASE_ID, COLLECTIONS.accounts, accountId)
 }
 
+export async function countTransactionsByAccount(
+  userId: string,
+  accountId: string
+): Promise<number> {
+  const res = await databases.listDocuments<Transaction>(DATABASE_ID, COLLECTIONS.transactions, [
+    Query.equal('userId', userId),
+    Query.equal('accountId', accountId),
+    Query.limit(1),
+  ])
+  return res.total
+}
+
 /* ---------------- Categories ---------------- */
 
-export async function listCategories(): Promise<Category[]> {
+export async function listCategories(userId: string): Promise<Category[]> {
   const res = await databases.listDocuments<Category>(DATABASE_ID, COLLECTIONS.categories, [
+    Query.or([Query.equal('ownerId', userId), Query.equal('ownerId', '')]),
     Query.limit(100),
   ])
   return res.documents
@@ -100,21 +113,15 @@ export async function listTransactions(
   if (filters.categoryIds && filters.categoryIds.length > 0) {
     queries.push(Query.equal('categoryId', filters.categoryIds))
   }
+  if (filters.search) {
+    queries.push(Query.or([Query.search('note', filters.search), Query.search('payee', filters.search)]))
+  }
   if (filters.from) queries.push(Query.greaterThanEqual('date', filters.from))
   if (filters.to) queries.push(Query.lessThanEqual('date', filters.to))
   if (filters.offset) queries.push(Query.offset(filters.offset))
 
   const res = await databases.listDocuments<Transaction>(DATABASE_ID, COLLECTIONS.transactions, queries)
   return { documents: res.documents, total: res.total }
-}
-
-export async function searchTransactionsByNote(userId: string, term: string): Promise<Transaction[]> {
-  const res = await databases.listDocuments<Transaction>(DATABASE_ID, COLLECTIONS.transactions, [
-    Query.equal('userId', userId),
-    Query.search('note', term),
-    Query.limit(50),
-  ])
-  return res.documents
 }
 
 export async function getTransaction(transactionId: string): Promise<Transaction> {
@@ -131,12 +138,38 @@ export async function createTransaction(data: {
   payee?: string
   note?: string
   date: string
+  fromAccountId?: string
+  toAccountId?: string
+  fromAmount?: number
+  toAmount?: number
 }): Promise<Transaction> {
+  const base = {
+    userId: data.userId,
+    accountId: data.accountId,
+    type: data.type,
+    amount: data.amount,
+    currency: data.currency,
+    categoryId: data.categoryId,
+    payee: data.payee ?? '',
+    note: data.note ?? '',
+    date: data.date,
+  }
+  const doc =
+    data.fromAccountId != null
+      ? {
+          ...base,
+          fromAccountId: data.fromAccountId,
+          toAccountId: data.toAccountId ?? '',
+          fromAmount: data.fromAmount ?? 0,
+          toAmount: data.toAmount ?? 0,
+        }
+      : base
+
   return databases.createDocument<Transaction>(
     DATABASE_ID,
     COLLECTIONS.transactions,
     ID.unique(),
-    { ...data, payee: data.payee ?? '', note: data.note ?? '' },
+    doc,
     ownerPermissions(data.userId)
   )
 }
@@ -152,11 +185,40 @@ export async function updateTransaction(
     payee: string
     note: string
     date: string
+    fromAccountId: string
+    toAccountId: string
+    fromAmount: number
+    toAmount: number
   }>
 ): Promise<Transaction> {
-  return databases.updateDocument<Transaction>(DATABASE_ID, COLLECTIONS.transactions, transactionId, data)
+  const doc = Object.fromEntries(
+    Object.entries(data).filter(([, v]) => v !== undefined)
+  )
+  return databases.updateDocument<Transaction>(DATABASE_ID, COLLECTIONS.transactions, transactionId, doc)
 }
 
 export async function deleteTransaction(transactionId: string): Promise<void> {
   await databases.deleteDocument(DATABASE_ID, COLLECTIONS.transactions, transactionId)
+}
+
+async function batchDeleteAll(
+  collectionId: string,
+  queries: string[]
+): Promise<void> {
+  const BATCH = 100
+  while (true) {
+    const res = await databases.listDocuments(DATABASE_ID, collectionId, [
+      ...queries,
+      Query.limit(BATCH),
+    ])
+    if (res.documents.length === 0) break
+    await Promise.all(res.documents.map((d) => databases.deleteDocument(DATABASE_ID, collectionId, d.$id)))
+    if (res.documents.length < BATCH) break
+  }
+}
+
+export async function deleteUserData(userId: string): Promise<void> {
+  await batchDeleteAll(COLLECTIONS.transactions, [Query.equal('userId', userId)])
+  await batchDeleteAll(COLLECTIONS.accounts, [Query.equal('userId', userId)])
+  await batchDeleteAll(COLLECTIONS.categories, [Query.equal('ownerId', userId)])
 }

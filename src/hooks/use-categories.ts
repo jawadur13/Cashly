@@ -12,9 +12,14 @@ export function useCategories() {
   const [error, setError] = useState<string | null>(null)
 
   const refresh = useCallback(async () => {
+    if (!user) {
+      setCategories([])
+      setLoading(false)
+      return
+    }
     setLoading(true)
     try {
-      const res = await listCategories()
+      const res = await listCategories(user.$id)
       setCategories(res)
       setError(null)
     } catch (e) {
@@ -22,7 +27,7 @@ export function useCategories() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [user])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect

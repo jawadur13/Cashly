@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   listTransactions,
-  searchTransactionsByNote,
   createTransaction,
   updateTransaction,
   deleteTransaction,
@@ -30,6 +29,7 @@ export function useTransactions(query: TransactionQuery = {}) {
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const offsetRef = useRef(0)
+  const seqRef = useRef(0)
 
   const { type, currency, accountId } = query
   const searchTerm = query.search?.trim()
@@ -37,28 +37,47 @@ export function useTransactions(query: TransactionQuery = {}) {
   const fetchPage = useCallback(
     async (offset: number, replace: boolean) => {
       if (!user) return false
+      const seq = ++seqRef.current
       try {
         let docs: Transaction[] = []
         let hasMore = false
 
         if (searchTerm) {
-          const noteMatches = await searchTransactionsByNote(user.$id, searchTerm)
           const matchedCategoryIds = categories
             .filter((c) => c.name.toLowerCase().includes(searchTerm.toLowerCase()))
             .map((c) => c.$id)
-          const res = await listTransactions({
-            userId: user.$id,
-            type,
-            currency,
-            accountId,
-            categoryIds: matchedCategoryIds.length ? matchedCategoryIds : undefined,
-            limit: 100,
-          })
+
+          const [searchRes, catRes] = await Promise.all([
+            listTransactions({
+              userId: user.$id,
+              type,
+              currency,
+              accountId,
+              search: searchTerm,
+              limit: PAGE_SIZE,
+              offset: replace ? 0 : offset,
+            }),
+            replace && matchedCategoryIds.length
+              ? listTransactions({
+                  userId: user.$id,
+                  type,
+                  currency,
+                  accountId,
+                  categoryIds: matchedCategoryIds,
+                  limit: 100,
+                })
+              : Promise.resolve({ documents: [] as Transaction[], total: 0 }),
+          ])
+          if (seq !== seqRef.current) return false
+
           const combined = new Map<string, Transaction>()
-          for (const t of [...noteMatches, ...res.documents]) combined.set(t.$id, t)
+          for (const t of catRes.documents) combined.set(t.$id, t)
+          for (const t of searchRes.documents) combined.set(t.$id, t)
           docs = Array.from(combined.values()).sort(
             (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
           )
+          hasMore = offset + searchRes.documents.length < searchRes.total
+          setTotal(searchRes.total)
         } else {
           const res = await listTransactions({
             userId: user.$id,
@@ -68,10 +87,13 @@ export function useTransactions(query: TransactionQuery = {}) {
             limit: PAGE_SIZE,
             offset,
           })
+          if (seq !== seqRef.current) return false
           docs = res.documents
           setTotal(res.total)
           hasMore = offset + res.documents.length < res.total
         }
+
+        if (seq !== seqRef.current) return false
 
         if (replace) {
           setTransactions(docs)
@@ -86,6 +108,7 @@ export function useTransactions(query: TransactionQuery = {}) {
         setError(null)
         return hasMore
       } catch (e) {
+        if (seq !== seqRef.current) return false
         setError(e instanceof Error ? e.message : 'Failed to load transactions')
         return false
       }
@@ -94,11 +117,10 @@ export function useTransactions(query: TransactionQuery = {}) {
   )
 
   const loadMore = useCallback(async () => {
-    if (searchTerm) return
     setLoadingMore(true)
     await fetchPage(offsetRef.current + PAGE_SIZE, false)
     setLoadingMore(false)
-  }, [fetchPage, searchTerm])
+  }, [fetchPage])
 
   useEffect(() => {
     let ignore = false
@@ -115,7 +137,7 @@ export function useTransactions(query: TransactionQuery = {}) {
     }
   }, [fetchPage])
 
-  const hasMore = total > transactions.length && !searchTerm
+  const hasMore = total > transactions.length
 
   const add = useCallback(
     async (data: {
@@ -127,6 +149,10 @@ export function useTransactions(query: TransactionQuery = {}) {
       payee?: string
       note?: string
       date: string
+      fromAccountId?: string
+      toAccountId?: string
+      fromAmount?: number
+      toAmount?: number
     }) => {
       if (!user) throw new Error('Not authenticated')
       const created = await createTransaction({ userId: user.$id, ...data })
@@ -148,6 +174,10 @@ export function useTransactions(query: TransactionQuery = {}) {
         payee: string
         note: string
         date: string
+        fromAccountId: string
+        toAccountId: string
+        fromAmount: number
+        toAmount: number
       }>
     ) => {
       const updated = await updateTransaction(transactionId, data)
