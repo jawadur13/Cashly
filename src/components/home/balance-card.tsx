@@ -13,7 +13,7 @@ interface BalanceCardProps {
 
 export function BalanceCard({ balance, loading }: BalanceCardProps) {
   const { defaultCurrency } = useSettings()
-  const { hidden, reveal } = useBalanceVisibility()
+  const { hidden, reveal, hide } = useBalanceVisibility()
   return (
     <section className="rounded-[var(--radius-lg)] border border-border bg-surface p-5 shadow-[var(--shadow-sm)]">
       <p className="text-sm text-text-secondary">Current balance</p>
@@ -29,10 +29,9 @@ export function BalanceCard({ balance, loading }: BalanceCardProps) {
           />
           <button
             type="button"
-            onClick={reveal}
-            disabled={!hidden}
-            aria-label={hidden ? 'Show balance' : 'Balance visible'}
-            className="inline-flex size-8 shrink-0 items-center justify-center rounded-full text-text-tertiary transition-colors hover:bg-surface-hover hover:text-text-primary disabled:opacity-60"
+            onClick={() => (hidden ? reveal() : hide())}
+            aria-label={hidden ? 'Show balance' : 'Hide balance'}
+            className="inline-flex size-8 shrink-0 items-center justify-center rounded-full text-text-tertiary transition-colors hover:bg-surface-hover hover:text-text-primary"
           >
             {hidden ? <Eye className="size-5" /> : <EyeOff className="size-5" />}
           </button>

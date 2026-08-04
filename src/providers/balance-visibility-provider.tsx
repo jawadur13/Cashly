@@ -5,6 +5,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 interface BalanceVisibilityContextValue {
   hidden: boolean
   reveal: () => void
+  hide: () => void
 }
 
 const BalanceVisibilityContext = createContext<BalanceVisibilityContextValue | undefined>(undefined)
@@ -21,6 +22,14 @@ export function BalanceVisibilityProvider({ children }: { children: React.ReactN
     timerRef.current = setTimeout(() => setRevealed(false), REVEAL_DURATION)
   }, [])
 
+  const hide = useCallback(() => {
+    setRevealed(false)
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
+      timerRef.current = null
+    }
+  }, [])
+
   useEffect(() => {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current)
@@ -28,7 +37,7 @@ export function BalanceVisibilityProvider({ children }: { children: React.ReactN
   }, [])
 
   return (
-    <BalanceVisibilityContext.Provider value={{ hidden: !revealed, reveal }}>
+    <BalanceVisibilityContext.Provider value={{ hidden: !revealed, reveal, hide }}>
       {children}
     </BalanceVisibilityContext.Provider>
   )
