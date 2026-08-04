@@ -169,8 +169,10 @@ await ensureCreatePermission(PEOPLE)
 await ensureString(PEOPLE, 'userId', true, 36)
 await ensureString(PEOPLE, 'name', true, 80)
 await ensureString(PEOPLE, 'note', false, 500)
+await ensureString(PEOPLE, 'shareToken', false, 36)
 await wait(1500)
 await ensureIndex(PEOPLE, 'by_user', 'key', ['userId'], 'ASC')
+await ensureIndex(PEOPLE, 'by_share_token', 'unique', ['shareToken'], 'ASC')
 await wait(1500)
 
 /* ---------- categories ---------- */

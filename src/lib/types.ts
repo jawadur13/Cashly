@@ -32,6 +32,7 @@ export interface Person extends Models.Document {
   userId: string
   name: string
   note: string
+  shareToken?: string
 }
 
 export interface Category extends Models.Document {

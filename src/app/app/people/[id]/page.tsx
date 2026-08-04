@@ -2,16 +2,18 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ChevronLeft, ArrowUpRight, ArrowDownRight } from 'lucide-react'
+import { ChevronLeft, ArrowUpRight, ArrowDownRight, Share2, Check } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { TransactionList } from '@/components/transactions/transaction-list'
 import { Loader } from '@/components/ui/loader'
 import { formatCurrency } from '@/lib/currency/format'
 import { useAuth } from '@/providers/auth-provider'
 import { useSettings } from '@/providers/settings-provider'
+import { useToast } from '@/providers/toast-provider'
 import { useCategories } from '@/hooks/use-categories'
 import { useAccounts } from '@/hooks/use-accounts'
 import { usePeople } from '@/hooks/use-people'
-import { listTransactions } from '@/lib/appwrite/collections'
+import { listTransactions, generateShareToken, removeShareToken } from '@/lib/appwrite/collections'
 import { cn } from '@/lib/utils'
 import type { Transaction } from '@/lib/types'
 
@@ -23,10 +25,46 @@ export default function PersonDetailPage() {
   const { categories } = useCategories()
   const { accounts } = useAccounts()
   const { people, loading: peopleLoading } = usePeople()
+  const { toast } = useToast()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
+  const [sharing, setSharing] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [shareToken, setShareToken] = useState<string | null>(null)
 
   const person = useMemo(() => people.find((p) => p.$id === params.id), [people, params.id])
+
+  async function handleShare() {
+    if (!person) return
+    setSharing(true)
+    try {
+      let token = person.shareToken || shareToken
+      if (!token) {
+        token = await generateShareToken(person.$id)
+        setShareToken(token)
+      }
+      const url = `${window.location.origin}/share/${token}`
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+      toast('Share link copied to clipboard', 'success')
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      toast('Failed to generate share link', 'error')
+    } finally {
+      setSharing(false)
+    }
+  }
+
+  async function handleRemoveShare() {
+    if (!person) return
+    try {
+      await removeShareToken(person.$id)
+      setShareToken(null)
+      toast('Share link removed', 'success')
+    } catch {
+      toast('Failed to remove share link', 'error')
+    }
+  }
 
   useEffect(() => {
     if (!user || !params.id) return
@@ -73,9 +111,11 @@ export default function PersonDetailPage() {
         <ChevronLeft className="size-4" /> Back
       </button>
 
-      <section className="rounded-[var(--radius-lg)] border border-border bg-surface p-5 shadow-[var(--shadow-sm)]">
-        <h1 className="text-lg font-semibold text-text-primary">{person.name}</h1>
-        <div className={cn(
+        <section className="rounded-[var(--radius-lg)] border border-border bg-surface p-5 shadow-[var(--shadow-sm)]">
+          <div className="flex items-start justify-between">
+            <div>
+              <h1 className="text-lg font-semibold text-text-primary">{person.name}</h1>
+              <div className={cn(
           'mt-2 text-2xl font-bold tabular-nums tracking-tight',
           person.balance > 0 && 'text-income',
           person.balance < 0 && 'text-expense',
@@ -94,7 +134,31 @@ export default function PersonDetailPage() {
           {person.status === 'settled' && 'Settled'}
         </p>
         {person.note && <p className="mt-2 text-sm text-text-secondary">{person.note}</p>}
-      </section>
+            </div>
+            <div className="flex shrink-0 gap-1">
+              <Button
+                size="sm"
+                variant="secondary"
+                loading={sharing}
+                onClick={handleShare}
+                aria-label="Share summary"
+              >
+                {copied ? <Check className="size-4" /> : <Share2 className="size-4" />}
+                {copied ? 'Copied' : 'Share'}
+              </Button>
+              {(person.shareToken || shareToken) && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={handleRemoveShare}
+                  aria-label="Remove share link"
+                >
+                  Stop
+                </Button>
+              )}
+            </div>
+          </div>
+        </section>
 
       <TransactionList
         transactions={transactions}

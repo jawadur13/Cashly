@@ -93,6 +93,25 @@ export async function deletePerson(personId: string): Promise<void> {
   await databases.deleteDocument(DATABASE_ID, COLLECTIONS.people, personId)
 }
 
+export async function getPersonByShareToken(token: string): Promise<Person> {
+  const res = await databases.listDocuments<Person>(DATABASE_ID, COLLECTIONS.people, [
+    Query.equal('shareToken', token),
+    Query.limit(1),
+  ])
+  if (res.documents.length === 0) throw new Error('Share link not found')
+  return res.documents[0]
+}
+
+export async function generateShareToken(personId: string): Promise<string> {
+  const token = ID.unique()
+  await databases.updateDocument(DATABASE_ID, COLLECTIONS.people, personId, { shareToken: token })
+  return token
+}
+
+export async function removeShareToken(personId: string): Promise<void> {
+  await databases.updateDocument(DATABASE_ID, COLLECTIONS.people, personId, { shareToken: '' })
+}
+
 /* ---------------- Categories ---------------- */
 
 export async function listCategories(userId: string): Promise<Category[]> {
