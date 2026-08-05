@@ -40,7 +40,7 @@ export default function PersonDetailPage() {
     try {
       let token = person.shareToken || shareToken
       if (!token) {
-        token = await generateShareToken(person.$id, user?.name)
+        token = await generateShareToken(person.$id, person.name, user?.name ?? '', user?.$id ?? '', transactions)
         setShareToken(token)
       }
       const url = `${window.location.origin}/share/${token}`
@@ -58,7 +58,7 @@ export default function PersonDetailPage() {
   async function handleRemoveShare() {
     if (!person) return
     try {
-      await removeShareToken(person.$id)
+      await removeShareToken(person.$id, user?.$id ?? '')
       setShareToken(null)
       toast('Share link removed', 'success')
     } catch {

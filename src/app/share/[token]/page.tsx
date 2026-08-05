@@ -3,39 +3,30 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { ArrowDownRight, ArrowUpRight, Users } from 'lucide-react'
-import { getPersonByShareToken, listTransactions } from '@/lib/appwrite/collections'
-import { formatCurrency, formatDateTime, formatSignedAmount } from '@/lib/currency/format'
+import { getShareByToken } from '@/lib/appwrite/collections'
+import { formatCurrency, formatSignedAmount, formatDateTime } from '@/lib/currency/format'
 import { Loader } from '@/components/ui/loader'
 import { cn } from '@/lib/utils'
-import type { Person, Transaction } from '@/lib/types'
+
+interface TxSnapshot { type: string; amount: number; currency: string; date: string; note: string }
 
 export default function SharePage() {
   const params = useParams<{ token: string }>()
-  const [person, setPerson] = useState<Person | null>(null)
-  const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [personName, setPersonName] = useState('')
+  const [sharedByName, setSharedByName] = useState('')
+  const [transactions, setTransactions] = useState<TxSnapshot[]>([])
 
   useEffect(() => {
     let active = true
     ;(async () => {
       try {
-        const p = await getPersonByShareToken(params.token)
+        const share = await getShareByToken(params.token)
         if (!active) return
-        setPerson(p)
-
-        const all: Transaction[] = []
-        let offset = 0
-        const PAGE = 100
-        while (true) {
-          const res = await listTransactions({ userId: p.userId, personId: p.$id, limit: PAGE, offset })
-          all.push(...res.documents)
-          offset += res.documents.length
-          if (res.documents.length < PAGE) break
-        }
-        if (active) {
-          setTransactions(all.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()))
-        }
+        setPersonName(share.personName)
+        setSharedByName(share.sharedByName)
+        setTransactions(JSON.parse(share.data || '[]'))
       } catch (e) {
         if (active) setError(e instanceof Error ? e.message : 'Share link invalid or expired')
       } finally {
@@ -53,7 +44,7 @@ export default function SharePage() {
     )
   }
 
-  if (error || !person) {
+  if (error) {
     return (
       <div className="flex min-h-dvh flex-col items-center justify-center gap-3 bg-bg px-4 text-center">
         <Users className="size-10 text-text-tertiary" />
@@ -69,12 +60,11 @@ export default function SharePage() {
     return sum
   }, 0)
 
-  // Same number, flipped interpretation: +700 means "they owe you" for user, "you owe" for friend
   return (
     <div className="mx-auto min-h-dvh max-w-lg bg-bg px-4 py-6">
       <section className="rounded-[var(--radius-lg)] border border-border bg-surface p-5 shadow-[var(--shadow-sm)]">
         <p className="text-sm text-text-secondary">Shared summary for</p>
-        <h1 className="mt-1 text-xl font-bold text-text-primary">{person.name}</h1>
+        <h1 className="mt-1 text-xl font-bold text-text-primary">{personName}</h1>
         <div className={cn(
           'mt-3 text-3xl font-bold tabular-nums tracking-tight',
           balance > 0 && 'text-expense',
@@ -91,7 +81,7 @@ export default function SharePage() {
         )}>
           {balance > 0 ? 'You owe' : balance < 0 ? 'You are owed' : 'Settled'}
         </p>
-        {person.sharedByName && <p className="mt-2 text-sm text-text-secondary">Shared by {person.sharedByName}</p>}
+        {sharedByName && <p className="mt-2 text-sm text-text-secondary">Shared by {sharedByName}</p>}
       </section>
 
       <section className="mt-6 space-y-1">
@@ -101,8 +91,7 @@ export default function SharePage() {
         {transactions.length === 0 ? (
           <p className="py-4 text-center text-sm text-text-tertiary">No transactions recorded.</p>
         ) : (
-          transactions.map((t) => {
-            // From friend's perspective: user's Give = friend Received, user's Take = friend Sent
+          transactions.map((t, i) => {
             const isGive = t.type === 'give'
             const label = isGive ? 'Received' : 'Sent'
             const tone = isGive ? 'income' : 'expense'
@@ -110,7 +99,7 @@ export default function SharePage() {
             const Icon = isGive ? ArrowDownRight : ArrowUpRight
             const amountColor = isGive ? 'text-income' : 'text-expense'
             return (
-              <div key={t.$id} className="flex items-center gap-3 rounded-[var(--radius-md)] px-2 py-2.5">
+              <div key={i} className="flex items-center gap-3 rounded-[var(--radius-md)] px-2 py-2.5">
                 <span className={cn('flex size-9 shrink-0 items-center justify-center rounded-full', iconColor)}>
                   <Icon className="size-4" />
                 </span>

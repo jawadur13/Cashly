@@ -4,4 +4,5 @@ export const COLLECTIONS = {
   transactions: 'transactions',
   categories: 'categories',
   people: 'people',
+  shares: 'shares',
 } as const

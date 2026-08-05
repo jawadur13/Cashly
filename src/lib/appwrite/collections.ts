@@ -1,4 +1,4 @@
-import { ID, Permission, Query, Role } from 'appwrite'
+import { ID, Permission, Query, Role, type Models } from 'appwrite'
 import { databases } from './client'
 import { COLLECTIONS, DATABASE_ID } from './config'
 import type { Account, AccountType, Category, Person, Transaction, TransactionType } from '@/lib/types'
@@ -93,8 +93,52 @@ export async function deletePerson(personId: string): Promise<void> {
   await databases.deleteDocument(DATABASE_ID, COLLECTIONS.people, personId)
 }
 
-export async function getPersonByShareToken(token: string): Promise<Person> {
-  const res = await databases.listDocuments<Person>(DATABASE_ID, COLLECTIONS.people, [
+export async function generateShareToken(
+  personId: string,
+  personName: string,
+  sharedByName: string,
+  userId: string,
+  transactions: Transaction[]
+): Promise<string> {
+  const token = ID.unique()
+  const data = JSON.stringify(transactions.map((t) => ({
+    type: t.type,
+    amount: t.amount,
+    currency: t.currency,
+    date: t.date,
+    note: t.note,
+  })))
+
+  await databases.createDocument(
+    DATABASE_ID,
+    COLLECTIONS.shares,
+    ID.unique(),
+    {
+      shareToken: token,
+      personName,
+      sharedByName,
+      personId,
+      userId,
+      data,
+    },
+    [Permission.read(Role.any()), Permission.delete(Role.user(userId))]
+  )
+
+  await databases.updateDocument(DATABASE_ID, COLLECTIONS.people, personId, { shareToken: token })
+  return token
+}
+
+export interface ShareData extends Models.Document {
+  shareToken: string
+  personName: string
+  sharedByName: string
+  personId: string
+  userId: string
+  data: string
+}
+
+export async function getShareByToken(token: string): Promise<ShareData> {
+  const res = await databases.listDocuments<ShareData>(DATABASE_ID, COLLECTIONS.shares, [
     Query.equal('shareToken', token),
     Query.limit(1),
   ])
@@ -102,13 +146,14 @@ export async function getPersonByShareToken(token: string): Promise<Person> {
   return res.documents[0]
 }
 
-export async function generateShareToken(personId: string, sharedByName?: string): Promise<string> {
-  const token = ID.unique()
-  await databases.updateDocument(DATABASE_ID, COLLECTIONS.people, personId, { shareToken: token, sharedByName: sharedByName ?? '' })
-  return token
-}
-
-export async function removeShareToken(personId: string): Promise<void> {
+export async function removeShareToken(personId: string, userId: string): Promise<void> {
+  const res = await databases.listDocuments(DATABASE_ID, COLLECTIONS.shares, [
+    Query.equal('personId', personId),
+    Query.limit(10),
+  ])
+  for (const doc of res.documents) {
+    try { await databases.deleteDocument(DATABASE_ID, COLLECTIONS.shares, doc.$id) } catch { /* already gone */ }
+  }
   await databases.updateDocument(DATABASE_ID, COLLECTIONS.people, personId, { shareToken: '' })
 }
 
@@ -281,4 +326,5 @@ export async function deleteUserData(userId: string): Promise<void> {
   await batchDeleteAll(COLLECTIONS.accounts, [Query.equal('userId', userId)])
   await batchDeleteAll(COLLECTIONS.categories, [Query.equal('ownerId', userId)])
   await batchDeleteAll(COLLECTIONS.people, [Query.equal('userId', userId)])
+  await batchDeleteAll(COLLECTIONS.shares, [Query.equal('userId', userId)])
 }

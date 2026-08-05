@@ -175,6 +175,20 @@ await ensureIndex(PEOPLE, 'by_user', 'key', ['userId'], 'ASC')
 await ensureIndex(PEOPLE, 'by_share_token', 'unique', ['shareToken'], 'ASC')
 await wait(1500)
 
+/* ---------- shares ---------- */
+const SHARES = 'shares'
+await ensureCollection(SHARES, 'Shares')
+await ensureCreatePermission(SHARES)
+await ensureString(SHARES, 'shareToken', true, 36)
+await ensureString(SHARES, 'personName', true, 80)
+await ensureString(SHARES, 'sharedByName', false, 80)
+await ensureString(SHARES, 'personId', true, 36)
+await ensureString(SHARES, 'userId', true, 36)
+await ensureString(SHARES, 'data', false, 500000)
+await wait(1500)
+await ensureIndex(SHARES, 'by_token', 'unique', ['shareToken'], 'ASC')
+await wait(1500)
+
 /* ---------- categories ---------- */
 const CATEGORIES = 'categories'
 await ensureCollection(CATEGORIES, 'Categories')
