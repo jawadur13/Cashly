@@ -13,7 +13,6 @@ import { useToast } from '@/providers/toast-provider'
 import { useCategories } from '@/hooks/use-categories'
 import { useAccounts } from '@/hooks/use-accounts'
 import { usePeople } from '@/hooks/use-people'
-import { useExchangeRates } from '@/hooks/use-exchange-rates'
 import { listTransactions, generateShareToken, removeShareToken } from '@/lib/appwrite/collections'
 import { cn } from '@/lib/utils'
 import type { Transaction } from '@/lib/types'
@@ -23,7 +22,6 @@ export default function PersonDetailPage() {
   const router = useRouter()
   const { user } = useAuth()
   const { defaultCurrency } = useSettings()
-  const { rates } = useExchangeRates()
   const { categories } = useCategories()
   const { accounts } = useAccounts()
   const { people, loading: peopleLoading } = usePeople()
@@ -42,7 +40,7 @@ export default function PersonDetailPage() {
     try {
       let token = person.shareToken || shareToken
       if (!token) {
-        token = await generateShareToken(person.$id, person.name, user?.name ?? '', user?.$id ?? '', transactions, defaultCurrency, rates)
+        token = await generateShareToken(person.$id, person.name, user?.name ?? '', user?.$id ?? '', defaultCurrency)
         setShareToken(token)
       }
       const url = `${window.location.origin}/share/${token}`
