@@ -359,4 +359,116 @@ F6/F7 by construction.
 | F12 | 🟡 | `formatSignedAmount` type omits give/take | `format.ts` L17-26 |
 | F13 | 🟡 | `largestExpense`/avg fields computed, unused, include give | `use-summary.ts` L250-254 |
 
+## 7. Verification pass (2026-08-09)
+
+Every finding above was independently re-checked against the current source
+(all hooks, the share page, `transaction-form.tsx`, `transaction-row.tsx`,
+both people pages, `summary/page.tsx`, `account-card.tsx`, `collections.ts`,
+`use-exchange-rates.ts`). Every quoted line and code snippet still matches.
+**No source files were modified during verification.** Two corrections to the
+original write-up:
+
+- **F5 is weaker than stated.** The share page's headline "You owe" /
+  "You are owed" is a **correctly mirrored perspective**, not a sign error:
+  the same `balance` is an asset to the owner ("they owe you", green) and a
+  liability to the friend ("you owe", red) — that flip is expected. The real
+  issue is narrower: the per-row colors (`give` → green "Received") create a
+  UX contradiction with the red headline they roll up into, which is a softer
+  finding than "contradicts the owner's page."
+- **F9's "future month" branch is currently unreachable.** `buildMonthOptions()`
+  and `buildYearOptions()` in `summary/page.tsx` only ever generate the
+  current period and past ones — there is no way to select a future month/year
+  in the UI today. The "All time" → `dailyAverage ≈ 0` half of F9 is fully live
+  and confirmed; the future-period half is a latent risk if a custom/future
+  range picker is ever added, not an active bug.
+
+All other findings (F1–F4, F6–F8, F10–F13) are confirmed exactly as written.
+
+---
+
+## 8. Open questions (need answers before any fix work starts)
+
+**F1/F2 — account balances**
+1. Confirm: `income` and `take` should both add to an account's balance;
+   `expense` and `give` should both subtract. Any reason it was written as
+   "only `income` adds" originally, or just an oversight?
+2. Fixing F2 means `useAccountBalances` will fetch **every** transaction
+   (like `useSummary`/`usePeople` already do) instead of the newest 500. For a
+   long-lived account, that's an ever-growing read on every Home-page load.
+   Is client-side full recompute acceptable for expected data volumes, or
+   would you rather a running/cached balance (e.g. maintained server-side or
+   incrementally) — bigger change, but avoids the O(n) growth?
+
+**F3 — People vs Summary sign convention**
+3. Which convention is "correct"? My read: the People page's is the
+   intuitive one (`balance > 0` = they owe you = green asset). Confirm the
+   Summary page's "People net" tile and per-person breakdown should be
+   flipped to match (`amount = given − taken`, not `taken − given`)?
+
+**F4 — mixed-currency people balances**
+4. Confirm people/share balances should run every `give`/`take` through
+   `convertCurrency(amount, t.currency, defaultCurrency, rates)` before
+   summing — same pattern `useSummary`/`useAccountBalances` already use?
+5. Share page currently hardcodes `'BDT'` as the display symbol. Should it
+   instead show the **owner's** default currency at the time the link was
+   generated (baked into the share snapshot), since the recipient has no
+   account/settings of their own?
+
+**F5 — share page UX**
+6. Given the headline math is actually correct (see §7), do you still want
+   row-level styling changed (e.g. neutral tone instead of green/red
+   "Received"/"Sent") to remove the visual contradiction, or leave as-is?
+
+**F6/F8 — timezone handling**
+7. All date-boundary math (`Date.UTC(...)`) should probably switch to the
+   browser's local timezone to match how transactions are stored
+   (`new Date(date + 'T' + time)` = local). Confirm — or is a fixed
+   Asia/Dhaka (UTC+6) assumption preferred instead, since that's the primary
+   market per `Plan/Project-Context.md`?
+
+**F7 — exchange fee accounting**
+8. Two ways to make `opening + income − expense (+/− fee) = closing`
+   reconcile: (a) fold the exchange fee/gain into `savings`, or (b) keep
+   `savings` pure and stop adding `exchNet` into `closingBalance` (show it as
+   a separate line instead). Which do you want?
+
+**F9 — daily average**
+9. For "All time", should `≈ per day` be based on days since the **first
+   transaction** (not the Unix epoch), or should the tile just be hidden for
+   the "All time" scope entirely?
+
+**F10 — dead code**
+10. Delete `useMonthlySummary` + `MonthlySummary` (confirmed unused,
+    zero imports), or is a "This month" tile still planned for Home? If kept,
+    it needs to be rebuilt on top of whatever shared calculation helper comes
+    out of the F1/F3/F4 fix rather than keeping its own copy of the rules.
+
+**F11 — trends**
+11. Confirm desired behavior: trends should show whenever the *previous*
+    period had any activity (`prev.transactionCount > 0`), not gated
+    separately per-metric on `prev.inc > 0` — and going from `0 → something`
+    should read as a new/positive signal rather than staying hidden?
+
+**F13 — unused fields**
+12. Surface `avgIncome` / `avgExpense` / `largestExpense` in the Summary UI,
+    or delete the dead computation? If surfaced, should `largestExpense`
+    exclude `give` amounts so it's a true "biggest expense" rather than
+    including debt lent to people?
+
+---
+
+## 9. Suggested fix approach (not started — awaiting answers above)
+
+1. **Build one shared calculation module** (e.g. `src/lib/calculations.ts`)
+   exposing `signedAccountDelta(t)`, `signedPersonDelta(t)`, and a single
+   `toDefaultCurrency(amount, currency)` wrapper around `convertCurrency`.
+   Point `useAccountBalances`, `usePeople`, and `useSummary` at it. This
+   removes F1, F3, F4, and F5's headline-math confusion **by construction**,
+   and gives F10 a correct base to rebuild on if it's kept.
+2. **Priority order once answers land:**
+   - P0 (wrong money on the most-viewed screen): F1, F2
+   - P1 (screens disagree with each other): F3, F4
+   - P2 (correct in common cases, wrong at edges): F6, F7, F8, F9
+   - P3 (cleanup, no user-visible wrong numbers today): F10, F11, F12, F13
+
 *End of report — no source files were modified.*
