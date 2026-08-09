@@ -8,12 +8,15 @@ Cashly is a personal finance web app built with Next.js and Appwrite. It helps u
 
 ### What the app includes
 - User authentication with Appwrite Auth (register, login, password reset)
-- Account management and balance tracking
+- Multiple accounts per user (cash, bank, mobile wallet), each with its own currency, plus balance tracking
 - Categories for income and expenses with a large built-in icon set
+- Five transaction types: income, expense, exchange (transfer between two same-currency accounts, tracking any fee/gain), and give/take (money lent to or borrowed from a person)
+- People tracking: see who owes you and who you owe, backed by a shared `signedCashDelta` convention so the People page and Summary page always agree
+- Public share links per person — always show that person's *live* balance and history (server-rendered via an admin-authenticated API route), not a frozen snapshot from when the link was created
 - Transaction creation, editing, and filtering (search, type, account)
-- Summary tab with monthly / yearly / all-time views, opening & closing balances, savings rate, and category breakdowns
-- Multi-currency support with exchange-rate conversion
-- Balance privacy: hidden by default with a 5-second "peek" eye toggle
+- Summary tab with monthly / yearly / all-time views, opening & closing balances, savings rate, trends, category breakdowns, people breakdown, and a 12-month cash flow chart
+- Multi-currency support with live exchange-rate conversion, shared app-wide via a single provider (hourly refresh, cached, with a hardcoded fallback table)
+- Balance privacy: hidden by default, with a 5-second "peek" eye toggle that blurs the amount but keeps the currency symbol readable
 - Responsive mobile-first UI (bottom nav on phones, sidebar on desktop)
 - Progressive Web App support via service worker registration
 
@@ -23,15 +26,16 @@ Cashly is a personal finance web app built with Next.js and Appwrite. It helps u
 - TypeScript
 - Tailwind CSS
 - Appwrite Cloud for auth and database
+- `appwrite` (browser SDK) for all client-side data access; `node-appwrite` (admin SDK) for the database setup script and the share-link API route
 - Lucide icons
 
 ## Project structure
 
-- src/app: route pages and app layout
+- src/app: route pages, app layout, and the `/api/share/[token]` route handler (server-side, admin-authenticated)
 - src/components: reusable UI and feature components
-- src/hooks: data hooks for accounts, transactions, categories, and summary views
-- src/lib: app constants, utility helpers, Appwrite client/config, and currency formatting
-- src/providers: auth, theme, settings, toast, and app providers
+- src/hooks: data hooks for accounts, transactions, categories, people, and summary views
+- src/lib: app constants, utility helpers, Appwrite client/config, currency formatting, and shared calculation helpers (`src/lib/calculations.ts`)
+- src/providers: auth, theme, settings, exchange rates, toast, and app providers
 - scripts: database setup and smoke-test helpers
 
 ## Prerequisites
@@ -55,7 +59,7 @@ APPWRITE_DATABASE_ID=<your-database-id>
 
 ### Notes
 - NEXT_PUBLIC_* values are used by the browser app.
-- APPWRITE_* values are used by the local setup and smoke-test scripts.
+- APPWRITE_API_KEY and APPWRITE_DATABASE_ID are used by the local setup/smoke-test scripts **and** at runtime by the `/api/share/[token]` route, which uses the admin SDK to serve live share-link data without exposing the transactions collection to public read access. Deployments (e.g. Vercel) must set these as real environment variables, not just locally.
 - Never commit your real secrets. The repository already ignores .env.local and .env.vercel.
 
 ## Local development
@@ -83,6 +87,8 @@ Then open http://localhost:3000 in your browser.
    - accounts
    - transactions
    - categories
+   - people
+   - shares
 5. Add the required environment variables above.
 
 ### Database setup helper
@@ -155,4 +161,4 @@ node scripts/smoke-test.cjs
 
 - The app is designed as a mobile-first finance experience.
 - Authentication and data storage are handled by Appwrite rather than a custom backend.
-- The app uses client-side Appwrite SDK access and relies on the Appwrite permission model for per-user data isolation.
+- Almost all data access is client-side, relying on the Appwrite permission model for per-user data isolation. The one exception is `/api/share/[token]`, a server route that uses the admin SDK so a share link's data can be served live without granting public read access to the underlying transactions.

@@ -1,10 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { ArrowDownRight, ArrowUpRight, Users } from 'lucide-react'
-import { getShareByToken } from '@/lib/appwrite/collections'
 import { formatCurrency, formatSignedAmount, formatDateTime } from '@/lib/currency/format'
+import { convertCurrency } from '@/lib/currency/currencies'
+import { useExchangeRates } from '@/hooks/use-exchange-rates'
 import { Loader } from '@/components/ui/loader'
 import { cn } from '@/lib/utils'
 
@@ -12,21 +13,26 @@ interface TxSnapshot { type: string; amount: number; currency: string; date: str
 
 export default function SharePage() {
   const params = useParams<{ token: string }>()
+  const { rates } = useExchangeRates()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [personName, setPersonName] = useState('')
   const [sharedByName, setSharedByName] = useState('')
+  const [currency, setCurrency] = useState('BDT')
   const [transactions, setTransactions] = useState<TxSnapshot[]>([])
 
   useEffect(() => {
     let active = true
     ;(async () => {
       try {
-        const share = await getShareByToken(params.token)
+        const res = await fetch(`/api/share/${params.token}`)
+        if (!res.ok) throw new Error('Share link invalid or expired')
+        const share = await res.json()
         if (!active) return
         setPersonName(share.personName)
         setSharedByName(share.sharedByName)
-        setTransactions(JSON.parse(share.data || '[]'))
+        setCurrency(share.currency)
+        setTransactions(share.transactions)
       } catch (e) {
         if (active) setError(e instanceof Error ? e.message : 'Share link invalid or expired')
       } finally {
@@ -35,6 +41,11 @@ export default function SharePage() {
     })()
     return () => { active = false }
   }, [params.token])
+
+  const converted = useMemo(
+    () => transactions.map((t) => ({ ...t, amount: convertCurrency(t.amount, t.currency, currency, rates), currency })),
+    [transactions, currency, rates]
+  )
 
   if (loading) {
     return (
@@ -46,15 +57,16 @@ export default function SharePage() {
 
   if (error) {
     return (
-      <div className="flex min-h-dvh flex-col items-center justify-center gap-3 bg-bg px-4 text-center">
+      <div className="mx-auto flex min-h-dvh max-w-lg flex-col items-center justify-center gap-3 bg-bg px-4 text-center">
         <Users className="size-10 text-text-tertiary" />
         <p className="text-sm font-medium text-text-primary">Link not found</p>
         <p className="text-xs text-text-secondary">This share link may have been removed or is invalid.</p>
+        <MarketingFooter />
       </div>
     )
   }
 
-  const balance = transactions.reduce((sum, t) => {
+  const balance = converted.reduce((sum, t) => {
     if (t.type === 'give') return sum + t.amount
     if (t.type === 'take') return sum - t.amount
     return sum
@@ -71,7 +83,7 @@ export default function SharePage() {
           balance < 0 && 'text-income',
           balance === 0 && 'text-text-primary'
         )}>
-          {formatCurrency(Math.abs(balance), 'BDT')}
+          {formatCurrency(Math.abs(balance), currency)}
         </div>
         <p className={cn(
           'mt-1 text-sm font-medium',
@@ -86,12 +98,12 @@ export default function SharePage() {
 
       <section className="mt-6 space-y-1">
         <h2 className="mb-2 text-sm font-semibold text-text-primary">
-          Transaction history ({transactions.length})
+          Transaction history ({converted.length})
         </h2>
-        {transactions.length === 0 ? (
+        {converted.length === 0 ? (
           <p className="py-4 text-center text-sm text-text-tertiary">No transactions recorded.</p>
         ) : (
-          transactions.map((t, i) => {
+          converted.map((t, i) => {
             const isGive = t.type === 'give'
             const label = isGive ? 'Received' : 'Sent'
             const tone = isGive ? 'income' : 'expense'
@@ -118,27 +130,33 @@ export default function SharePage() {
         )}
       </section>
 
-      <footer className="mt-8 pb-8 text-center">
-        <p className="text-xs text-text-tertiary">
-          Shared via Cashly · {new Date().toLocaleDateString()}
-        </p>
-        <div className="mt-4 rounded-[var(--radius-md)] border border-border bg-surface p-4 text-center">
-          <p className="text-sm font-medium text-text-primary">
-            Track your own money with Cashly
-          </p>
-          <p className="mt-1 text-xs text-text-secondary">
-            The easiest way to manage income, expenses, and people.
-          </p>
-          <a
-            href="https://cashly.mvp.bd"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-3 inline-flex items-center gap-1.5 rounded-[var(--radius-md)] bg-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90 transition-opacity"
-          >
-            Try Cashly free
-          </a>
-        </div>
-      </footer>
+      <MarketingFooter />
     </div>
+  )
+}
+
+function MarketingFooter() {
+  return (
+    <footer className="mt-8 w-full pb-8 text-center">
+      <p className="text-xs text-text-tertiary">
+        Shared via Cashly · {new Date().toLocaleDateString()}
+      </p>
+      <div className="mt-4 rounded-[var(--radius-md)] border border-border bg-surface p-4 text-center">
+        <p className="text-sm font-medium text-text-primary">
+          Track your own money with Cashly
+        </p>
+        <p className="mt-1 text-xs text-text-secondary">
+          The easiest way to manage income, expenses, and people.
+        </p>
+        <a
+          href="https://cashly.mvp.bd"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-3 inline-flex items-center gap-1.5 rounded-[var(--radius-md)] bg-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90 transition-opacity"
+        >
+          Try Cashly free
+        </a>
+      </div>
+    </footer>
   )
 }

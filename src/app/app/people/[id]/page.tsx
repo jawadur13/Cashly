@@ -40,7 +40,7 @@ export default function PersonDetailPage() {
     try {
       let token = person.shareToken || shareToken
       if (!token) {
-        token = await generateShareToken(person.$id, person.name, user?.name ?? '', user?.$id ?? '', transactions)
+        token = await generateShareToken(person.$id, person.name, user?.name ?? '', user?.$id ?? '', defaultCurrency)
         setShareToken(token)
       }
       const url = `${window.location.origin}/share/${token}`
@@ -117,8 +117,8 @@ export default function PersonDetailPage() {
               <h1 className="text-lg font-semibold text-text-primary">{person.name}</h1>
               <div className={cn(
           'mt-2 text-2xl font-bold tabular-nums tracking-tight',
-          person.balance > 0 && 'text-income',
-          person.balance < 0 && 'text-expense',
+          person.balance > 0 && 'text-expense',
+          person.balance < 0 && 'text-income',
           person.balance === 0 && 'text-text-primary'
         )}>
           {person.balance === 0 ? formatCurrency(0, defaultCurrency) : formatCurrency(person.balance, defaultCurrency)}

@@ -1,4 +1,4 @@
-import { ID, Permission, Query, Role, type Models } from 'appwrite'
+import { ID, Permission, Query, Role } from 'appwrite'
 import { databases } from './client'
 import { COLLECTIONS, DATABASE_ID } from './config'
 import type { Account, AccountType, Category, Person, Transaction, TransactionType } from '@/lib/types'
@@ -98,16 +98,12 @@ export async function generateShareToken(
   personName: string,
   sharedByName: string,
   userId: string,
-  transactions: Transaction[]
+  defaultCurrency: string
 ): Promise<string> {
   const token = ID.unique()
-  const data = JSON.stringify(transactions.map((t) => ({
-    type: t.type,
-    amount: t.amount,
-    currency: t.currency,
-    date: t.date,
-    note: t.note,
-  })))
+  // Only the display currency is stored — the share page fetches live
+  // transactions from /api/share/[token] rather than a frozen snapshot.
+  const data = JSON.stringify({ currency: defaultCurrency })
 
   await databases.createDocument(
     DATABASE_ID,
@@ -121,29 +117,14 @@ export async function generateShareToken(
       userId,
       data,
     },
-    [Permission.read(Role.any()), Permission.delete(Role.user(userId))]
+    // No public read here — /api/share/[token] reads this server-side with
+    // the admin key, so the share document itself only needs to be visible
+    // to its owner (and deletable by them, via "Stop").
+    ownerPermissions(userId)
   )
 
   await databases.updateDocument(DATABASE_ID, COLLECTIONS.people, personId, { shareToken: token })
   return token
-}
-
-export interface ShareData extends Models.Document {
-  shareToken: string
-  personName: string
-  sharedByName: string
-  personId: string
-  userId: string
-  data: string
-}
-
-export async function getShareByToken(token: string): Promise<ShareData> {
-  const res = await databases.listDocuments<ShareData>(DATABASE_ID, COLLECTIONS.shares, [
-    Query.equal('shareToken', token),
-    Query.limit(1),
-  ])
-  if (res.documents.length === 0) throw new Error('Share link not found')
-  return res.documents[0]
 }
 
 export async function removeShareToken(personId: string, userId: string): Promise<void> {

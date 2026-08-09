@@ -2,7 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { listPeople, createPerson, updatePerson, deletePerson, listTransactions } from '@/lib/appwrite/collections'
+import { signedCashDelta } from '@/lib/calculations'
+import { convertCurrency } from '@/lib/currency/currencies'
 import { useAuth } from '@/providers/auth-provider'
+import { useSettings } from '@/providers/settings-provider'
+import { useExchangeRates } from './use-exchange-rates'
 import type { Person, Transaction, TransactionType } from '@/lib/types'
 
 export interface PersonWithBalance extends Person {
@@ -12,6 +16,8 @@ export interface PersonWithBalance extends Person {
 
 export function usePeople() {
   const { user } = useAuth()
+  const { defaultCurrency } = useSettings()
+  const { rates } = useExchangeRates()
   const [people, setPeople] = useState<Person[]>([])
   const [balances, setBalances] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
@@ -41,11 +47,11 @@ export function usePeople() {
     const map: Record<string, number> = {}
     for (const t of allDocs) {
       if (!t.personId) continue
-      if (t.type === 'give') map[t.personId] = (map[t.personId] ?? 0) + t.amount
-      if (t.type === 'take') map[t.personId] = (map[t.personId] ?? 0) - t.amount
+      const converted = convertCurrency(t.amount, t.currency, defaultCurrency, rates)
+      map[t.personId] = (map[t.personId] ?? 0) + signedCashDelta({ type: t.type, amount: converted })
     }
     return map
-  }, [])
+  }, [defaultCurrency, rates])
 
   const refresh = useCallback(async () => {
     if (!user) {
@@ -105,7 +111,7 @@ export function usePeople() {
       return {
         ...p,
         balance,
-        status: balance > 0 ? 'they-owe' : balance < 0 ? 'you-owe' : 'settled',
+        status: balance > 0 ? 'you-owe' : balance < 0 ? 'they-owe' : 'settled',
       }
     }),
     [people, balances]
