@@ -61,31 +61,31 @@ export default function SummaryPage() {
     }
     if (scope === 'year') {
       return {
-        range: { start: Date.UTC(year, 0, 1), end: Date.UTC(year + 1, 0, 1), hasOpening: true, previousOffset: 365 * 24 * 60 * 60 * 1000 },
+        range: { start: new Date(year, 0, 1).getTime(), end: new Date(year + 1, 0, 1).getTime(), hasOpening: true, previousOffset: 365 * 24 * 60 * 60 * 1000 },
         periodLabel: String(year),
       }
     }
     const [y, m] = monthKey.split('-').map(Number)
     return {
-      range: { start: Date.UTC(y, m - 1, 1), end: Date.UTC(y, m, 1), hasOpening: true, previousOffset: endOffset(y, m) },
+      range: { start: new Date(y, m - 1, 1).getTime(), end: new Date(y, m, 1).getTime(), hasOpening: true, previousOffset: endOffset(y, m) },
       periodLabel: monthOptions.find((o) => o.key === monthKey)?.label ?? '',
     }
   }, [scope, monthKey, year, monthOptions])
 
   function endOffset(y: number, m: number): number {
     const prev = new Date(y, m - 2, 1)
-    return Date.UTC(y, m - 1, 1) - Date.UTC(prev.getFullYear(), prev.getMonth(), 1)
+    return new Date(y, m - 1, 1).getTime() - new Date(prev.getFullYear(), prev.getMonth(), 1).getTime()
   }
 
   const { data, loading } = useSummary(range)
 
   const categoryName = useMemo(() => {
     const map = new Map(categories.map((c) => [c.$id, c]))
-    return (id: string) => id === '' ? 'People' : (map.get(id)?.name ?? 'Uncategorized')
+    return (id: string) => map.get(id)?.name ?? 'Uncategorized'
   }, [categories])
   const categoryIcon = useMemo(() => {
     const map = new Map(categories.map((c) => [c.$id, c]))
-    return (id: string) => id === '' ? 'users' : map.get(id)?.icon
+    return (id: string) => map.get(id)?.icon
   }, [categories])
   const personName = useMemo(() => {
     const map = new Map(people.map((p) => [p.$id, p]))
@@ -94,7 +94,7 @@ export default function SummaryPage() {
 
   const fmt = (v: number) => formatCurrency(v, defaultCurrency)
   const hasData = data.transactionCount > 0
-  const peopleNet = data.personBreakdown.reduce((s, p) => s + p.amount, 0)
+  const peopleNet = data.peopleNet
   const maxBar = Math.max(...data.months.map((m) => Math.max(m.income, m.expense)), 1)
 
   return (
@@ -169,7 +169,7 @@ export default function SummaryPage() {
               <section className="grid grid-cols-2 gap-3">
                 <StatTile icon={<Receipt className="size-4" />} label="Transactions" value={String(data.transactionCount)} />
                 <StatTile icon={<Zap className="size-4" />} label="Avg. txn" value={fmt(data.avgTransaction)} />
-                <StatTile icon={<Users className="size-4" />} label="People net" value={peopleNet >= 0 ? `+${fmt(peopleNet)}` : fmt(peopleNet)} tone={peopleNet > 0 ? 'income' : peopleNet < 0 ? 'expense' : undefined} />
+                <StatTile icon={<Users className="size-4" />} label="People net" value={peopleNet >= 0 ? `+${fmt(peopleNet)}` : fmt(peopleNet)} tone={peopleNet > 0 ? 'expense' : peopleNet < 0 ? 'income' : undefined} />
                 <StatTile icon={<Calendar className="size-4" />} label="≈ per day" value={fmt(data.dailyAverage)} tone="expense" />
               </section>
 
@@ -185,7 +185,7 @@ export default function SummaryPage() {
                         <span className="flex items-center gap-3 tabular-nums">
                           <span className="text-xs text-expense">-{fmt(item.given)}</span>
                           <span className="text-xs text-income">+{fmt(item.taken)}</span>
-                          <span className={cn('font-semibold', item.amount > 0 ? 'text-income' : item.amount < 0 ? 'text-expense' : 'text-text-tertiary')}>
+                          <span className={cn('font-semibold', item.amount > 0 ? 'text-expense' : item.amount < 0 ? 'text-income' : 'text-text-tertiary')}>
                             {item.amount === 0 ? '—' : fmt(item.amount)}
                           </span>
                         </span>
@@ -237,7 +237,7 @@ function TrendRow({
     return (
       <div className={cn('flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium', up ? 'bg-income-soft text-income' : 'bg-expense-soft text-expense')}>
         {up ? <ArrowUpRight className="size-3.5" /> : <ArrowDownRight className="size-3.5" />}
-        {label}: {Math.abs(trend).toFixed(0)}%
+        {label}: {trend === Infinity ? 'New' : `${Math.abs(trend).toFixed(0)}%`}
       </div>
     )
   }
@@ -271,11 +271,11 @@ function NetSavingsHero({ data, fmt }: { data: SummaryData; fmt: (v: number) => 
 }
 
 function IncomeExpenseSavings({ data, fmt }: { data: SummaryData; fmt: (v: number) => string }) {
-  const cell = (label: string, value: number, tone: 'income' | 'expense' | 'exchange' | 'neutral') => (
+  const cell = (label: string, value: number, tone: 'income' | 'expense' | 'exchange' | 'neutral', signed = false) => (
     <div className="rounded-[var(--radius-md)] border border-border bg-surface px-3 py-3 shadow-[var(--shadow-sm)]">
       <p className="text-xs text-text-secondary">{label}</p>
       <p className={cn('mt-1 text-base font-semibold tabular-nums', tone === 'income' && 'text-income', tone === 'expense' && 'text-expense', tone === 'exchange' && 'text-exchange', tone === 'neutral' && data.savings < 0 && 'text-expense', tone === 'neutral' && data.savings >= 0 && 'text-text-primary')}>
-        {fmt(value)}
+        {signed ? (value >= 0 ? `+${fmt(value)}` : `-${fmt(Math.abs(value))}`) : fmt(value)}
       </p>
     </div>
   )
@@ -283,7 +283,7 @@ function IncomeExpenseSavings({ data, fmt }: { data: SummaryData; fmt: (v: numbe
     <section className="grid grid-cols-4 gap-3">
       {cell('Income', data.income, 'income')}
       {cell('Expense', data.expense, 'expense')}
-      {cell('Exchange', data.exchange, 'exchange')}
+      {cell('Exchange', data.exchange, 'exchange', true)}
       {cell('Savings', data.savings, 'neutral')}
     </section>
   )

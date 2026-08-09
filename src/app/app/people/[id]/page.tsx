@@ -13,6 +13,7 @@ import { useToast } from '@/providers/toast-provider'
 import { useCategories } from '@/hooks/use-categories'
 import { useAccounts } from '@/hooks/use-accounts'
 import { usePeople } from '@/hooks/use-people'
+import { useExchangeRates } from '@/hooks/use-exchange-rates'
 import { listTransactions, generateShareToken, removeShareToken } from '@/lib/appwrite/collections'
 import { cn } from '@/lib/utils'
 import type { Transaction } from '@/lib/types'
@@ -22,6 +23,7 @@ export default function PersonDetailPage() {
   const router = useRouter()
   const { user } = useAuth()
   const { defaultCurrency } = useSettings()
+  const { rates } = useExchangeRates()
   const { categories } = useCategories()
   const { accounts } = useAccounts()
   const { people, loading: peopleLoading } = usePeople()
@@ -40,7 +42,7 @@ export default function PersonDetailPage() {
     try {
       let token = person.shareToken || shareToken
       if (!token) {
-        token = await generateShareToken(person.$id, person.name, user?.name ?? '', user?.$id ?? '', transactions)
+        token = await generateShareToken(person.$id, person.name, user?.name ?? '', user?.$id ?? '', transactions, defaultCurrency, rates)
         setShareToken(token)
       }
       const url = `${window.location.origin}/share/${token}`
@@ -117,8 +119,8 @@ export default function PersonDetailPage() {
               <h1 className="text-lg font-semibold text-text-primary">{person.name}</h1>
               <div className={cn(
           'mt-2 text-2xl font-bold tabular-nums tracking-tight',
-          person.balance > 0 && 'text-income',
-          person.balance < 0 && 'text-expense',
+          person.balance > 0 && 'text-expense',
+          person.balance < 0 && 'text-income',
           person.balance === 0 && 'text-text-primary'
         )}>
           {person.balance === 0 ? formatCurrency(0, defaultCurrency) : formatCurrency(person.balance, defaultCurrency)}

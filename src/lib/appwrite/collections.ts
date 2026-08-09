@@ -1,6 +1,7 @@
 import { ID, Permission, Query, Role, type Models } from 'appwrite'
 import { databases } from './client'
 import { COLLECTIONS, DATABASE_ID } from './config'
+import { convertCurrency } from '@/lib/currency/currencies'
 import type { Account, AccountType, Category, Person, Transaction, TransactionType } from '@/lib/types'
 
 const ownerPermissions = (userId: string) => [
@@ -98,16 +99,21 @@ export async function generateShareToken(
   personName: string,
   sharedByName: string,
   userId: string,
-  transactions: Transaction[]
+  transactions: Transaction[],
+  defaultCurrency: string,
+  rates: Record<string, number>
 ): Promise<string> {
   const token = ID.unique()
-  const data = JSON.stringify(transactions.map((t) => ({
-    type: t.type,
-    amount: t.amount,
-    currency: t.currency,
-    date: t.date,
-    note: t.note,
-  })))
+  const data = JSON.stringify({
+    currency: defaultCurrency,
+    transactions: transactions.map((t) => ({
+      type: t.type,
+      amount: convertCurrency(t.amount, t.currency, defaultCurrency, rates),
+      currency: defaultCurrency,
+      date: t.date,
+      note: t.note,
+    })),
+  })
 
   await databases.createDocument(
     DATABASE_ID,

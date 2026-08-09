@@ -16,6 +16,7 @@ export default function SharePage() {
   const [error, setError] = useState<string | null>(null)
   const [personName, setPersonName] = useState('')
   const [sharedByName, setSharedByName] = useState('')
+  const [currency, setCurrency] = useState('BDT')
   const [transactions, setTransactions] = useState<TxSnapshot[]>([])
 
   useEffect(() => {
@@ -26,7 +27,9 @@ export default function SharePage() {
         if (!active) return
         setPersonName(share.personName)
         setSharedByName(share.sharedByName)
-        setTransactions(JSON.parse(share.data || '[]'))
+        const parsed = JSON.parse(share.data || '{"currency":"BDT","transactions":[]}')
+        setCurrency(parsed.currency)
+        setTransactions(parsed.transactions)
       } catch (e) {
         if (active) setError(e instanceof Error ? e.message : 'Share link invalid or expired')
       } finally {
@@ -71,7 +74,7 @@ export default function SharePage() {
           balance < 0 && 'text-income',
           balance === 0 && 'text-text-primary'
         )}>
-          {formatCurrency(Math.abs(balance), 'BDT')}
+          {formatCurrency(Math.abs(balance), currency)}
         </div>
         <p className={cn(
           'mt-1 text-sm font-medium',

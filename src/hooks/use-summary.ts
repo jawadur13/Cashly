@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { listTransactions } from '@/lib/appwrite/collections'
+import { signedCashDelta } from '@/lib/calculations'
 import { convertCurrency } from '@/lib/currency/currencies'
 import { useAuth } from '@/providers/auth-provider'
 import { useSettings } from '@/providers/settings-provider'
@@ -34,6 +35,7 @@ export interface SummaryData {
   income: number
   expense: number
   exchange: number
+  peopleNet: number
   savings: number
   savingsRate: number
   openingBalance: number
@@ -109,14 +111,14 @@ function buildPersonBreakdown(
     .sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount))
 }
 
-function daysInPeriod(start: number, end: number): number {
-  const s = Math.max(start, 0)
+function daysInPeriod(start: number, end: number, earliestTs: number): number {
+  const s = Math.max(start === -Infinity ? earliestTs : start, 0)
   const e = Math.min(end, Date.now())
   return Math.max(1, Math.ceil((e - s) / (1000 * 60 * 60 * 24)))
 }
 
 const EMPTY: SummaryData = {
-  income: 0, expense: 0, exchange: 0, savings: 0, savingsRate: 0,
+  income: 0, expense: 0, exchange: 0, peopleNet: 0, savings: 0, savingsRate: 0,
   openingBalance: 0, closingBalance: 0, transactionCount: 0,
   incomeCount: 0, expenseCount: 0, exchangeCount: 0, giveCount: 0, takeCount: 0,
   avgIncome: 0, avgExpense: 0, avgTransaction: 0, dailyAverage: 0,
@@ -166,7 +168,7 @@ export function useSummary(range: SummaryRange) {
       convertCurrency(amount, currency, defaultCurrency, rates)
 
     function aggregate(periodStart: number, periodEnd: number) {
-      let inc = 0; let exp = 0; let exch = 0; let exchNet = 0
+      let inc = 0; let exp = 0; let exchNet = 0; let peopleNet = 0
       let incC = 0; let expC = 0; let exchC = 0; let giveC = 0; let takeC = 0
       let maxExp = 0; let openBal = 0
       const expRows: { categoryId: string; amount: number }[] = []
@@ -176,7 +178,7 @@ export function useSummary(range: SummaryRange) {
       for (const t of transactions) {
         const ts = new Date(t.date).getTime()
         const value = toDefault(t.amount, t.currency)
-        const signed = t.type === 'income' || t.type === 'take' ? value : -value
+        const signed = signedCashDelta({ type: t.type, amount: value })
 
         if (ts < periodStart) {
           if (hasOpening) {
@@ -189,14 +191,14 @@ export function useSummary(range: SummaryRange) {
 
         if (t.type === 'income') { inc += value; incC++; incRows.push({ categoryId: t.categoryId, amount: value }) }
         else if (t.type === 'expense') { exp += value; expC++; maxExp = Math.max(maxExp, value); expRows.push({ categoryId: t.categoryId, amount: value }) }
-        else if (t.type === 'give') { exp += value; giveC++; maxExp = Math.max(maxExp, value); expRows.push({ categoryId: t.categoryId, amount: value }); personRows.push({ personId: t.personId ?? '', type: 'give', amount: value }) }
-        else if (t.type === 'take') { inc += value; takeC++; incRows.push({ categoryId: t.categoryId, amount: value }); personRows.push({ personId: t.personId ?? '', type: 'take', amount: value }) }
-        else if (t.type === 'exchange') { const diff = Math.abs((t.fromAmount ?? 0) - (t.toAmount ?? 0)); exch += diff; exchC++; exchNet += toDefault((t.toAmount ?? 0) - (t.fromAmount ?? 0), t.currency) }
+        else if (t.type === 'give') { giveC++; peopleNet -= value; personRows.push({ personId: t.personId ?? '', type: 'give', amount: value }) }
+        else if (t.type === 'take') { takeC++; peopleNet += value; personRows.push({ personId: t.personId ?? '', type: 'take', amount: value }) }
+        else if (t.type === 'exchange') { exchC++; exchNet += toDefault((t.toAmount ?? 0) - (t.fromAmount ?? 0), t.currency) }
       }
 
       const txnCount = incC + expC + exchC + giveC + takeC
       const savings = inc - exp
-      return { inc, exp, exch, savings, incC, expC, exchC, giveC, takeC, txnCount, maxExp, openBal, incRows, expRows, personRows, exchNet }
+      return { inc, exp, exchNet, peopleNet, savings, incC, expC, exchC, giveC, takeC, txnCount, maxExp, openBal, incRows, expRows, personRows }
     }
 
     const curr = aggregate(start, end)
@@ -208,29 +210,32 @@ export function useSummary(range: SummaryRange) {
     let savingsTrend: number | null = null
     if (previousOffset > 0) {
       const prev = aggregate(start - previousOffset, end - previousOffset)
-      if (prev.inc > 0) incomeTrend = ((curr.inc - prev.inc) / prev.inc) * 100
-      if (prev.exp > 0) expenseTrend = ((curr.exp - prev.exp) / prev.exp) * 100
-      if (prev.inc > 0) savingsTrend = prev.savings > 0 ? ((curr.savings - prev.savings) / prev.savings) * 100 : null
+      if (prev.txnCount > 0) {
+        incomeTrend = prev.inc > 0 ? ((curr.inc - prev.inc) / prev.inc) * 100 : (curr.inc > 0 ? Infinity : null)
+        expenseTrend = prev.exp > 0 ? ((curr.exp - prev.exp) / prev.exp) * 100 : (curr.exp > 0 ? Infinity : null)
+        savingsTrend = prev.savings !== 0 ? ((curr.savings - prev.savings) / prev.savings) * 100 : (curr.savings !== 0 ? Infinity : null)
+      }
     }
 
-    const days = daysInPeriod(start, end)
+    // curr.txnCount > 0 (checked above) guarantees at least one transaction exists
+    const earliestTs = transactions.reduce((min, t) => Math.min(min, new Date(t.date).getTime()), Infinity)
+    const days = daysInPeriod(start, end, earliestTs)
     const dailyAverage = curr.exp / days
-    const avgTransaction = curr.txnCount > 0 ? (curr.inc + curr.exp) / curr.txnCount : 0
+    const avgTransaction = (curr.incC + curr.expC) > 0 ? (curr.inc + curr.exp) / (curr.incC + curr.expC) : 0
 
     const months: MonthlyBar[] = []
     const now = new Date()
     for (let i = 11; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-      const mStart = Date.UTC(d.getFullYear(), d.getMonth(), 1)
-      const mEnd = Date.UTC(d.getFullYear(), d.getMonth() + 1, 1)
+      const mStart = new Date(d.getFullYear(), d.getMonth(), 1).getTime()
+      const mEnd = new Date(d.getFullYear(), d.getMonth() + 1, 1).getTime()
       let mInc = 0; let mExp = 0
       for (const t of transactions) {
         const ts = new Date(t.date).getTime()
         if (ts < mStart || ts >= mEnd) continue
         const val = toDefault(t.amount, t.currency)
-        if (t.type === 'income' || t.type === 'take') mInc += val
-        else if (t.type === 'expense' || t.type === 'give') mExp += val
-        else if (t.type === 'exchange') { mInc += 0 }
+        if (t.type === 'income') mInc += val
+        else if (t.type === 'expense') mExp += val
       }
       months.push({
         month: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
@@ -241,9 +246,9 @@ export function useSummary(range: SummaryRange) {
     }
 
     return {
-      income: curr.inc, expense: curr.exp, exchange: curr.exch, savings: curr.savings,
+      income: curr.inc, expense: curr.exp, exchange: curr.exchNet, peopleNet: curr.peopleNet, savings: curr.savings,
       savingsRate: curr.inc > 0 ? curr.savings / curr.inc : 0,
-      openingBalance: curr.openBal, closingBalance: curr.openBal + curr.savings + curr.exchNet,
+      openingBalance: curr.openBal, closingBalance: curr.openBal + curr.savings + curr.exchNet + curr.peopleNet,
       transactionCount: curr.txnCount,
       incomeCount: curr.incC, expenseCount: curr.expC, exchangeCount: curr.exchC,
       giveCount: curr.giveC, takeCount: curr.takeC,

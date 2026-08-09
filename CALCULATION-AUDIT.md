@@ -46,7 +46,7 @@ this audit is questioning.
 | `give` | you lend money to a person | account **−amount** | they now **owe you** |
 | `take` | you borrow money from a person | account **+amount** | you now **owe them** |
 | `exchange` | transfer between two **same-currency** accounts (a fee/gain may make `toAmount ≠ fromAmount`) | from account **−fromAmount**, to account **+toAmount** | — |
-
+<!-- USER_COMMENT:correct ... -->
 This table is confirmed correct — it matches the UI and every hook's intent.
 The bugs below are all places where the *code* drifts from this table, not
 places where the table itself is wrong.
@@ -78,7 +78,7 @@ result = amount * rates[from] / rates[to]
 this app wants "BDT per unit", so it inverts with `1 / rate`), caches the
 result in the browser's `localStorage`, and falls back to a hardcoded rate
 table if the fetch fails.
-
+<!-- USER_COMMENT:do whatever need to be done to fix this real time exchaange rate , it must show real time value... . -->
 **Formatting** (`src/lib/currency/format.ts`) uses the browser's built-in
 `Intl.NumberFormat` per currency. One relevant gap: the helper that adds a
 `+`/`−` sign to an amount (`formatSignedAmount`) only knows about
@@ -127,7 +127,7 @@ needs your input before touching code.
 **What you'd see:** you record a "Take" (borrowing ৳5,000 from a friend), and
 your account balance on Home drops by ৳5,000 instead of rising by it — even
 though the cash physically landed in your account.
-
+<!-- USER_COMMENT:fix this ... -->
 **Where:** `src/hooks/use-account-balances.ts`, line 32
 
 ```js
@@ -149,7 +149,7 @@ shows it in green with a `+`. This hook is the odd one out.
 
 **Decision needed:** none — this is a straightforward bug, not a design
 choice. Flag if you disagree.
-
+<!-- USER_COMMENT:no disagree from me, fix it ... -->
 ---
 
 ### F2 — 🔴 Balance silently ignores everything past your first 500 transactions
@@ -188,7 +188,7 @@ long-time user's balance quietly becomes wrong the day they cross transaction
    writes a transaction, and needs a one-time backfill for existing data).
 
 I'd default to option 1 unless you expect users with thousands of
-transactions soon — happy to build either.
+transactions soon — happy to build either. <!-- USER_COMMENT:go with option a ... -->
 
 ---
 
@@ -223,7 +223,7 @@ first and it matches "green = good for me." That means the Summary page's
 "People net" tile and per-person breakdown would flip to match. Confirm
 you're good with that, or tell me if you'd rather standardize on the other
 direction instead.
-
+<!-- USER_COMMENT:it should be opposite right? as the person i link share with will see in his/her perspective ... -->
 ---
 
 ### F4 — 🔴 Lending in different currencies gets added together as if they were the same money
@@ -258,12 +258,12 @@ display with the wrong currency symbol for a non-BDT user.
 **Decision needed:**
 1. Confirm: convert everything to the **owner's default currency** at
    summation time — same as the rest of the app already does. (I'd assume
-   yes, but flagging since it's the one place currently different.)
+   yes, but flagging since it's the one place currently different.) <!-- USER_COMMENT:yes , convert to owner's currency ... -->
 2. The share page has no owner "session" to read a default currency from
    (the person opening the link isn't logged in). Should the share link
    **bake in** the owner's default currency at the moment the link is
    generated (stored alongside the transaction snapshot), so the recipient's
-   page always shows the right symbol?
+   page always shows the right symbol? <!-- USER_COMMENT:yes , bake in owner's currency ... -->
 
 ---
 
@@ -305,7 +305,7 @@ receiving the share link.
    is explicit.
 
 No strong recommendation from me here — this is a taste call, not a
-correctness one.
+correctness one.<!-- USER_COMMENT:it is fine as it is ... -->
 
 ---
 
@@ -374,7 +374,7 @@ Either fixes the "doesn't add up" problem; option 2 is more transparent,
 option 1 is simpler to read at a glance. Also worth confirming: should the
 "Exchange" tile show the **signed** net (so a gain shows green, a loss shows
 red) instead of an unsigned absolute value?
-
+<!-- USER_COMMENT:didnt understand what you said, also i am not clear, use suitable fix as you think will be best for the user i trust your judgement ... -->
 ---
 
 ### F8 — 🟠 Transactions are saved in local time but filtered in UTC
@@ -410,7 +410,7 @@ indication anything's off.
    user abroad, etc.), and only "works" for BDT users by coincidence.
 
 I'd go with option 1 unless there's a specific reason to hard-code the
-timezone.
+timezone. <!-- USER_COMMENT: do option 1 ... -->
 
 ---
 
@@ -451,7 +451,7 @@ date range is ever added, not something you can hit today.
    range anyway.
 
 Either is reasonable; option 1 gives more information, option 2 is more
-honest about the limits of the metric. Your call.
+honest about the limits of the metric. Your call.<!-- USER_COMMENT: use your judgement to fix it ... -->
 
 ---
 
@@ -474,7 +474,7 @@ F2) and isn't imported by any page or component — confirmed zero references.
 2. **Keep it, but only if there's a concrete plan to bring back a "This
    month" tile on Home** — in which case it should be rebuilt on the shared
    calculation helper proposed in §6, not left as its own hand-rolled copy.
-
+<!-- USER_COMMENT:dont keep any dead codes, remove it as there is no use of it . keep only the needed and in use code . for adding new feature i will write a proper prompt later ... -->
 ---
 
 ### F11 — 🟡 Trend arrows (↑12% vs last month) go missing more often than they should
@@ -499,7 +499,7 @@ users would probably want to see one (e.g. a first paycheck this month).
 transactions, and treat "zero → something" as a clear positive/new signal
 rather than suppressing it. Confirm you want that behavior, or if hiding a
 "0 → X" jump (as a % that's technically infinite) is intentional.
-
+<!-- USER_COMMENT: make it as you think it would be best ... -->
 ---
 
 ### F12 — 🟡 The sign-formatting helper doesn't know about Give/Take
@@ -519,7 +519,7 @@ workaround.
 
 **Decision needed:** none — pure cleanup, bundle with whatever else touches
 this file.
-
+<!-- USER_COMMENT: use your judgement ... -->
 ---
 
 ### F13 — 🟡 A few stats are calculated but never shown — and would be misleading if they were
@@ -539,7 +539,7 @@ your biggest *expense*, which isn't really the same thing.
 2. **Surface them in the UI**, but first decide whether `largestExpense`
    should exclude `give` (so it's a true "biggest expense," separate from
    money lent to people).
-
+<!-- USER_COMMENT: money lent and borrow shouldnt show under income or expense . this is a basic math error in logic, fix it ... -->
 ---
 
 ## 5. Why this keeps happening

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { listTransactions } from '@/lib/appwrite/collections'
+import { signedCashDelta } from '@/lib/calculations'
 import { convertCurrency } from '@/lib/currency/currencies'
 import { useAuth } from '@/providers/auth-provider'
 import { useAccounts } from './use-accounts'
@@ -22,14 +23,24 @@ export function useAccountBalances(defaultCurrency?: string) {
     }
     setLoading(true)
     try {
-      const res = await listTransactions({ userId: user.$id, limit: 500 })
+      const PAGE_SIZE = 500
+      let allDocs: Awaited<ReturnType<typeof listTransactions>>['documents'] = []
+      let offset = 0
+      let total = 0
+      do {
+        const res = await listTransactions({ userId: user.$id, limit: PAGE_SIZE, offset })
+        allDocs = allDocs.concat(res.documents)
+        if (total === 0) total = res.total
+        offset += res.documents.length
+      } while (offset < total)
+
       const map: Record<string, number> = {}
-      for (const t of res.documents) {
+      for (const t of allDocs) {
         if (t.type === 'exchange') {
           if (t.fromAccountId) map[t.fromAccountId] = (map[t.fromAccountId] ?? 0) - (t.fromAmount ?? 0)
           if (t.toAccountId) map[t.toAccountId] = (map[t.toAccountId] ?? 0) + (t.toAmount ?? 0)
         } else {
-          map[t.accountId] = (map[t.accountId] ?? 0) + (t.type === 'income' ? t.amount : -t.amount)
+          map[t.accountId] = (map[t.accountId] ?? 0) + signedCashDelta(t)
         }
       }
       setBalances(map)

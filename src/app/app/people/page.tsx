@@ -84,8 +84,8 @@ export default function PeoplePage() {
                 </span>
                 <span className={cn(
                   'shrink-0 text-right text-sm font-semibold tabular-nums',
-                  person.balance > 0 && 'text-income',
-                  person.balance < 0 && 'text-expense',
+                  person.balance > 0 && 'text-expense',
+                  person.balance < 0 && 'text-income',
                   person.balance === 0 && 'text-text-tertiary'
                 )}>
                   {person.balance === 0 ? formatCurrency(0, defaultCurrency) : formatCurrency(person.balance, defaultCurrency)}

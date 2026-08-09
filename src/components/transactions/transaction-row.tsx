@@ -110,7 +110,7 @@ export function TransactionRow({ transaction, category, account, toAccount, pers
         </span>
       ) : isPersonType ? (
         <span className={cn('shrink-0 text-[0.9375rem] font-semibold tabular-nums', isGive ? 'text-expense' : 'text-income')}>
-          {formatSignedAmount(transaction.amount, transaction.currency, isGive ? 'expense' : 'income')}
+          {formatSignedAmount(transaction.amount, transaction.currency, transaction.type)}
         </span>
       ) : (
         <span
