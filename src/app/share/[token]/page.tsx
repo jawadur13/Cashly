@@ -57,10 +57,11 @@ export default function SharePage() {
 
   if (error) {
     return (
-      <div className="flex min-h-dvh flex-col items-center justify-center gap-3 bg-bg px-4 text-center">
+      <div className="mx-auto flex min-h-dvh max-w-lg flex-col items-center justify-center gap-3 bg-bg px-4 text-center">
         <Users className="size-10 text-text-tertiary" />
         <p className="text-sm font-medium text-text-primary">Link not found</p>
         <p className="text-xs text-text-secondary">This share link may have been removed or is invalid.</p>
+        <MarketingFooter />
       </div>
     )
   }
@@ -129,27 +130,33 @@ export default function SharePage() {
         )}
       </section>
 
-      <footer className="mt-8 pb-8 text-center">
-        <p className="text-xs text-text-tertiary">
-          Shared via Cashly · {new Date().toLocaleDateString()}
-        </p>
-        <div className="mt-4 rounded-[var(--radius-md)] border border-border bg-surface p-4 text-center">
-          <p className="text-sm font-medium text-text-primary">
-            Track your own money with Cashly
-          </p>
-          <p className="mt-1 text-xs text-text-secondary">
-            The easiest way to manage income, expenses, and people.
-          </p>
-          <a
-            href="https://cashly.mvp.bd"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-3 inline-flex items-center gap-1.5 rounded-[var(--radius-md)] bg-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90 transition-opacity"
-          >
-            Try Cashly free
-          </a>
-        </div>
-      </footer>
+      <MarketingFooter />
     </div>
+  )
+}
+
+function MarketingFooter() {
+  return (
+    <footer className="mt-8 w-full pb-8 text-center">
+      <p className="text-xs text-text-tertiary">
+        Shared via Cashly · {new Date().toLocaleDateString()}
+      </p>
+      <div className="mt-4 rounded-[var(--radius-md)] border border-border bg-surface p-4 text-center">
+        <p className="text-sm font-medium text-text-primary">
+          Track your own money with Cashly
+        </p>
+        <p className="mt-1 text-xs text-text-secondary">
+          The easiest way to manage income, expenses, and people.
+        </p>
+        <a
+          href="https://cashly.mvp.bd"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-3 inline-flex items-center gap-1.5 rounded-[var(--radius-md)] bg-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90 transition-opacity"
+        >
+          Try Cashly free
+        </a>
+      </div>
+    </footer>
   )
 }
