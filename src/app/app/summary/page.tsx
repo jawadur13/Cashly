@@ -163,7 +163,6 @@ export default function SummaryPage() {
                 incomeTrend={data.incomeTrend}
                 expenseTrend={data.expenseTrend}
                 savingsTrend={data.savingsTrend}
-                fmt={fmt}
               />
 
               <section className="grid grid-cols-2 gap-3">
