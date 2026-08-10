@@ -27,7 +27,7 @@ export function Button({
     danger: 'bg-expense text-white hover:opacity-90',
   }
   const sizes = {
-    sm: 'h-9 px-3 text-sm',
+    sm: 'h-11 px-3 text-sm',
     md: 'h-12 px-4 text-[0.9375rem]',
     lg: 'h-14 px-6 text-base',
   }

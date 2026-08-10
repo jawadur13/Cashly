@@ -58,8 +58,8 @@ export function CategoryForm({ initial, onSubmit, onCancel, submitLabel }: Categ
         error={error ?? undefined}
       />
       <div>
-        <span className="mb-1.5 block text-[0.8125rem] font-medium text-text-secondary">Icon</span>
-        <div className="grid max-h-44 grid-cols-8 gap-2 overflow-y-auto rounded-[var(--radius-md)] border border-border bg-bg p-2.5">
+        <span className="mb-2 block text-xs font-medium text-text-secondary">Icon</span>
+        <div className="grid max-h-44 grid-cols-4 gap-2 overflow-y-auto rounded-[var(--radius-md)] border border-border bg-bg p-2.5 md:grid-cols-8">
           {Object.entries(CATEGORY_ICONS).map(([key, Icon]) => (
             <button
               key={key}

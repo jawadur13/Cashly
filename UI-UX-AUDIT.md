@@ -56,9 +56,10 @@
 - `text-xs` (12px) — Captions
 
 **Issues:**
-- **MEDIUM #1:** Inconsistent custom text sizes (`text-[0.8125rem]`, `text-[0.9375rem]`, `text-[0.6875rem]`) should use standardized scale
-- **LOW #2:** Extra small text (10px) for month labels might be hard to read on mobile
+- **MEDIUM #1:** Inconsistent custom text sizes (`text-[0.8125rem]`, `text-[0.9375rem]`, `text-[0.6875rem]`) should use standardized scale <!-- USER_COMMENT: standardized scale -->
 
+- **LOW #2:** Extra small text (10px) for month labels might be hard to read on mobile
+<!-- USER_COMMENT: use suitable size and spacing. And also add some shadow for hover and click -->
 ### Spacing
 
 **Scale:** Consistent multiples of 4px (0.5, 1, 2, 3, 4, 6, 8)  
@@ -128,6 +129,7 @@
 - **HIGH #8:** Summary page grid uses `grid-cols-4` without responsive breakpoints
   - Becomes 4 tiny columns on mobile (should be `grid-cols-2 md:grid-cols-4`)
   - Location: `src/app/app/summary/page.tsx`
+<!-- USER_COMMENT: fix it -->
 
 - **MEDIUM #9:** Cash flow 12-month chart becomes too narrow on mobile
 
@@ -196,7 +198,7 @@
 **Issues:**
 - **MEDIUM #13:** Error styling not visually prominent enough (small text)
 - **MEDIUM #14:** Input error state doesn't change border — only shows ring
-
+<!-- USER_COMMENT: fix border issue. when error occurs it should show border -->
 ### Success Feedback
 
 ✅ **WORKING:**
@@ -236,7 +238,7 @@
 ⚠️ **MISSING FEATURES:**
 - Props: label, error, hint, showPasswordToggle
 - Missing: focus border color on error state
-
+<!-- USER_COMMENT:add them -->
 **Issues:**
 - **MEDIUM #16:** Missing `focus:border-accent` when input has error
 
@@ -248,7 +250,7 @@
 
 **Issues:**
 - **MEDIUM #17:** Missing `focus:border-accent`
-
+<!-- USER_COMMENT:fix -->
 ### Chip Component
 
 ✅ **CONSISTENT:**
@@ -283,7 +285,7 @@
 **Issues:**
 - **MEDIUM #18:** Sidebar nav buttons missing `focus-visible:outline-2 focus-visible:outline-accent`
 - **MEDIUM #19:** Bottom nav buttons missing `focus-visible` styling
-
+<!-- USER_COMMENT:fix all -->
 ### Transaction Row
 
 ✅ **WELL IMPLEMENTED:**

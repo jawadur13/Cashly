@@ -2,8 +2,8 @@
 
 import { useMemo, useState } from 'react'
 import {
-  ArrowDownRight, ArrowUpRight, PiggyBank, Receipt, TrendingUp,
-  Wallet, Users, Calendar, Zap, BarChart3,
+  ArrowDownRight, ArrowUpRight, Receipt, TrendingUp,
+  Users, Calendar, Zap, BarChart3,
 } from 'lucide-react'
 import { FAB } from '@/components/nav/fab'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -121,7 +121,7 @@ export default function SummaryPage() {
       {loading ? (
         <div className="space-y-3">
           <Skeleton className="h-20 rounded-[var(--radius-lg)]" />
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             <Skeleton className="h-16 rounded-[var(--radius-md)]" />
             <Skeleton className="h-16 rounded-[var(--radius-md)]" />
             <Skeleton className="h-16 rounded-[var(--radius-md)]" />
@@ -137,14 +137,14 @@ export default function SummaryPage() {
               <div className="rounded-[var(--radius-md)] border border-border bg-surface px-3.5 py-3 shadow-[var(--shadow-sm)]">
                 <p className="text-xs text-text-secondary">Opening balance</p>
                 <p className="mt-1 text-base font-semibold tabular-nums text-text-primary">{fmt(data.openingBalance)}</p>
-                <p className="mt-0.5 text-[0.6875rem] text-text-tertiary">Start of {periodLabel}</p>
+                <p className="mt-0.5 text-xs text-text-tertiary">Start of {periodLabel}</p>
               </div>
               <div className="rounded-[var(--radius-md)] border border-border bg-surface px-3.5 py-3 shadow-[var(--shadow-sm)]">
                 <p className="text-xs text-text-secondary">Closing balance</p>
                 <p className={cn('mt-1 text-base font-semibold tabular-nums', data.closingBalance >= data.openingBalance ? 'text-text-primary' : 'text-expense')}>
                   {fmt(data.closingBalance)}
                 </p>
-                <p className="mt-0.5 text-[0.6875rem] text-text-tertiary">End of {periodLabel}</p>
+                <p className="mt-0.5 text-xs text-text-tertiary">End of {periodLabel}</p>
               </div>
             </section>
           )}
@@ -223,12 +223,11 @@ export default function SummaryPage() {
 }
 
 function TrendRow({
-  incomeTrend, expenseTrend, savingsTrend, fmt,
+  incomeTrend, expenseTrend, savingsTrend,
 }: {
   incomeTrend: number | null
   expenseTrend: number | null
   savingsTrend: number | null
-  fmt: (v: number) => string
 }) {
   if (incomeTrend == null && expenseTrend == null && savingsTrend == null) return null
   const badge = (label: string, trend: number | null) => {
@@ -280,7 +279,7 @@ function IncomeExpenseSavings({ data, fmt }: { data: SummaryData; fmt: (v: numbe
     </div>
   )
   return (
-    <section className="grid grid-cols-4 gap-3">
+    <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
       {cell('Income', data.income, 'income')}
       {cell('Expense', data.expense, 'expense')}
       {cell('Exchange', data.exchange, 'exchange', true)}
@@ -304,9 +303,9 @@ function CashFlowChart({ months, maxBar, fmt }: { months: { month: string; label
             </div>
           ))}
         </div>
-        <div className="mt-1.5 flex gap-1">
+        <div className="mt-2 flex gap-1">
           {months.map((m) => (
-            <span key={m.month} className="flex-1 text-center text-[0.625rem] text-text-tertiary">{m.label}</span>
+            <span key={m.month} className="flex-1 text-center text-xs font-medium text-text-secondary transition-colors hover:text-text-primary" title={m.label}>{m.label.slice(0, 3)}</span>
           ))}
         </div>
         <div className="mt-2 flex gap-4 text-xs">

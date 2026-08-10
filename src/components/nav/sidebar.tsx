@@ -52,7 +52,7 @@ export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
               aria-current={active ? 'page' : undefined}
               title={collapsed ? item.label : undefined}
               className={cn(
-                'flex w-full items-center rounded-[var(--radius-md)] py-2.5 text-sm font-medium transition-colors',
+                'flex w-full items-center rounded-[var(--radius-md)] py-3 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-accent',
                 collapsed ? 'justify-center px-2' : 'gap-3 px-3.5',
                 active
                   ? 'bg-accent-soft text-accent'
@@ -70,7 +70,7 @@ export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
           onClick={() => { signOut(); router.replace('/auth/login') }}
           title={collapsed ? 'Sign out' : undefined}
           className={cn(
-            'flex w-full items-center rounded-[var(--radius-md)] py-2.5 text-sm font-medium text-text-secondary transition-colors hover:bg-surface-hover hover:text-expense',
+            'flex w-full items-center rounded-[var(--radius-md)] py-3 text-sm font-medium text-text-secondary transition-colors hover:bg-surface-hover hover:text-expense focus-visible:outline-2 focus-visible:outline-accent',
             collapsed ? 'justify-center px-2' : 'gap-3 px-3.5'
           )}
         >
@@ -85,7 +85,7 @@ export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
             type="button"
             onClick={onToggleCollapse}
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            className="inline-flex size-8 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary"
+            className="inline-flex size-10 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary focus-visible:outline-2 focus-visible:outline-accent"
           >
             {collapsed ? <ChevronRight className="size-4" /> : <ChevronLeft className="size-4" />}
           </button>
