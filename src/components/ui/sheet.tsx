@@ -25,7 +25,7 @@ export function Sheet({ open, onClose, title, children, className }: SheetProps)
         aria-modal="true"
         aria-label={title}
         className={cn(
-          'relative z-10 max-h-[85dvh] w-full overflow-y-auto rounded-t-[var(--radius-lg)] bg-surface shadow-[var(--shadow-md)] md:max-w-md md:rounded-[var(--radius-lg)]',
+          'relative z-10 max-h-[90dvh] w-full overflow-y-auto rounded-t-[var(--radius-lg)] bg-surface shadow-[var(--shadow-md)] md:max-h-[85dvh] md:max-w-md md:rounded-[var(--radius-lg)]',
           className
         )}
       >
@@ -34,7 +34,7 @@ export function Sheet({ open, onClose, title, children, className }: SheetProps)
           <button
             onClick={onClose}
             aria-label="Close"
-            className="flex size-9 items-center justify-center rounded-full text-text-secondary hover:bg-surface-hover"
+            className="flex size-10 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-accent"
           >
             <X className="size-5" />
           </button>

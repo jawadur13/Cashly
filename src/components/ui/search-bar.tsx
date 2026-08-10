@@ -24,7 +24,7 @@ export function SearchBar({ value, onChange, placeholder = 'Search…' }: Search
         <button
           onClick={() => onChange('')}
           aria-label="Clear search"
-          className="absolute right-3 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-full bg-surface-hover text-text-secondary hover:text-text-primary"
+          className="absolute right-2.5 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-surface-hover text-text-secondary transition-colors hover:text-text-primary focus-visible:outline-2 focus-visible:outline-accent"
         >
           <X className="size-4" />
         </button>

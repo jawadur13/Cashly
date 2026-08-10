@@ -20,7 +20,7 @@ export function Input({ label, error, hint, className, id, showPasswordToggle, o
   return (
     <div className="w-full">
       {label && (
-        <label htmlFor={inputId} className="mb-1.5 block text-[0.8125rem] font-medium text-text-secondary">
+        <label htmlFor={inputId} className="mb-2 block text-xs font-medium text-text-secondary">
           {label}
         </label>
       )}
@@ -30,10 +30,10 @@ export function Input({ label, error, hint, className, id, showPasswordToggle, o
           aria-invalid={!!error}
           aria-describedby={error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined}
           className={cn(
-            'h-12 w-full rounded-[var(--radius-md)] border bg-surface px-3.5 text-[0.9375rem] text-text-primary placeholder:text-text-tertiary focus:outline-none',
+            'h-12 w-full rounded-[var(--radius-md)] border bg-surface px-3.5 text-[0.9375rem] text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2',
             error
-              ? 'border-expense focus:ring-2 focus:ring-expense/30'
-              : 'border-border focus:border-accent focus:ring-2 focus:ring-accent-soft',
+              ? 'border-expense focus:border-expense focus:ring-expense/30'
+              : 'border-border focus:border-accent focus:ring-accent-soft',
             showPasswordToggle && isPassword ? 'pr-11' : undefined,
             className
           )}
@@ -57,7 +57,7 @@ export function Input({ label, error, hint, className, id, showPasswordToggle, o
         )}
       </div>
       {error && (
-        <p id={`${inputId}-error`} className="mt-1 text-xs text-expense">
+        <p id={`${inputId}-error`} className="mt-2 text-sm font-medium text-expense">
           {error}
         </p>
       )}

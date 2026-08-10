@@ -57,7 +57,7 @@ export function AccountForm({ initial, onSubmit, onCancel, submitLabel }: Accoun
         error={error ?? undefined}
       />
       <div>
-        <span className="mb-1.5 block text-[0.8125rem] font-medium text-text-secondary">Type</span>
+        <span className="mb-2 block text-xs font-medium text-text-secondary">Type</span>
         <div className="flex gap-2">
           {ACCOUNT_TYPES.map((t) => (
             <button
@@ -67,8 +67,8 @@ export function AccountForm({ initial, onSubmit, onCancel, submitLabel }: Accoun
               aria-pressed={type === t.value}
               className={
                 type === t.value
-                  ? 'flex-1 rounded-[var(--radius-md)] border border-accent bg-accent-soft px-3 py-2.5 text-sm font-medium text-accent'
-                  : 'flex-1 rounded-[var(--radius-md)] border border-border bg-surface px-3 py-2.5 text-sm font-medium text-text-secondary hover:text-text-primary'
+                  ? 'flex-1 rounded-[var(--radius-md)] border border-accent bg-accent-soft px-3 py-3 text-sm font-medium text-accent transition-colors focus-visible:outline-2 focus-visible:outline-accent'
+                  : 'flex-1 rounded-[var(--radius-md)] border border-border bg-surface px-3 py-3 text-sm font-medium text-text-secondary transition-colors hover:text-text-primary focus-visible:outline-2 focus-visible:outline-accent'
               }
             >
               {t.label}

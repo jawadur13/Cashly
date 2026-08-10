@@ -21,7 +21,7 @@ export function BottomNav() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-surface/95 backdrop-blur pb-[env(safe-area-inset-bottom)]">
-      <div className="mx-auto flex h-16 max-w-2xl items-stretch">
+      <div className="mx-auto flex max-w-2xl items-stretch">
         {items.map((item) => {
           const Icon = item.icon
           const active = pathname === item.href
@@ -31,7 +31,7 @@ export function BottomNav() {
               onClick={() => router.push(item.href)}
               aria-current={active ? 'page' : undefined}
               className={cn(
-                'flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-0.5 text-[0.625rem] font-medium transition-colors',
+                'flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 text-[0.625rem] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
                 active ? 'text-accent' : 'text-text-tertiary hover:text-text-secondary'
               )}
             >
