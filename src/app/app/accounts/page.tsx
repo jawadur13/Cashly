@@ -26,7 +26,24 @@ export default function AccountsPage() {
   const [editing, setEditing] = useState<Account | null>(null)
   const [deleting, setDeleting] = useState<Account | null>(null)
   const [txnCount, setTxnCount] = useState<number | null>(null)
+  const [editTxnCount, setEditTxnCount] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
+
+  // The edit sheet needs this to decide whether the currency field is locked.
+  const openForm = async (account: Account | null) => {
+    setEditing(account)
+    setEditTxnCount(null)
+    setFormOpen(true)
+    if (account && user) {
+      try {
+        setEditTxnCount(await countTransactionsByAccount(user.$id, account.$id))
+      } catch {
+        // Unknown count: leave the currency editable rather than locking on a
+        // failed lookup.
+        setEditTxnCount(null)
+      }
+    }
+  }
 
   const handleSetDeleting = async (account: Account | null) => {
     setDeleting(account)
@@ -49,7 +66,7 @@ export default function AccountsPage() {
           <h1 className="text-lg font-semibold text-text-primary">Accounts</h1>
           <p className="text-sm text-text-secondary">{accounts.length} account{accounts.length === 1 ? '' : 's'}</p>
         </div>
-        <Button onClick={() => { setEditing(null); setFormOpen(true) }}>
+        <Button onClick={() => openForm(null)}>
           <Plus className="size-5" /> Add
         </Button>
       </div>
@@ -64,14 +81,14 @@ export default function AccountsPage() {
           icon={<Landmark className="size-6" />}
           title="No accounts yet"
           description="Add a Cash, Bank or Mobile Wallet account to start tracking."
-          action={<Button onClick={() => { setEditing(null); setFormOpen(true) }}>Add account</Button>}
+          action={<Button onClick={() => openForm(null)}>Add account</Button>}
         />
       ) : (
         <div className="space-y-2">
           {accounts.map((account) => (
             <div key={account.$id} className="relative">
               <div className="pr-12">
-                <AccountCard account={account} balance={balances[account.$id] ?? 0} defaultCurrency={defaultCurrency} onClick={() => { setEditing(account); setFormOpen(true) }} />
+                <AccountCard account={account} balance={balances[account.$id] ?? 0} defaultCurrency={defaultCurrency} onClick={() => openForm(account)} />
               </div>
               <button
                 onClick={() => handleSetDeleting(account)}
@@ -87,7 +104,9 @@ export default function AccountsPage() {
 
       <Sheet open={formOpen} onClose={() => setFormOpen(false)} title={editing ? 'Edit account' : 'Add account'}>
         <AccountForm
+          key={editing?.$id ?? 'new'}
           initial={editing ?? undefined}
+          transactionCount={editTxnCount}
           submitLabel={editing ? 'Save changes' : 'Add account'}
           onCancel={() => setFormOpen(false)}
           onSubmit={async (values) => {

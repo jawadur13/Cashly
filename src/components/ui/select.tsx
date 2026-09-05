@@ -19,6 +19,7 @@ export function Select({
       <select
         className={cn(
           'h-12 w-full rounded-[var(--radius-md)] border bg-surface px-3.5 text-[0.9375rem] text-text-primary focus:outline-none focus:ring-2',
+          'disabled:cursor-not-allowed disabled:bg-surface-hover disabled:text-text-secondary',
           error
             ? 'border-expense focus:border-expense focus:ring-expense/30'
             : 'border-border focus:border-accent focus:ring-accent-soft',
