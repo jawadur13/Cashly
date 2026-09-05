@@ -42,6 +42,8 @@ export async function GET(
       Query.equal('personId', share.personId),
       Query.equal('type', ['give', 'take']),
       Query.orderDesc('date'),
+      // Unique tiebreaker so paging cannot repeat or skip same-timestamp rows.
+      Query.orderDesc('$id'),
       Query.limit(PAGE_SIZE),
       Query.offset(offset),
     ])

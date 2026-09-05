@@ -46,16 +46,38 @@ export async function deleteAccount(accountId: string): Promise<void> {
   await databases.deleteDocument(DATABASE_ID, COLLECTIONS.accounts, accountId)
 }
 
+/**
+ * Counts every transaction that references this account, including exchange
+ * legs. Counting only `accountId` reported 0 for an account used solely as an
+ * exchange counterparty, so the delete dialog called it empty — deleting it
+ * left the exchange pointing at a missing account and quietly dropped its
+ * balance from the home total.
+ */
 export async function countTransactionsByAccount(
   userId: string,
   accountId: string
 ): Promise<number> {
-  const res = await databases.listDocuments<Transaction>(DATABASE_ID, COLLECTIONS.transactions, [
-    Query.equal('userId', userId),
-    Query.equal('accountId', accountId),
-    Query.limit(1),
-  ])
-  return res.total
+  try {
+    const res = await databases.listDocuments<Transaction>(DATABASE_ID, COLLECTIONS.transactions, [
+      Query.equal('userId', userId),
+      Query.or([
+        Query.equal('accountId', accountId),
+        Query.equal('fromAccountId', accountId),
+        Query.equal('toAccountId', accountId),
+      ]),
+      Query.limit(1),
+    ])
+    return res.total
+  } catch {
+    // fromAccountId/toAccountId are unindexed until setup-db.mjs is re-run; fall
+    // back to the direct reference rather than failing the dialog outright.
+    const res = await databases.listDocuments<Transaction>(DATABASE_ID, COLLECTIONS.transactions, [
+      Query.equal('userId', userId),
+      Query.equal('accountId', accountId),
+      Query.limit(1),
+    ])
+    return res.total
+  }
 }
 
 /* ---------------- People ---------------- */
@@ -187,7 +209,15 @@ export interface TransactionFilters {
 export async function listTransactions(
   filters: TransactionFilters
 ): Promise<{ documents: Transaction[]; total: number }> {
-  const queries = [Query.equal('userId', filters.userId), Query.orderDesc('date'), Query.limit(filters.limit ?? 20)]
+  // `date` is not unique — rows sharing a timestamp have no guaranteed order
+  // between two queries, so with offset pagination one could be returned twice
+  // or skipped as pages shift under it. `$id` makes the sort total.
+  const queries = [
+    Query.equal('userId', filters.userId),
+    Query.orderDesc('date'),
+    Query.orderDesc('$id'),
+    Query.limit(filters.limit ?? 20),
+  ]
   if (filters.type) queries.push(Query.equal('type', filters.type))
   if (filters.currency) queries.push(Query.equal('currency', filters.currency))
   if (filters.accountId) queries.push(Query.equal('accountId', filters.accountId))

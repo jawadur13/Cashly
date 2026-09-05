@@ -159,6 +159,10 @@ await ensureIndex(TRANSACTIONS, 'by_user_date', 'key', ['userId', 'date'], 'DESC
 await ensureIndex(TRANSACTIONS, 'by_user_account', 'key', ['userId', 'accountId', 'date'], 'DESC')
 await ensureIndex(TRANSACTIONS, 'by_user_currency', 'key', ['userId', 'currency'], 'ASC')
 await ensureIndex(TRANSACTIONS, 'by_user_type', 'key', ['userId', 'type'], 'ASC')
+// Exchange legs are queried when counting an account's references, so that a
+// destination-only account is not reported as unused before deletion.
+await ensureIndex(TRANSACTIONS, 'by_user_from_account', 'key', ['userId', 'fromAccountId'], 'ASC')
+await ensureIndex(TRANSACTIONS, 'by_user_to_account', 'key', ['userId', 'toAccountId'], 'ASC')
 await ensureIndex(TRANSACTIONS, 'search_note', 'fulltext', ['note'], 'ASC')
 await wait(1500)
 
