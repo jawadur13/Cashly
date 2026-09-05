@@ -30,6 +30,9 @@ export function usePeople() {
     let total = 0
     do {
       const res = await listTransactions({ userId, type: 'give' as TransactionType, limit: PAGE_SIZE, offset })
+      // Guard against a page returning nothing while offset < total, which
+      // would stall the offset and spin this loop forever.
+      if (res.documents.length === 0) break
       allDocs = allDocs.concat(res.documents)
       if (total === 0) total = res.total
       offset += res.documents.length
@@ -39,6 +42,7 @@ export function usePeople() {
     total = 0
     do {
       const res = await listTransactions({ userId, type: 'take' as TransactionType, limit: PAGE_SIZE, offset })
+      if (res.documents.length === 0) break
       allDocs = allDocs.concat(res.documents)
       if (total === 0) total = res.total
       offset += res.documents.length
