@@ -68,6 +68,8 @@ export const RATES_RELATIVE_TO_BDT: Record<CurrencyCode, number> = {
   CNY: 17,
 }
 
+const warnedCodes = new Set<string>()
+
 export function convertCurrency(
   amount: number,
   from: string,
@@ -77,6 +79,19 @@ export function convertCurrency(
   if (from === to) return amount
   const fromRate = rates[from]
   const toRate = rates[to]
-  if (fromRate == null || toRate == null) return amount
+  if (fromRate == null || toRate == null) {
+    // Returning the raw amount keeps totals rendering instead of throwing, but
+    // it silently folds an unconverted figure into another currency's sum — so
+    // make it loud in development rather than letting a wrong total look right.
+    const missing = fromRate == null ? from : to
+    if (process.env.NODE_ENV !== 'production' && !warnedCodes.has(missing)) {
+      warnedCodes.add(missing)
+      console.warn(
+        `[currency] No exchange rate for "${missing}" — ${amount} ${from} was added to a ${to} total unconverted. ` +
+          `Add it to CURRENCIES/RATES_RELATIVE_TO_BDT or the totals that include it will be wrong.`
+      )
+    }
+    return amount
+  }
   return (amount * fromRate) / toRate
 }
