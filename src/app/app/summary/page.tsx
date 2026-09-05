@@ -55,27 +55,40 @@ export default function SummaryPage() {
   const { categories } = useCategories()
   const { people } = usePeople()
 
+  // Comparison windows are built as calendar dates rather than by subtracting a
+  // fixed millisecond offset — months are 28-31 days and years 365-366, so an
+  // offset lands on the wrong boundary for most periods.
   const { range, periodLabel } = useMemo<{ range: SummaryRange; periodLabel: string }>(() => {
     if (scope === 'all') {
-      return { range: { start: -Infinity, end: Infinity, hasOpening: false, previousOffset: 0 }, periodLabel: 'All time' }
+      return {
+        range: { start: -Infinity, end: Infinity, hasOpening: false, previousStart: null, previousEnd: null },
+        periodLabel: 'All time',
+      }
     }
     if (scope === 'year') {
       return {
-        range: { start: new Date(year, 0, 1).getTime(), end: new Date(year + 1, 0, 1).getTime(), hasOpening: true, previousOffset: 365 * 24 * 60 * 60 * 1000 },
+        range: {
+          start: new Date(year, 0, 1).getTime(),
+          end: new Date(year + 1, 0, 1).getTime(),
+          hasOpening: true,
+          previousStart: new Date(year - 1, 0, 1).getTime(),
+          previousEnd: new Date(year, 0, 1).getTime(),
+        },
         periodLabel: String(year),
       }
     }
     const [y, m] = monthKey.split('-').map(Number)
     return {
-      range: { start: new Date(y, m - 1, 1).getTime(), end: new Date(y, m, 1).getTime(), hasOpening: true, previousOffset: endOffset(y, m) },
+      range: {
+        start: new Date(y, m - 1, 1).getTime(),
+        end: new Date(y, m, 1).getTime(),
+        hasOpening: true,
+        previousStart: new Date(y, m - 2, 1).getTime(),
+        previousEnd: new Date(y, m - 1, 1).getTime(),
+      },
       periodLabel: monthOptions.find((o) => o.key === monthKey)?.label ?? '',
     }
   }, [scope, monthKey, year, monthOptions])
-
-  function endOffset(y: number, m: number): number {
-    const prev = new Date(y, m - 2, 1)
-    return new Date(y, m - 1, 1).getTime() - new Date(prev.getFullYear(), prev.getMonth(), 1).getTime()
-  }
 
   const { data, loading } = useSummary(range)
 
@@ -229,21 +242,32 @@ function TrendRow({
   savingsTrend: number | null
 }) {
   if (incomeTrend == null && expenseTrend == null && savingsTrend == null) return null
-  const badge = (label: string, trend: number | null) => {
+  // The arrow follows the direction of change; the colour follows whether that
+  // direction is good for the user. Those are opposite for expense — spending
+  // more is an increase, but not an improvement.
+  const badge = (label: string, trend: number | null, goodWhenUp: boolean) => {
     if (trend == null) return null
     const up = trend > 0
+    const tone = trend === 0 ? 'neutral' : up === goodWhenUp ? 'good' : 'bad'
     return (
-      <div className={cn('flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium', up ? 'bg-income-soft text-income' : 'bg-expense-soft text-expense')}>
+      <div
+        className={cn(
+          'flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium',
+          tone === 'good' && 'bg-income-soft text-income',
+          tone === 'bad' && 'bg-expense-soft text-expense',
+          tone === 'neutral' && 'bg-surface-hover text-text-secondary'
+        )}
+      >
         {up ? <ArrowUpRight className="size-3.5" /> : <ArrowDownRight className="size-3.5" />}
-        {label}: {trend === Infinity ? 'New' : `${Math.abs(trend).toFixed(0)}%`}
+        {label}: {Math.abs(trend) === Infinity ? 'New' : `${Math.abs(trend).toFixed(0)}%`}
       </div>
     )
   }
   return (
     <section className="flex flex-wrap gap-2">
-      {badge('Income', incomeTrend)}
-      {badge('Expense', expenseTrend)}
-      {badge('Savings', savingsTrend)}
+      {badge('Income', incomeTrend, true)}
+      {badge('Expense', expenseTrend, false)}
+      {badge('Savings', savingsTrend, true)}
     </section>
   )
 }
@@ -294,11 +318,14 @@ function CashFlowChart({ months, maxBar, fmt }: { months: { month: string; label
         <BarChart3 className="size-4" /> Cash flow — last 12 months
       </h2>
       <div className="rounded-[var(--radius-md)] border border-border bg-surface p-3 shadow-[var(--shadow-sm)]">
+        {/* Income and expense sit side by side rather than stacked: each is a
+            share of maxBar, so stacking them let a month where both are large
+            add up past 100% and overflow the plot area. */}
         <div className="flex items-end gap-1" style={{ height: 120 }}>
           {months.map((m) => (
-            <div key={m.month} className="relative flex flex-1 flex-col items-center justify-end gap-0.5" title={`${m.label}: ${fmt(m.income)} / ${fmt(m.expense)}`}>
-              <div className="w-full rounded-t-sm bg-income/70" style={{ height: maxBar > 0 ? `${(m.income / maxBar) * 100}%` : '0%', minHeight: m.income > 0 ? 3 : 0 }} />
-              <div className="w-full rounded-t-sm bg-expense/70" style={{ height: maxBar > 0 ? `${(m.expense / maxBar) * 100}%` : '0%', minHeight: m.expense > 0 ? 3 : 0 }} />
+            <div key={m.month} className="flex h-full flex-1 items-end justify-center gap-px" title={`${m.label}: ${fmt(m.income)} / ${fmt(m.expense)}`}>
+              <div className="w-1/2 rounded-t-sm bg-income/70" style={{ height: maxBar > 0 ? `${(m.income / maxBar) * 100}%` : '0%', minHeight: m.income > 0 ? 3 : 0 }} />
+              <div className="w-1/2 rounded-t-sm bg-expense/70" style={{ height: maxBar > 0 ? `${(m.expense / maxBar) * 100}%` : '0%', minHeight: m.expense > 0 ? 3 : 0 }} />
             </div>
           ))}
         </div>

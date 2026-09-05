@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { listTransactions } from '@/lib/appwrite/collections'
-import { signedCashDelta } from '@/lib/calculations'
+import { exchangeNet, signedCashDelta } from '@/lib/calculations'
 import { convertCurrency } from '@/lib/currency/currencies'
 import { useAuth } from '@/providers/auth-provider'
 import { useSettings } from '@/providers/settings-provider'
+import { useAccounts } from './use-accounts'
 import { useExchangeRates } from './use-exchange-rates'
 import type { Transaction } from '@/lib/types'
 
@@ -64,8 +65,17 @@ export interface SummaryRange {
   start: number
   end: number
   hasOpening: boolean
-  /** Milliseconds to subtract from start/end to compute previous period. 0 = no trend. */
-  previousOffset: number
+  /**
+   * Explicit bounds of the period to compare against, or null for no trend.
+   *
+   * These are calendar dates built by the caller, not an offset subtracted from
+   * start/end. A fixed millisecond offset cannot express "the previous month"
+   * (months are 28-31 days) or "the previous year" (leap years), and using one
+   * put the comparison window inside the period being viewed for 10 months of
+   * every 12.
+   */
+  previousStart: number | null
+  previousEnd: number | null
 }
 
 function buildBreakdown(
@@ -133,6 +143,7 @@ export function useSummary(range: SummaryRange) {
   const { user } = useAuth()
   const { defaultCurrency } = useSettings()
   const { rates } = useExchangeRates()
+  const { accounts } = useAccounts()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
   const ignoreRef = useRef(false)
@@ -147,6 +158,9 @@ export function useSummary(range: SummaryRange) {
       do {
         const res = await listTransactions({ userId: user.$id, limit: PAGE_SIZE, offset })
         if (ignoreRef.current) return
+        // An empty page while offset < total would stall the offset and spin
+        // this loop forever.
+        if (res.documents.length === 0) break
         allDocs = allDocs.concat(res.documents)
         total = res.total; offset += res.documents.length
       } while (offset < total)
@@ -163,9 +177,15 @@ export function useSummary(range: SummaryRange) {
   }, [refresh])
 
   const data = useMemo<SummaryData>(() => {
-    const { start, end, hasOpening, previousOffset } = range
+    const { start, end, hasOpening, previousStart, previousEnd } = range
     const toDefault = (amount: number, currency: string) =>
       convertCurrency(amount, currency, defaultCurrency, rates)
+
+    const accountCurrency: Record<string, string> = {}
+    for (const a of accounts) accountCurrency[a.$id] = a.currency
+    // Each exchange leg carries its own account's currency, so the two sides
+    // must be converted separately before subtracting.
+    const netOfExchange = (t: Transaction) => exchangeNet(t, accountCurrency, defaultCurrency, rates)
 
     function aggregate(periodStart: number, periodEnd: number) {
       let inc = 0; let exp = 0; let exchNet = 0; let peopleNet = 0
@@ -182,7 +202,7 @@ export function useSummary(range: SummaryRange) {
 
         if (ts < periodStart) {
           if (hasOpening) {
-            if (t.type === 'exchange') openBal += toDefault((t.toAmount ?? 0) - (t.fromAmount ?? 0), t.currency)
+            if (t.type === 'exchange') openBal += netOfExchange(t)
             else openBal += signed
           }
           continue
@@ -193,7 +213,7 @@ export function useSummary(range: SummaryRange) {
         else if (t.type === 'expense') { exp += value; expC++; maxExp = Math.max(maxExp, value); expRows.push({ categoryId: t.categoryId, amount: value }) }
         else if (t.type === 'give') { giveC++; peopleNet -= value; personRows.push({ personId: t.personId ?? '', type: 'give', amount: value }) }
         else if (t.type === 'take') { takeC++; peopleNet += value; personRows.push({ personId: t.personId ?? '', type: 'take', amount: value }) }
-        else if (t.type === 'exchange') { exchC++; exchNet += toDefault((t.toAmount ?? 0) - (t.fromAmount ?? 0), t.currency) }
+        else if (t.type === 'exchange') { exchC++; exchNet += netOfExchange(t) }
       }
 
       const txnCount = incC + expC + exchC + giveC + takeC
@@ -203,17 +223,54 @@ export function useSummary(range: SummaryRange) {
 
     const curr = aggregate(start, end)
 
-    if (curr.txnCount === 0) return { ...EMPTY, openingBalance: curr.openBal, closingBalance: curr.openBal }
+    // The 12-month chart is a rolling window that does not depend on the
+    // selected period, so it is built before the empty-period early return —
+    // otherwise picking a quiet month would blank out a year of real history.
+    // One pass buckets every transaction by month key; the previous version
+    // re-scanned and re-converted the whole array once per month.
+    const months: MonthlyBar[] = []
+    const buckets = new Map<string, { income: number; expense: number }>()
+    const now = new Date()
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      const bucket = { income: 0, expense: 0 }
+      buckets.set(key, bucket)
+      months.push({ month: key, label: d.toLocaleString(undefined, { month: 'short' }), income: 0, expense: 0 })
+    }
+    for (const t of transactions) {
+      if (t.type !== 'income' && t.type !== 'expense') continue
+      const d = new Date(t.date)
+      const bucket = buckets.get(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
+      if (!bucket) continue
+      const val = toDefault(t.amount, t.currency)
+      if (t.type === 'income') bucket.income += val
+      else bucket.expense += val
+    }
+    for (const m of months) {
+      const bucket = buckets.get(m.month)!
+      m.income = bucket.income
+      m.expense = bucket.expense
+    }
+
+    if (curr.txnCount === 0) {
+      return { ...EMPTY, openingBalance: curr.openBal, closingBalance: curr.openBal, months }
+    }
 
     let incomeTrend: number | null = null
     let expenseTrend: number | null = null
     let savingsTrend: number | null = null
-    if (previousOffset > 0) {
-      const prev = aggregate(start - previousOffset, end - previousOffset)
+    if (previousStart != null && previousEnd != null) {
+      const prev = aggregate(previousStart, previousEnd)
       if (prev.txnCount > 0) {
         incomeTrend = prev.inc > 0 ? ((curr.inc - prev.inc) / prev.inc) * 100 : (curr.inc > 0 ? Infinity : null)
         expenseTrend = prev.exp > 0 ? ((curr.exp - prev.exp) / prev.exp) * 100 : (curr.exp > 0 ? Infinity : null)
-        savingsTrend = prev.savings !== 0 ? ((curr.savings - prev.savings) / prev.savings) * 100 : (curr.savings !== 0 ? Infinity : null)
+        // Savings can be negative, and dividing by a negative baseline flips the
+        // sign: halving a loss would read as -50%. Dividing by the magnitude
+        // leaves direction entirely to the numerator.
+        savingsTrend = prev.savings !== 0
+          ? ((curr.savings - prev.savings) / Math.abs(prev.savings)) * 100
+          : (curr.savings > 0 ? Infinity : curr.savings < 0 ? -Infinity : null)
       }
     }
 
@@ -222,28 +279,6 @@ export function useSummary(range: SummaryRange) {
     const days = daysInPeriod(start, end, earliestTs)
     const dailyAverage = curr.exp / days
     const avgTransaction = (curr.incC + curr.expC) > 0 ? (curr.inc + curr.exp) / (curr.incC + curr.expC) : 0
-
-    const months: MonthlyBar[] = []
-    const now = new Date()
-    for (let i = 11; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-      const mStart = new Date(d.getFullYear(), d.getMonth(), 1).getTime()
-      const mEnd = new Date(d.getFullYear(), d.getMonth() + 1, 1).getTime()
-      let mInc = 0; let mExp = 0
-      for (const t of transactions) {
-        const ts = new Date(t.date).getTime()
-        if (ts < mStart || ts >= mEnd) continue
-        const val = toDefault(t.amount, t.currency)
-        if (t.type === 'income') mInc += val
-        else if (t.type === 'expense') mExp += val
-      }
-      months.push({
-        month: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
-        label: d.toLocaleString(undefined, { month: 'short' }),
-        income: mInc,
-        expense: mExp,
-      })
-    }
 
     return {
       income: curr.inc, expense: curr.exp, exchange: curr.exchNet, peopleNet: curr.peopleNet, savings: curr.savings,
@@ -263,7 +298,7 @@ export function useSummary(range: SummaryRange) {
       incomeTrend, expenseTrend, savingsTrend,
       months,
     }
-  }, [transactions, range, defaultCurrency, rates])
+  }, [transactions, accounts, range, defaultCurrency, rates])
 
   return { data, loading, refresh }
 }
