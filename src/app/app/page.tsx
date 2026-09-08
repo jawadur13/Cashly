@@ -16,7 +16,7 @@ export default function HomePage() {
   const { user } = useAuth()
   const { defaultCurrency } = useSettings()
   const { accounts, loading: accountsLoading } = useAccounts()
-  const { balances, total, loading: balancesLoading } = useAccountBalances(defaultCurrency)
+  const { balances, total, loading: balancesLoading, error: balancesError } = useAccountBalances(defaultCurrency)
   const { transactions, loading: txLoading } = useTransactions({})
 
   const loading = accountsLoading || balancesLoading || txLoading
@@ -31,6 +31,12 @@ export default function HomePage() {
           <p className="text-sm text-text-secondary">Your money at a glance</p>
         </div>
       </div>
+
+      {balancesError && (
+        <p className="rounded-[var(--radius-md)] bg-expense-soft px-3.5 py-2.5 text-sm text-expense">
+          Couldn&apos;t load your transactions, so these balances may be wrong. {balancesError}
+        </p>
+      )}
 
       <BalanceCard balance={total} loading={loading} />
       <AccountBalances accounts={accounts} balances={balances} defaultCurrency={defaultCurrency} loading={loading} />

@@ -7,6 +7,7 @@ import {
   updateTransaction,
   deleteTransaction,
 } from '@/lib/appwrite/collections'
+import { useAllTransactions } from '@/providers/all-transactions-provider'
 import { useAuth } from '@/providers/auth-provider'
 import { useCategories } from './use-categories'
 import type { Transaction, TransactionType } from '@/lib/types'
@@ -23,6 +24,9 @@ export interface TransactionQuery {
 export function useTransactions(query: TransactionQuery = {}) {
   const { user } = useAuth()
   const { categories } = useCategories()
+  // Writing a transaction invalidates every derived balance in the app, all of
+  // which read from the shared list rather than from this hook's own page.
+  const { refresh: refreshAll } = useAllTransactions()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -143,7 +147,8 @@ export function useTransactions(query: TransactionQuery = {}) {
     async (data: {
       accountId: string
       type: TransactionType
-      amount: number
+      /** Whole minor units (paisa). */
+      amountMinor: number
       currency: string
       categoryId: string
       payee?: string
@@ -151,16 +156,17 @@ export function useTransactions(query: TransactionQuery = {}) {
       date: string
       fromAccountId?: string
       toAccountId?: string
-      fromAmount?: number
-      toAmount?: number
+      fromAmountMinor?: number
+      toAmountMinor?: number
       personId?: string
     }) => {
       if (!user) throw new Error('Not authenticated')
       const created = await createTransaction({ userId: user.$id, ...data })
       setTransactions((prev) => [created, ...prev])
+      await refreshAll()
       return created
     },
-    [user]
+    [user, refreshAll]
   )
 
   const update = useCallback(
@@ -169,7 +175,8 @@ export function useTransactions(query: TransactionQuery = {}) {
       data: Partial<{
         accountId: string
         type: TransactionType
-        amount: number
+        /** Whole minor units (paisa). */
+        amountMinor: number
         currency: string
         categoryId: string
         payee: string
@@ -177,22 +184,24 @@ export function useTransactions(query: TransactionQuery = {}) {
         date: string
         fromAccountId: string
         toAccountId: string
-        fromAmount: number
-        toAmount: number
+        fromAmountMinor: number
+        toAmountMinor: number
         personId: string
       }>
     ) => {
       const updated = await updateTransaction(transactionId, data)
       setTransactions((prev) => prev.map((t) => (t.$id === transactionId ? updated : t)))
+      await refreshAll()
       return updated
     },
-    []
+    [refreshAll]
   )
 
   const remove = useCallback(async (transactionId: string) => {
     await deleteTransaction(transactionId)
     setTransactions((prev) => prev.filter((t) => t.$id !== transactionId))
-  }, [])
+    await refreshAll()
+  }, [refreshAll])
 
   return {
     transactions,

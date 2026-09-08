@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { account } from '@/lib/appwrite/client'
-import { DEFAULT_CURRENCY, getCurrency } from '@/lib/currency/currencies'
+import { DEFAULT_CURRENCY, isSupportedCurrency } from '@/lib/currency/currencies'
 import type { CurrencyCode } from '@/lib/currency/currencies'
 import { useAuth } from './auth-provider'
 
@@ -20,8 +20,11 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (status === 'authenticated' && user?.prefs?.defaultCurrency) {
       const prefsCurrency = String(user.prefs.defaultCurrency)
+      // A preference saved before the currency list was trimmed may name a
+      // currency the app no longer has a rate for; fall back rather than
+      // display every total in a currency that cannot be converted.
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setCurrency(getCurrency(prefsCurrency).code)
+      setCurrency(isSupportedCurrency(prefsCurrency) ? prefsCurrency : DEFAULT_CURRENCY)
     } else {
       setCurrency(DEFAULT_CURRENCY)
     }

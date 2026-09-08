@@ -1,7 +1,7 @@
 'use client'
 
-import { formatCurrency } from '@/lib/currency/format'
-import { convertCurrency } from '@/lib/currency/currencies'
+import { formatMoney } from '@/lib/currency/format'
+import { convertMinor } from '@/lib/currency/currencies'
 import { useExchangeRates } from '@/hooks/use-exchange-rates'
 import { useBalanceVisibility } from '@/providers/balance-visibility-provider'
 import { MaskedAmount } from '@/components/ui/masked-amount'
@@ -23,7 +23,7 @@ export function AccountCard({ account, balance = 0, defaultCurrency, onClick, ma
   const { hidden } = useBalanceVisibility()
   const masked = maskable && hidden
   const showEquivalent = defaultCurrency && defaultCurrency !== account.currency
-  const equivalent = showEquivalent ? convertCurrency(balance, account.currency, defaultCurrency, rates) : null
+  const equivalent = showEquivalent ? convertMinor(balance, account.currency, defaultCurrency, rates) : null
 
   return (
     <button
@@ -43,7 +43,7 @@ export function AccountCard({ account, balance = 0, defaultCurrency, onClick, ma
         </span>
         {showEquivalent && equivalent !== null && (
           <span className="block text-xs font-normal text-text-tertiary">
-            ≈ {masked ? '••••••' : formatCurrency(equivalent, defaultCurrency)}
+            ≈ {masked ? '••••••' : formatMoney(equivalent, defaultCurrency)}
           </span>
         )}
       </span>

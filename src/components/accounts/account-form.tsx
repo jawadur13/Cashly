@@ -76,11 +76,27 @@ export function AccountForm({ initial, onSubmit, onCancel, submitLabel }: Accoun
           ))}
         </div>
       </div>
-      <Select name="currency" label="Currency" value={currency} onChange={(e) => setCurrency(e.target.value)}>
-        {CURRENCIES.map((c) => (
-          <option key={c.code} value={c.code}>{c.code} — {c.name}</option>
-        ))}
-      </Select>
+      {initial ? (
+        <div className="rounded-[var(--radius-md)] border border-border bg-surface-hover px-3.5 py-2.5">
+          <span className="block text-[0.8125rem] font-medium text-text-secondary">Currency</span>
+          <span className="block text-sm text-text-primary tabular-nums">{currency}</span>
+          <p className="mt-1 text-xs text-text-tertiary">
+            An account&apos;s currency is fixed once it is created. Its balance is stored as plain
+            numbers, so changing it would silently re-value every transaction in this account.
+          </p>
+        </div>
+      ) : (
+        <div>
+          <Select name="currency" label="Currency" value={currency} onChange={(e) => setCurrency(e.target.value)}>
+            {CURRENCIES.map((c) => (
+              <option key={c.code} value={c.code}>{c.code} — {c.name}</option>
+            ))}
+          </Select>
+          <p className="mt-1 text-xs text-text-tertiary">
+            Choose carefully — this can&apos;t be changed later.
+          </p>
+        </div>
+      )}
       <div className="flex gap-3 pt-1">
         <Button type="button" variant="secondary" fullWidth onClick={onCancel}>Cancel</Button>
         <Button type="submit" fullWidth loading={submitting}>{submitLabel}</Button>

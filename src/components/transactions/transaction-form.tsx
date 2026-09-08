@@ -9,7 +9,7 @@ import { SegmentedControl } from '@/components/ui/segmented-control'
 import { Chip } from '@/components/ui/chip'
 import { Sheet } from '@/components/ui/sheet'
 import { CategoryIcon } from '@/components/ui/category-icon'
-import { CURRENCIES } from '@/lib/currency/currencies'
+import { minorToInputValue, readAmountMinor, readFromAmountMinor, readToAmountMinor, toMinorUnits } from '@/lib/money'
 import { useSettings } from '@/providers/settings-provider'
 import type { Account, Category, Person, Transaction, TransactionType } from '@/lib/types'
 
@@ -37,7 +37,8 @@ interface TransactionFormProps {
   onSubmit: (values: {
     accountId: string
     type: TransactionType
-    amount: number
+    /** Whole minor units (paisa) — never decimal taka. */
+    amountMinor: number
     currency: string
     categoryId: string
     payee: string
@@ -45,8 +46,8 @@ interface TransactionFormProps {
     date: string
     fromAccountId?: string
     toAccountId?: string
-    fromAmount?: number
-    toAmount?: number
+    fromAmountMinor?: number
+    toAmountMinor?: number
     personId?: string
   }) => Promise<void>
   onDelete?: () => Promise<void>
@@ -68,8 +69,7 @@ export function TransactionForm({
   const { defaultCurrency } = useSettings()
   const [type, setType] = useState<TransactionType>(initial?.type ?? 'expense')
   const [accountId, setAccountId] = useState(initial?.accountId ?? (accounts[0]?.$id ?? ''))
-  const [amount, setAmount] = useState(initial ? String(initial.amount) : '')
-  const [currency, setCurrency] = useState(initial?.currency ?? defaultCurrency)
+  const [amount, setAmount] = useState(initial ? minorToInputValue(readAmountMinor(initial)) : '')
   const [categoryId, setCategoryId] = useState(initial?.categoryId ?? '')
   const [payee, setPayee] = useState(initial?.payee ?? '')
   const [note, setNote] = useState(initial?.note ?? '')
@@ -91,8 +91,8 @@ export function TransactionForm({
   })
   const [fromAccountId, setFromAccountId] = useState(initial?.fromAccountId ?? '')
   const [toAccountId, setToAccountId] = useState(initial?.toAccountId ?? '')
-  const [fromAmount, setFromAmount] = useState(initial?.fromAmount != null ? String(initial.fromAmount) : '')
-  const [toAmount, setToAmount] = useState(initial?.toAmount != null ? String(initial.toAmount) : '')
+  const [fromAmount, setFromAmount] = useState(initial ? minorToInputValue(readFromAmountMinor(initial)) : '')
+  const [toAmount, setToAmount] = useState(initial ? minorToInputValue(readToAmountMinor(initial)) : '')
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -106,12 +106,26 @@ export function TransactionForm({
   )
 
   const selectAccount = useMemo(() => {
-    if (accountId && accounts.some((a) => a.$id === accountId)) return accounts.find((a) => a.$id === accountId)!
-    return accounts[0]
-  }, [accountId, accounts])
+    const pool = initial ? accounts.filter((a) => a.currency === initial.currency) : accounts
+    if (accountId && pool.some((a) => a.$id === accountId)) return pool.find((a) => a.$id === accountId)!
+    return pool[0]
+  }, [accountId, accounts, initial])
 
   const currentAccountId = selectAccount?.$id ?? accountId
-  const effectiveCurrency = initial ? currency : (selectAccount?.currency ?? defaultCurrency)
+  // A transaction is always denominated in its account's currency. There is no
+  // separate picker: allowing the two to diverge let the same amount be read as
+  // two different values by the Home and Summary screens.
+  //
+  // On edit the stored currency wins. Re-saving must never relabel an existing
+  // row — 500 USD silently becoming 500 BDT is exactly the damage that
+  // scripts/audit-data.mjs refuses to do without a human looking. Instead the
+  // account list below is restricted to accounts that already share the
+  // transaction's currency, so it cannot change here.
+  const effectiveCurrency = initial ? initial.currency : (selectAccount?.currency ?? defaultCurrency)
+
+  const selectableAccounts = initial
+    ? accounts.filter((a) => a.currency === initial.currency)
+    : accounts
 
   const fromAccount = accounts.find((a) => a.$id === fromAccountId)
   const toAccount = accounts.find((a) => a.$id === toAccountId)
@@ -125,15 +139,15 @@ export function TransactionForm({
       if (!toAccountId) next.toAccountId = 'Choose a destination account'
       if (fromAccountId && toAccountId && fromAccountId === toAccountId) next.toAccountId = 'Choose a different account'
       if (fromAccountId && toAccountId && !sameCurrencyExchange) next.toAccountId = 'Both accounts must use the same currency'
-      if (!fromAmount || Number(fromAmount) <= 0) next.fromAmount = 'Enter an amount greater than zero'
-      if (!toAmount || Number(toAmount) <= 0) next.toAmount = 'Enter an amount greater than zero'
+      if (toMinorUnits(fromAmount) <= 0) next.fromAmount = 'Enter an amount greater than zero'
+      if (toMinorUnits(toAmount) <= 0) next.toAmount = 'Enter an amount greater than zero'
     } else if (isGiveTake) {
       if (!currentAccountId) next.accountId = 'Choose an account'
       if (!personId) next.personId = 'Choose a person'
-      if (!amount || Number(amount) <= 0) next.amount = 'Enter an amount greater than zero'
+      if (toMinorUnits(amount) <= 0) next.amount = 'Enter an amount greater than zero'
     } else {
       if (!currentAccountId) next.accountId = 'Choose an account'
-      if (!amount || Number(amount) <= 0) next.amount = 'Enter an amount greater than zero'
+      if (toMinorUnits(amount) <= 0) next.amount = 'Enter an amount greater than zero'
       if (!categoryId) next.categoryId = 'Choose a category'
     }
     if (!date) next.date = 'Choose a date'
@@ -150,7 +164,9 @@ export function TransactionForm({
       await onSubmit({
         accountId: isExchange ? fromAccountId : currentAccountId,
         type,
-        amount: isExchange ? Math.abs(Number(toAmount) - Number(fromAmount)) : Number(amount),
+        amountMinor: isExchange
+          ? Math.abs(toMinorUnits(toAmount) - toMinorUnits(fromAmount))
+          : toMinorUnits(amount),
         currency: isExchange ? exchangeCurrency : effectiveCurrency,
         categoryId: isExchange || isGiveTake ? '' : categoryId,
         payee: payee.trim(),
@@ -160,8 +176,8 @@ export function TransactionForm({
         ...(isExchange ? {
           fromAccountId,
           toAccountId,
-          fromAmount: Number(fromAmount),
-          toAmount: Number(toAmount),
+          fromAmountMinor: toMinorUnits(fromAmount),
+          toAmountMinor: toMinorUnits(toAmount),
         } : {}),
       })
       router.push('/app/transactions')
@@ -193,7 +209,7 @@ export function TransactionForm({
         options={[
           { value: 'expense', label: 'Expense' },
           { value: 'income', label: 'Income' },
-          { value: 'exchange', label: 'Exchange' },
+          { value: 'exchange', label: 'Transfer' },
           { value: 'give', label: 'Give' },
           { value: 'take', label: 'Take' },
         ]}
@@ -210,7 +226,7 @@ export function TransactionForm({
                 onChange={(e) => { setFromAccountId(e.target.value); if (toAccountId && e.target.value === toAccountId) setToAccountId('') }}
               >
                 <option value="">Select account</option>
-                {accounts.map((a) => (
+                {selectableAccounts.map((a) => (
                   <option key={a.$id} value={a.$id}>{a.name}</option>
                 ))}
               </Select>
@@ -224,7 +240,7 @@ export function TransactionForm({
                 onChange={(e) => setToAccountId(e.target.value)}
               >
                 <option value="">Select account</option>
-                {accounts.filter((a) => a.$id !== fromAccountId && (fromAccount ? a.currency === fromAccount.currency : true)).map((a) => (
+                {selectableAccounts.filter((a) => a.$id !== fromAccountId && (fromAccount ? a.currency === fromAccount.currency : true)).map((a) => (
                   <option key={a.$id} value={a.$id}>{a.name}</option>
                 ))}
               </Select>
@@ -263,7 +279,7 @@ export function TransactionForm({
             <span className="block text-[0.8125rem] font-medium text-text-secondary">Currency</span>
             <span className="block text-sm text-text-primary tabular-nums">{exchangeCurrency}</span>
             {fromAccount && toAccount && !sameCurrencyExchange && (
-              <p className="mt-1 text-xs text-expense">Accounts must share the same currency to exchange between them.</p>
+              <p className="mt-1 text-xs text-expense">Both accounts must use the same currency to transfer between them.</p>
             )}
           </div>
         </>
@@ -273,11 +289,11 @@ export function TransactionForm({
             name="account"
             label="Account"
             value={currentAccountId}
-            onChange={(e) => { setAccountId(e.target.value); setCurrency(accounts.find((a) => a.$id === e.target.value)?.currency ?? defaultCurrency) }}
+            onChange={(e) => setAccountId(e.target.value)}
             error={errors.accountId}
           >
-            {accounts.length === 0 && <option value="">No accounts — create one first</option>}
-            {accounts.map((a) => (
+            {selectableAccounts.length === 0 && <option value="">No accounts — create one first</option>}
+            {selectableAccounts.map((a) => (
               <option key={a.$id} value={a.$id}>{a.name}</option>
             ))}
           </Select>
@@ -330,11 +346,11 @@ export function TransactionForm({
             name="account"
             label="Account"
             value={currentAccountId}
-            onChange={(e) => { setAccountId(e.target.value); setCurrency(accounts.find((a) => a.$id === e.target.value)?.currency ?? defaultCurrency) }}
+            onChange={(e) => setAccountId(e.target.value)}
             error={errors.accountId}
           >
-            {accounts.length === 0 && <option value="">No accounts — create one first</option>}
-            {accounts.map((a) => (
+            {selectableAccounts.length === 0 && <option value="">No accounts — create one first</option>}
+            {selectableAccounts.map((a) => (
               <option key={a.$id} value={a.$id}>{a.name}</option>
             ))}
           </Select>
@@ -352,16 +368,10 @@ export function TransactionForm({
               onChange={(e) => setAmount(e.target.value)}
               error={errors.amount}
             />
-            <Select
-              name="currency"
-              label="Currency"
-              value={effectiveCurrency}
-              onChange={(e) => setCurrency(e.target.value)}
-            >
-              {CURRENCIES.map((c) => (
-                <option key={c.code} value={c.code}>{c.code}</option>
-              ))}
-            </Select>
+            <div className="rounded-[var(--radius-md)] border border-border bg-surface-hover px-3.5 py-2.5">
+              <span className="block text-[0.8125rem] font-medium text-text-secondary">Currency</span>
+              <span className="block text-sm text-text-primary tabular-nums">{effectiveCurrency}</span>
+            </div>
           </div>
 
           <div>

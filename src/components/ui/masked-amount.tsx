@@ -1,6 +1,6 @@
 'use client'
 
-import { formatCurrency } from '@/lib/currency/format'
+import { formatMoney } from '@/lib/currency/format'
 
 interface MaskedAmountProps {
   amount: number
@@ -10,7 +10,7 @@ interface MaskedAmountProps {
 }
 
 export function MaskedAmount({ amount, currency, masked = false, className }: MaskedAmountProps) {
-  const formatted = formatCurrency(amount, currency)
+  const formatted = formatMoney(amount, currency)
 
   if (!masked) {
     return <span className={className}>{formatted}</span>

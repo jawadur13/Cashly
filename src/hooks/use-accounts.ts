@@ -1,12 +1,14 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { listAccounts, createAccount, updateAccount, deleteAccount } from '@/lib/appwrite/collections'
+import { listAccounts, createAccount, updateAccount, reassignAndDeleteAccount } from '@/lib/appwrite/collections'
+import { useAllTransactions } from '@/providers/all-transactions-provider'
 import { useAuth } from '@/providers/auth-provider'
 import type { Account, AccountType } from '@/lib/types'
 
 export function useAccounts() {
   const { user } = useAuth()
+  const { refresh: refreshAll } = useAllTransactions()
   const [accounts, setAccounts] = useState<Account[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -45,7 +47,7 @@ export function useAccounts() {
   )
 
   const update = useCallback(
-    async (accountId: string, data: { name?: string; type?: AccountType; currency?: string }) => {
+    async (accountId: string, data: { name?: string; type?: AccountType }) => {
       const updated = await updateAccount(accountId, data)
       setAccounts((prev) => prev.map((a) => (a.$id === accountId ? updated : a)))
       return updated
@@ -53,10 +55,20 @@ export function useAccounts() {
     []
   )
 
-  const remove = useCallback(async (accountId: string) => {
-    await deleteAccount(accountId)
-    setAccounts((prev) => prev.filter((a) => a.$id !== accountId))
-  }, [])
+  /**
+   * Moves an account's transactions to another account, then removes it.
+   * No transaction is ever deleted — see `reassignAndDeleteAccount`.
+   */
+  const removeAndReassign = useCallback(
+    async (accountId: string, destinationAccountId: string) => {
+      if (!user) throw new Error('Not authenticated')
+      const result = await reassignAndDeleteAccount(user.$id, accountId, destinationAccountId)
+      setAccounts((prev) => prev.filter((a) => a.$id !== accountId))
+      await refreshAll()
+      return result
+    },
+    [user, refreshAll]
+  )
 
-  return { accounts, loading, error, refresh, add, update, remove }
+  return { accounts, loading, error, refresh, add, update, removeAndReassign }
 }

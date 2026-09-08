@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Sheet } from '@/components/ui/sheet'
 import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/ui/empty-state'
-import { formatCurrency } from '@/lib/currency/format'
+import { formatMoney } from '@/lib/currency/format'
 import { useSettings } from '@/providers/settings-provider'
 import { usePeople } from '@/hooks/use-people'
 import { useToast } from '@/providers/toast-provider'
@@ -88,7 +88,7 @@ export default function PeoplePage() {
                   person.balance < 0 && 'text-income',
                   person.balance === 0 && 'text-text-tertiary'
                 )}>
-                  {person.balance === 0 ? formatCurrency(0, defaultCurrency) : formatCurrency(person.balance, defaultCurrency)}
+                  {person.balance === 0 ? formatMoney(0, defaultCurrency) : formatMoney(person.balance, defaultCurrency)}
                 </span>
               </button>
               <button

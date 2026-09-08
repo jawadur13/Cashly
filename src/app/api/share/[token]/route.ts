@@ -33,7 +33,7 @@ export async function GET(
   }
 
   const PAGE_SIZE = 500
-  const transactions: { type: string; amount: number; currency: string; date: string; note: string }[] = []
+  const transactions: { type: string; amountMinor: number; currency: string; date: string; note: string }[] = []
   let offset = 0
   let total = 0
   do {
@@ -48,7 +48,8 @@ export async function GET(
     transactions.push(
       ...res.documents.map((t) => ({
         type: t.type,
-        amount: t.amount,
+        // Minor units, falling back for rows written before the migration.
+        amountMinor: t.amountMinor ?? Math.round((t.amount ?? 0) * 100),
         currency: t.currency,
         date: t.date,
         note: t.note,
