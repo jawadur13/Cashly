@@ -147,7 +147,8 @@ export function useTransactions(query: TransactionQuery = {}) {
     async (data: {
       accountId: string
       type: TransactionType
-      amount: number
+      /** Whole minor units (paisa). */
+      amountMinor: number
       currency: string
       categoryId: string
       payee?: string
@@ -155,8 +156,8 @@ export function useTransactions(query: TransactionQuery = {}) {
       date: string
       fromAccountId?: string
       toAccountId?: string
-      fromAmount?: number
-      toAmount?: number
+      fromAmountMinor?: number
+      toAmountMinor?: number
       personId?: string
     }) => {
       if (!user) throw new Error('Not authenticated')
@@ -174,7 +175,8 @@ export function useTransactions(query: TransactionQuery = {}) {
       data: Partial<{
         accountId: string
         type: TransactionType
-        amount: number
+        /** Whole minor units (paisa). */
+        amountMinor: number
         currency: string
         categoryId: string
         payee: string
@@ -182,8 +184,8 @@ export function useTransactions(query: TransactionQuery = {}) {
         date: string
         fromAccountId: string
         toAccountId: string
-        fromAmount: number
-        toAmount: number
+        fromAmountMinor: number
+        toAmountMinor: number
         personId: string
       }>
     ) => {

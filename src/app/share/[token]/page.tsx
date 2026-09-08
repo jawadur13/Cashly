@@ -3,13 +3,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { ArrowDownRight, ArrowUpRight, Users } from 'lucide-react'
-import { formatCurrency, formatSignedAmount, formatDateTime } from '@/lib/currency/format'
-import { convertCurrency } from '@/lib/currency/currencies'
+import { formatMoney, formatSignedMoney, formatDateTime } from '@/lib/currency/format'
+import { convertMinor } from '@/lib/currency/currencies'
 import { useExchangeRates } from '@/hooks/use-exchange-rates'
 import { Loader } from '@/components/ui/loader'
 import { cn } from '@/lib/utils'
 
-interface TxSnapshot { type: string; amount: number; currency: string; date: string; note: string }
+interface TxSnapshot { type: string; amountMinor: number; currency: string; date: string; note: string }
 
 export default function SharePage() {
   const params = useParams<{ token: string }>()
@@ -43,7 +43,7 @@ export default function SharePage() {
   }, [params.token])
 
   const converted = useMemo(
-    () => transactions.map((t) => ({ ...t, amount: convertCurrency(t.amount, t.currency, currency, rates), currency })),
+    () => transactions.map((t) => ({ ...t, amountMinor: convertMinor(t.amountMinor, t.currency, currency, rates), currency })),
     [transactions, currency, rates]
   )
 
@@ -67,8 +67,8 @@ export default function SharePage() {
   }
 
   const balance = converted.reduce((sum, t) => {
-    if (t.type === 'give') return sum + t.amount
-    if (t.type === 'take') return sum - t.amount
+    if (t.type === 'give') return sum + t.amountMinor
+    if (t.type === 'take') return sum - t.amountMinor
     return sum
   }, 0)
 
@@ -83,7 +83,7 @@ export default function SharePage() {
           balance < 0 && 'text-income',
           balance === 0 && 'text-text-primary'
         )}>
-          {formatCurrency(Math.abs(balance), currency)}
+          {formatMoney(Math.abs(balance), currency)}
         </div>
         <p className={cn(
           'mt-1 text-sm font-medium',
@@ -122,7 +122,7 @@ export default function SharePage() {
                   </span>
                 </span>
                 <span className={cn('shrink-0 text-sm font-semibold tabular-nums', amountColor)}>
-                  {formatSignedAmount(t.amount, t.currency, tone)}
+                  {formatSignedMoney(t.amountMinor, t.currency, tone)}
                 </span>
               </div>
             )

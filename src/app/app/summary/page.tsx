@@ -11,7 +11,7 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { CategoryIcon } from '@/components/ui/category-icon'
 import { Select } from '@/components/ui/select'
 import { SegmentedControl } from '@/components/ui/segmented-control'
-import { formatCurrency } from '@/lib/currency/format'
+import { formatMoney } from '@/lib/currency/format'
 import { monthPeriod, previousMonthPeriod, previousYearPeriod, yearPeriod } from '@/lib/calculations'
 import { cn } from '@/lib/utils'
 import { useSettings } from '@/providers/settings-provider'
@@ -91,7 +91,7 @@ export default function SummaryPage() {
     return (id: string) => map.get(id)?.name ?? 'Unknown'
   }, [people])
 
-  const fmt = (v: number) => formatCurrency(v, defaultCurrency)
+  const fmt = (v: number) => formatMoney(v, defaultCurrency)
   const hasData = data.transactionCount > 0
   const peopleNet = data.peopleNet
 

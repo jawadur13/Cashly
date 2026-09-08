@@ -15,7 +15,13 @@ export interface Transaction extends Models.Document {
   userId: string
   accountId: string
   type: TransactionType
+  /**
+   * Legacy amount in major units (taka), stored as a float. Still written for
+   * backwards compatibility — read `amountMinor` via `readAmountMinor` instead.
+   */
   amount: number
+  /** Amount in whole minor units (paisa). Absent on rows written before the migration. */
+  amountMinor?: number
   currency: string
   categoryId: string
   payee: string
@@ -23,8 +29,12 @@ export interface Transaction extends Models.Document {
   date: string
   fromAccountId?: string
   toAccountId?: string
+  /** @deprecated read `fromAmountMinor` via `readFromAmountMinor` */
   fromAmount?: number
+  fromAmountMinor?: number
+  /** @deprecated read `toAmountMinor` via `readToAmountMinor` */
   toAmount?: number
+  toAmountMinor?: number
   personId?: string
 }
 

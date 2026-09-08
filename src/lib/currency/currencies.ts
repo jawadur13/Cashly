@@ -93,3 +93,17 @@ export function convertCurrency(
   }
   return (amount * fromRate) / toRate
 }
+
+/**
+ * Converts an amount held in whole minor units, rounding back to a whole minor
+ * unit. Conversion produces a real number, and leaving fractional paisa in the
+ * totals would reintroduce exactly the drift minor units exist to prevent.
+ */
+export function convertMinor(
+  minorAmount: number,
+  from: string,
+  to: string,
+  rates: Record<string, number> = RATES_RELATIVE_TO_BDT
+): number {
+  return Math.round(convertCurrency(minorAmount, from, to, rates))
+}

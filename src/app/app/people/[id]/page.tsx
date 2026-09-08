@@ -6,7 +6,7 @@ import { ChevronLeft, ArrowUpRight, ArrowDownRight, Share2, Check } from 'lucide
 import { Button } from '@/components/ui/button'
 import { TransactionList } from '@/components/transactions/transaction-list'
 import { Loader } from '@/components/ui/loader'
-import { formatCurrency } from '@/lib/currency/format'
+import { formatMoney } from '@/lib/currency/format'
 import { useAuth } from '@/providers/auth-provider'
 import { useSettings } from '@/providers/settings-provider'
 import { useToast } from '@/providers/toast-provider'
@@ -108,7 +108,7 @@ export default function PersonDetailPage() {
           person.balance < 0 && 'text-income',
           person.balance === 0 && 'text-text-primary'
         )}>
-          {person.balance === 0 ? formatCurrency(0, defaultCurrency) : formatCurrency(person.balance, defaultCurrency)}
+          {person.balance === 0 ? formatMoney(0, defaultCurrency) : formatMoney(person.balance, defaultCurrency)}
         </div>
         <p className={cn(
           'mt-1 flex items-center gap-1 text-sm',

@@ -9,6 +9,7 @@ import { SegmentedControl } from '@/components/ui/segmented-control'
 import { Chip } from '@/components/ui/chip'
 import { Sheet } from '@/components/ui/sheet'
 import { CategoryIcon } from '@/components/ui/category-icon'
+import { minorToInputValue, readAmountMinor, readFromAmountMinor, readToAmountMinor, toMinorUnits } from '@/lib/money'
 import { useSettings } from '@/providers/settings-provider'
 import type { Account, Category, Person, Transaction, TransactionType } from '@/lib/types'
 
@@ -36,7 +37,8 @@ interface TransactionFormProps {
   onSubmit: (values: {
     accountId: string
     type: TransactionType
-    amount: number
+    /** Whole minor units (paisa) — never decimal taka. */
+    amountMinor: number
     currency: string
     categoryId: string
     payee: string
@@ -44,8 +46,8 @@ interface TransactionFormProps {
     date: string
     fromAccountId?: string
     toAccountId?: string
-    fromAmount?: number
-    toAmount?: number
+    fromAmountMinor?: number
+    toAmountMinor?: number
     personId?: string
   }) => Promise<void>
   onDelete?: () => Promise<void>
@@ -67,7 +69,7 @@ export function TransactionForm({
   const { defaultCurrency } = useSettings()
   const [type, setType] = useState<TransactionType>(initial?.type ?? 'expense')
   const [accountId, setAccountId] = useState(initial?.accountId ?? (accounts[0]?.$id ?? ''))
-  const [amount, setAmount] = useState(initial ? String(initial.amount) : '')
+  const [amount, setAmount] = useState(initial ? minorToInputValue(readAmountMinor(initial)) : '')
   const [categoryId, setCategoryId] = useState(initial?.categoryId ?? '')
   const [payee, setPayee] = useState(initial?.payee ?? '')
   const [note, setNote] = useState(initial?.note ?? '')
@@ -89,8 +91,8 @@ export function TransactionForm({
   })
   const [fromAccountId, setFromAccountId] = useState(initial?.fromAccountId ?? '')
   const [toAccountId, setToAccountId] = useState(initial?.toAccountId ?? '')
-  const [fromAmount, setFromAmount] = useState(initial?.fromAmount != null ? String(initial.fromAmount) : '')
-  const [toAmount, setToAmount] = useState(initial?.toAmount != null ? String(initial.toAmount) : '')
+  const [fromAmount, setFromAmount] = useState(initial ? minorToInputValue(readFromAmountMinor(initial)) : '')
+  const [toAmount, setToAmount] = useState(initial ? minorToInputValue(readToAmountMinor(initial)) : '')
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -151,7 +153,9 @@ export function TransactionForm({
       await onSubmit({
         accountId: isExchange ? fromAccountId : currentAccountId,
         type,
-        amount: isExchange ? Math.abs(Number(toAmount) - Number(fromAmount)) : Number(amount),
+        amountMinor: isExchange
+          ? Math.abs(toMinorUnits(toAmount) - toMinorUnits(fromAmount))
+          : toMinorUnits(amount),
         currency: isExchange ? exchangeCurrency : effectiveCurrency,
         categoryId: isExchange || isGiveTake ? '' : categoryId,
         payee: payee.trim(),
@@ -161,8 +165,8 @@ export function TransactionForm({
         ...(isExchange ? {
           fromAccountId,
           toAccountId,
-          fromAmount: Number(fromAmount),
-          toAmount: Number(toAmount),
+          fromAmountMinor: toMinorUnits(fromAmount),
+          toAmountMinor: toMinorUnits(toAmount),
         } : {}),
       })
       router.push('/app/transactions')

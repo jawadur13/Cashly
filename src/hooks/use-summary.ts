@@ -11,7 +11,7 @@ import {
   type CategoryBreakdownItem,
   type PersonBreakdownItem,
 } from '@/lib/calculations'
-import { convertCurrency } from '@/lib/currency/currencies'
+import { convertMinor } from '@/lib/currency/currencies'
 import { useAllTransactions } from '@/providers/all-transactions-provider'
 import { useSettings } from '@/providers/settings-provider'
 import { useExchangeRates } from './use-exchange-rates'
@@ -83,7 +83,7 @@ export function useSummary(range: SummaryRange) {
   const data = useMemo<SummaryData>(() => {
     const { start, end, hasOpening, previous } = range
     const convert = (amount: number, currency: string) =>
-      convertCurrency(amount, currency, defaultCurrency, rates)
+      convertMinor(amount, currency, defaultCurrency, rates)
 
     const curr = aggregatePeriod(transactions, { start, end, hasOpening, convert })
 

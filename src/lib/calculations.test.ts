@@ -20,8 +20,15 @@ import type { Transaction } from './types'
 const at = (y: number, m: number, d: number, h = 12) => new Date(y, m - 1, d, h).getTime()
 const iso = (y: number, m: number, d: number, h = 12) => new Date(y, m - 1, d, h).toISOString()
 
-const tx = (over: Partial<Transaction>): Transaction =>
-  ({
+/** Whole taka expressed in paisa — calculations work in minor units. */
+const tk = (major: number) => Math.round(major * 100)
+
+/**
+ * `amount`/`fromAmount`/`toAmount` are given in major units for readability and
+ * mirrored into the minor-unit columns the app actually reads.
+ */
+const tx = (over: Partial<Transaction> & { amount?: number }): Transaction => {
+  const base = {
     $id: Math.random().toString(36).slice(2),
     userId: 'u1',
     accountId: 'acc_cash',
@@ -33,7 +40,14 @@ const tx = (over: Partial<Transaction>): Transaction =>
     note: '',
     date: iso(2026, 9, 5),
     ...over,
-  }) as Transaction
+  } as Transaction
+  return {
+    ...base,
+    amountMinor: tk(base.amount ?? 0),
+    ...(base.fromAmount != null ? { fromAmountMinor: tk(base.fromAmount) } : {}),
+    ...(base.toAmount != null ? { toAmountMinor: tk(base.toAmount) } : {}),
+  } as Transaction
+}
 
 /** Identity conversion — currency conversion is tested separately. */
 const asIs = (amount: number) => amount
@@ -154,11 +168,11 @@ describe('aggregatePeriod', () => {
   it('totals the selected month only', () => {
     const sep = monthPeriod(2026, 9)
     const r = aggregatePeriod(txns, { ...sep, hasOpening: true, convert: asIs })
-    expect(r.income).toBe(60000)
-    expect(r.expense).toBe(12000)
-    expect(r.peopleNet).toBe(-3000)
-    expect(r.exchangeNet).toBe(-20)
-    expect(r.savings).toBe(48000)
+    expect(r.income).toBe(tk(60000))
+    expect(r.expense).toBe(tk(12000))
+    expect(r.peopleNet).toBe(tk(-3000))
+    expect(r.exchangeNet).toBe(tk(-20))
+    expect(r.savings).toBe(tk(48000))
     expect(r.transactionCount).toBe(5)
   })
 
@@ -166,20 +180,20 @@ describe('aggregatePeriod', () => {
     const sep = monthPeriod(2026, 9)
     const r = aggregatePeriod(txns, { ...sep, hasOpening: true, convert: asIs })
     // Aug: +60000 income, -15000 food, -25000 rent
-    expect(r.openingBalance).toBe(20000)
+    expect(r.openingBalance).toBe(tk(20000))
   })
 
   it('includes a transaction dated the last day of the previous month — issue #1', () => {
     const aug = previousMonthPeriod(2026, 9)
     const r = aggregatePeriod(txns, { ...aug, hasOpening: false, convert: asIs })
     // 15,000 food + 25,000 rent on the 31st. The rent must not be dropped.
-    expect(r.expense).toBe(40000)
+    expect(r.expense).toBe(tk(40000))
   })
 
   it('excludes a transaction dated the first day of the following month', () => {
     const aug = previousMonthPeriod(2026, 9)
     const r = aggregatePeriod(txns, { ...aug, hasOpening: false, convert: asIs })
-    expect(r.income).toBe(60000) // only August's salary, not September's
+    expect(r.income).toBe(tk(60000)) // only August's salary, not September's
   })
 
   it('converts each amount through the supplied converter', () => {
@@ -187,9 +201,9 @@ describe('aggregatePeriod', () => {
     const r = aggregatePeriod(usd, {
       ...monthPeriod(2026, 9),
       hasOpening: false,
-      convert: (a, c) => (c === 'USD' ? a * 123.25 : a),
+      convert: (a, c) => Math.round(c === 'USD' ? a * 123.25 : a),
     })
-    expect(r.income).toBeCloseTo(61625, 5)
+    expect(r.income).toBe(tk(61625))
   })
 })
 
@@ -248,7 +262,7 @@ describe('accountBalances', () => {
       tx({ type: 'income', amount: 1000, accountId: 'a' }),
       tx({ type: 'expense', amount: 300, accountId: 'a' }),
     ])
-    expect(b.a).toBe(700)
+    expect(b.a).toBe(tk(700))
   })
 
   it('moves money out of one account and into the other for a transfer', () => {
@@ -258,8 +272,8 @@ describe('accountBalances', () => {
         fromAccountId: 'a', toAccountId: 'b', fromAmount: 1000, toAmount: 980,
       }),
     ])
-    expect(b.a).toBe(-1000)
-    expect(b.b).toBe(980)
+    expect(b.a).toBe(tk(-1000))
+    expect(b.b).toBe(tk(980))
   })
 
   it('applies give and take to the account the cash moved through', () => {
@@ -267,7 +281,7 @@ describe('accountBalances', () => {
       tx({ type: 'give', amount: 500, accountId: 'a', personId: 'p1' }),
       tx({ type: 'take', amount: 200, accountId: 'a', personId: 'p2' }),
     ])
-    expect(b.a).toBe(-300)
+    expect(b.a).toBe(tk(-300))
   })
 })
 
@@ -298,7 +312,7 @@ describe('deleting an account by reassignment — issue #4', () => {
   it('leaves no balance behind on the removed account', () => {
     const after = accountBalances(reassign(before, 'old', 'keep'))
     expect(after.old).toBeUndefined()
-    expect(after.keep).toBe(5000 - 1200 - 800 + 2000)
+    expect(after.keep).toBe(tk(5000 - 1200 - 800 + 2000))
   })
 
   it('preserves people balances, since give/take are moved not deleted', () => {
@@ -320,7 +334,7 @@ describe('deleting an account by reassignment — issue #4', () => {
     const totalBefore = sum(accountBalances(withTransfer))
     const after = accountBalances(reassign(withTransfer, 'old', 'keep'))
     expect(sum(after)).toBe(totalBefore)
-    expect(after.keep).toBe(-20)
+    expect(after.keep).toBe(tk(-20))
   })
 })
 
@@ -333,8 +347,8 @@ describe('peopleBalances', () => {
       ],
       (a) => a
     )
-    expect(b.rahim).toBe(-5000)
-    expect(b.karim).toBe(2000)
+    expect(b.rahim).toBe(tk(-5000))
+    expect(b.karim).toBe(tk(2000))
   })
 
   it('ignores transactions that are not give or take', () => {
@@ -345,8 +359,8 @@ describe('peopleBalances', () => {
   it('converts into the display currency', () => {
     const b = peopleBalances(
       [tx({ type: 'give', amount: 100, currency: 'USD', personId: 'rahim' })],
-      (a, c) => (c === 'USD' ? a * 123.25 : a)
+      (a, c) => Math.round(c === 'USD' ? a * 123.25 : a)
     )
-    expect(b.rahim).toBeCloseTo(-12325, 5)
+    expect(b.rahim).toBe(tk(-12325))
   })
 })

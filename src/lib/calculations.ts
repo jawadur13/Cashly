@@ -1,3 +1,4 @@
+import { readAmountMinor, readFromAmountMinor, readToAmountMinor } from './money'
 import type { Transaction } from './types'
 
 /**
@@ -6,14 +7,18 @@ import type { Transaction } from './types'
  * (stored as `exchange`) are two-sided and handled separately by callers via
  * fromAmount/toAmount.
  */
-export function signedCashDelta(t: Pick<Transaction, 'type' | 'amount'>): number {
+export function signedCashDelta(t: { type: Transaction['type']; amount: number }): number {
   if (t.type === 'income' || t.type === 'take') return t.amount
   if (t.type === 'expense' || t.type === 'give') return -t.amount
   return 0
 }
 
-/** Converts an amount from its own currency into the display currency. */
-export type ConvertFn = (amount: number, currency: string) => number
+/**
+ * Converts an amount from its own currency into the display currency. Both the
+ * input and the result are whole minor units, so implementations must round —
+ * see `toDisplayCurrency`.
+ */
+export type ConvertFn = (minorAmount: number, currency: string) => number
 
 /** Half-open time window: `start` is included, `end` is not. */
 export interface Period {
@@ -161,12 +166,12 @@ export function aggregatePeriod(
 
   for (const t of transactions) {
     const ts = new Date(t.date).getTime()
-    const value = convert(t.amount, t.currency)
+    const value = convert(readAmountMinor(t), t.currency)
 
     if (ts < start) {
       if (hasOpening) {
         if (t.type === 'exchange') {
-          openingBalance += convert((t.toAmount ?? 0) - (t.fromAmount ?? 0), t.currency)
+          openingBalance += convert(readToAmountMinor(t) - readFromAmountMinor(t), t.currency)
         } else {
           openingBalance += signedCashDelta({ type: t.type, amount: value })
         }
@@ -194,7 +199,7 @@ export function aggregatePeriod(
       personRows.push({ personId: t.personId ?? '', type: 'take', amount: value })
     } else if (t.type === 'exchange') {
       exchangeCount += 1
-      exchangeNet += convert((t.toAmount ?? 0) - (t.fromAmount ?? 0), t.currency)
+      exchangeNet += convert(readToAmountMinor(t) - readFromAmountMinor(t), t.currency)
     }
   }
 
@@ -229,10 +234,10 @@ export function accountBalances(transactions: Transaction[]): Record<string, num
   const map: Record<string, number> = {}
   for (const t of transactions) {
     if (t.type === 'exchange') {
-      if (t.fromAccountId) map[t.fromAccountId] = (map[t.fromAccountId] ?? 0) - (t.fromAmount ?? 0)
-      if (t.toAccountId) map[t.toAccountId] = (map[t.toAccountId] ?? 0) + (t.toAmount ?? 0)
+      if (t.fromAccountId) map[t.fromAccountId] = (map[t.fromAccountId] ?? 0) - readFromAmountMinor(t)
+      if (t.toAccountId) map[t.toAccountId] = (map[t.toAccountId] ?? 0) + readToAmountMinor(t)
     } else {
-      map[t.accountId] = (map[t.accountId] ?? 0) + signedCashDelta(t)
+      map[t.accountId] = (map[t.accountId] ?? 0) + signedCashDelta({ type: t.type, amount: readAmountMinor(t) })
     }
   }
   return map
@@ -250,7 +255,7 @@ export function peopleBalances(
   for (const t of transactions) {
     if (!t.personId) continue
     if (t.type !== 'give' && t.type !== 'take') continue
-    const converted = convert(t.amount, t.currency)
+    const converted = convert(readAmountMinor(t), t.currency)
     map[t.personId] = (map[t.personId] ?? 0) + signedCashDelta({ type: t.type, amount: converted })
   }
   return map

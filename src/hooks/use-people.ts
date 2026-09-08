@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { listPeople, createPerson, updatePerson, deletePerson } from '@/lib/appwrite/collections'
 import { peopleBalances } from '@/lib/calculations'
-import { convertCurrency } from '@/lib/currency/currencies'
+import { convertMinor } from '@/lib/currency/currencies'
 import { useAllTransactions } from '@/providers/all-transactions-provider'
 import { useAuth } from '@/providers/auth-provider'
 import { useSettings } from '@/providers/settings-provider'
@@ -25,7 +25,7 @@ export function usePeople() {
 
   const balances = useMemo(
     () => peopleBalances(transactions, (amount, currency) =>
-      convertCurrency(amount, currency, defaultCurrency, rates)
+      convertMinor(amount, currency, defaultCurrency, rates)
     ),
     [transactions, defaultCurrency, rates]
   )

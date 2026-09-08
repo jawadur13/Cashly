@@ -112,6 +112,15 @@ async function ensureDouble(collectionId, key, required) {
   }
 }
 
+async function ensureInteger(collectionId, key, required) {
+  try {
+    await db.createIntegerAttribute(databaseId, collectionId, key, required)
+    log(`  + integer ${key}`)
+  } catch (e) {
+    log(`  integer ${key}: ${e.message}`)
+  }
+}
+
 async function ensureIndex(collectionId, indexId, type, attributes, order) {
   try {
     await db.createIndex(databaseId, collectionId, indexId, type, attributes, [order])
@@ -144,6 +153,10 @@ await ensureString(TRANSACTIONS, 'userId', true, 36)
 await ensureString(TRANSACTIONS, 'accountId', true, 36)
 await ensureEnum(TRANSACTIONS, 'type', ['income', 'expense', 'exchange', 'give', 'take'], true)
 await ensureDouble(TRANSACTIONS, 'amount', true)
+// Money is stored in whole minor units (paisa). The float columns above are kept
+// in step for backwards compatibility; see CALCULATION-AUDIT.md issue #17c.
+// Optional so that rows written before the migration remain valid.
+await ensureInteger(TRANSACTIONS, 'amountMinor', false)
 await ensureString(TRANSACTIONS, 'currency', true, 3)
 await ensureString(TRANSACTIONS, 'categoryId', true, 36)
 await ensureString(TRANSACTIONS, 'payee', false, 200)
@@ -152,7 +165,9 @@ await ensureDatetime(TRANSACTIONS, 'date', true)
 await ensureString(TRANSACTIONS, 'fromAccountId', false, 36)
 await ensureString(TRANSACTIONS, 'toAccountId', false, 36)
 await ensureDouble(TRANSACTIONS, 'fromAmount', false)
+await ensureInteger(TRANSACTIONS, 'fromAmountMinor', false)
 await ensureDouble(TRANSACTIONS, 'toAmount', false)
+await ensureInteger(TRANSACTIONS, 'toAmountMinor', false)
 await ensureString(TRANSACTIONS, 'personId', false, 36)
 await wait(1500)
 await ensureIndex(TRANSACTIONS, 'by_user_date', 'key', ['userId', 'date'], 'DESC')

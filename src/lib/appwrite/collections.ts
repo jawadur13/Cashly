@@ -1,5 +1,6 @@
 import { ID, Permission, Query, Role } from 'appwrite'
 import { databases } from './client'
+import { fromMinorUnits } from '@/lib/money'
 import { COLLECTIONS, DATABASE_ID } from './config'
 import type { Account, AccountType, Category, Person, Transaction, TransactionType } from '@/lib/types'
 
@@ -291,7 +292,8 @@ export async function createTransaction(data: {
   userId: string
   accountId: string
   type: TransactionType
-  amount: number
+  /** Whole minor units (paisa). */
+  amountMinor: number
   currency: string
   categoryId: string
   payee?: string
@@ -299,15 +301,19 @@ export async function createTransaction(data: {
   date: string
   fromAccountId?: string
   toAccountId?: string
-  fromAmount?: number
-  toAmount?: number
+  fromAmountMinor?: number
+  toAmountMinor?: number
   personId?: string
 }): Promise<Transaction> {
+  // Both columns are written: `amountMinor` is the real value, `amount` is kept
+  // in step so rows stay readable by any client that has not been updated yet,
+  // and so the change is reversible. See CALCULATION-AUDIT.md issue #17c.
   const base = {
     userId: data.userId,
     accountId: data.accountId,
     type: data.type,
-    amount: data.amount,
+    amount: fromMinorUnits(data.amountMinor),
+    amountMinor: data.amountMinor,
     currency: data.currency,
     categoryId: data.categoryId,
     payee: data.payee ?? '',
@@ -321,8 +327,10 @@ export async function createTransaction(data: {
           ...base,
           fromAccountId: data.fromAccountId,
           toAccountId: data.toAccountId ?? '',
-          fromAmount: data.fromAmount ?? 0,
-          toAmount: data.toAmount ?? 0,
+          fromAmount: fromMinorUnits(data.fromAmountMinor ?? 0),
+          fromAmountMinor: data.fromAmountMinor ?? 0,
+          toAmount: fromMinorUnits(data.toAmountMinor ?? 0),
+          toAmountMinor: data.toAmountMinor ?? 0,
         }
       : base
 
@@ -340,7 +348,8 @@ export async function updateTransaction(
   data: Partial<{
     accountId: string
     type: TransactionType
-    amount: number
+    /** Whole minor units (paisa). */
+    amountMinor: number
     currency: string
     categoryId: string
     payee: string
@@ -348,14 +357,28 @@ export async function updateTransaction(
     date: string
     fromAccountId: string
     toAccountId: string
-    fromAmount: number
-    toAmount: number
+    fromAmountMinor: number
+    toAmountMinor: number
     personId: string
   }>
 ): Promise<Transaction> {
-  const doc = Object.fromEntries(
-    Object.entries(data).filter(([, v]) => v !== undefined)
+  const { amountMinor, fromAmountMinor, toAmountMinor, ...rest } = data
+  const doc: Record<string, unknown> = Object.fromEntries(
+    Object.entries(rest).filter(([, v]) => v !== undefined)
   )
+  // Keep the legacy float column in step with every integer write.
+  if (amountMinor !== undefined) {
+    doc.amountMinor = amountMinor
+    doc.amount = fromMinorUnits(amountMinor)
+  }
+  if (fromAmountMinor !== undefined) {
+    doc.fromAmountMinor = fromAmountMinor
+    doc.fromAmount = fromMinorUnits(fromAmountMinor)
+  }
+  if (toAmountMinor !== undefined) {
+    doc.toAmountMinor = toAmountMinor
+    doc.toAmount = fromMinorUnits(toAmountMinor)
+  }
   return databases.updateDocument<Transaction>(DATABASE_ID, COLLECTIONS.transactions, transactionId, doc)
 }
 
