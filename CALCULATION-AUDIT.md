@@ -658,3 +658,374 @@ ha valo kotha boleso, exchange theke transfer name diye daw
 Findings were verified by extracting the app's calculation functions verbatim — `signedCashDelta`, `convertCurrency`, `aggregate`, `daysInPeriod`, `endOffset`, the account-balance reducer and the people-balance reducer — into standalone Node scripts and running them against constructed transaction sets with known-correct expected answers.
 
 I did **not** connect to your live Appwrite database, and I did **not** run the app in a browser. Everything marked ✅ was proven by execution; everything marked ⚠️ was found by reading the code and is flagged as such in the text.
+
+---
+---
+
+# PART 2 — YOUR DECISIONS & THE FINAL PLAN
+
+*Added 8 September 2026, after reading your comments. **Still no code changed.***
+
+---
+
+## Your decisions at a glance
+
+| # | Issue | Your call | Action |
+|---|---|---|---|
+| 1 | Month comparison wrong window | *"fix kore felo, jevabe perfect hoy"* | ✅ Fix |
+| 2 | Rising expenses shown green | *"fix kore felo"* | ✅ Fix |
+| 3 | Savings trend sign flip | *"etaw thik koro"* | ✅ Fix |
+| 4 | Deleted account mismatch | *Delete the transactions too; treat account as if it never existed; warn the user properly* | ✅ Fix — **new behaviour** |
+| 5 | Account currency change | *Remove the feature entirely; tell user at create time it's permanent* | ✅ Fix — **feature removal** |
+| 6 | Transaction currency picker | *Remove it; just show the account's currency* | ✅ Fix — **feature removal** |
+| 7 | Live rates on old transactions | *"eta evabei thak, intentional chilo"* | ⏹️ Keep |
+| 8 | "0% saved" with no income | *"correct it"* | ✅ Fix |
+| 9 | "Owes you −৳5,000" | *"keep it as it is"* | ⏹️ Keep |
+| 10 | People net + in red | *"keep as it is"* | ⏹️ Keep |
+| 11 | Unknown currency 1:1 | *Remove unnecessary currencies, keep BDT/USD + a few famous* | ✅ Fix |
+| 12 | "Avg. txn" excludes types | *"its ok, keep as it is"* | ⏹️ Keep |
+| 13 | Year comparison 365 days | *"fix kore daw"* | ✅ Fix |
+| 14 | Chart bars | *"fix kore felo"* | ✅ Fix |
+| 15 | Exchange is really a transfer | *"intentional, keep as is"* + *"exchange theke transfer name diye daw"* | ✅ **Rename only**, behaviour unchanged |
+| 16 | No tests | *"ja valo hoy koro"* | ✅ Add test setup |
+| 17a | Payee search broken | *"further suggestion daw"* | 💬 Suggestions below |
+| 17b | Downloads everything | *"further suggestion daw"* | 💬 Suggestions below |
+| 17c | Money stored as float | *"fix kore felo, standard system a"* | ✅ Fix — **biggest job** |
+
+**Totals:** 12 to fix, 4 to leave alone, 2 needing your input first.
+
+---
+
+## ⚠️ One correction to Part 1
+
+In issue **#14** I described the chart bars as *"overflowing their box"*. Reading the layout code more carefully, I now think the more likely behaviour is the **opposite** — the bars may be collapsing to nearly nothing.
+
+The reason: each month's column sits in a row set to `items-end`, which means the column's own height is left undefined. The bars inside are sized as a *percentage* of that undefined height. A percentage of "undefined" usually resolves to zero, so every bar may be rendering at its 3-pixel minimum — a flat chart regardless of your actual numbers.
+
+I flagged this as unverified in Part 1 and it stays unverified: I would need to open it in a browser to say for certain which of the two is happening. **The fix I'm proposing works correctly either way**, so this doesn't block anything — but I wanted to correct the description rather than leave a wrong explanation standing.
+
+---
+
+## Two things that must happen before any code
+
+**1. The project doesn't currently run.** `node_modules` is missing — dependencies were never installed on this machine. There's also no `.env`, so nothing can talk to Appwrite yet.
+
+**2. `AGENTS.md` has a hard rule** that I have to follow:
+
+> *"This is NOT the Next.js you know. This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code."*
+
+Those docs live inside `node_modules`, so I **cannot read them until dependencies are installed**. This is a genuine blocker for anything Next.js-specific (Phase 5's shared data loading in particular). Everything in Phases 1–3 is plain TypeScript and React, so it's much less exposed — but I'll still read the guides before touching a line.
+
+---
+
+## The plan — 6 phases, 18 tasks
+
+Ordered so that **the highest-value, lowest-risk fixes land first**, and the one genuinely risky job (whole-number money) comes last, after everything else is protected by tests.
+
+---
+
+### PHASE 0 — Groundwork
+*Nothing changes on screen. This is what makes every later fix provable rather than hopeful.*
+
+**Task 0.1 — Get the project running**
+Install dependencies, read the required Next.js guides, confirm `npm run build` and `npm run lint` both pass. This becomes our "before" baseline — if something breaks later, we know it was us.
+
+**Task 0.2 — Add a test runner**
+Add **Vitest** as a development-only dependency (it never ships to your users; it only runs on your machine). Right now there is not a single automated check on any money calculation.
+
+**Task 0.3 — Move the money maths out of the screens** ⭐ *the enabling step*
+Today the summary calculations live *inside* a React hook, tangled up with loading states and screen rendering. That means they can't be tested without launching the whole app.
+
+This task moves the pure calculation parts into `src/lib/calculations.ts` — the file that currently holds just one small function.
+
+**Deliberately no behaviour change here. The bugs stay in.** We fix them in Phase 1, each with a test that fails first and passes after. That order is what proves a fix is real instead of just plausible.
+
+*Why this matters to you:* without this step, every fix below is me changing code and telling you it's better. With it, each fix comes with a test that demonstrably failed before and passes after.
+
+---
+
+### PHASE 1 — The wrong numbers
+*Issues #1, #13, #2, #3, #8. All pure logic, all covered by tests, zero risk to your data.*
+
+**Task 1.1 — Calendar-correct period comparison (#1 + #13)**
+Replace the millisecond subtraction with real calendar arithmetic. The period definition changes from *"subtract this many milliseconds"* to *"the previous calendar month/year"* — stated directly instead of approximated.
+
+Tests written first, using the exact cases that fail today: September's previous window must be exactly 1 Aug → 1 Sep, October's must be 1 Sep → 1 Oct, March's must be 1 Feb → 1 Mar, and 2025's must be all of 2024.
+
+*Files:* `src/lib/calculations.ts`, `src/hooks/use-summary.ts`, `src/app/app/summary/page.tsx`
+
+**Task 1.2 — Trend direction and colour (#2 + #3)**
+Two fixes in one place. The percentage calculation learns to handle a negative starting point without flipping its sign. Then each badge is told whether "up" is good news or bad — income up is good, expense up is bad, savings up is good. The arrow keeps showing the real direction; only the colour's meaning is corrected.
+
+*Files:* `src/lib/calculations.ts`, `src/app/app/summary/page.tsx`
+
+**Task 1.3 — Savings rate with no income (#8)**
+When income is zero, show "—" instead of the misleading "0% saved".
+
+*Files:* `src/lib/calculations.ts`, `src/hooks/use-summary.ts`, `src/app/app/summary/page.tsx`
+
+---
+
+### PHASE 2 — Make currency impossible to get wrong
+*Issues #6, #5, #11. This is the most valuable phase in the whole plan.*
+
+Your two decisions — remove the transaction currency picker, and stop currency from being editable on accounts — combine into something bigger than either one alone:
+
+> **After this phase, a transaction's currency is always its account's currency — not by convention or discipline, but because the app offers no way to make it otherwise.**
+
+That single guarantee makes the phantom-money bug (#6) *structurally impossible* rather than merely fixed, and it makes the Home page's balance maths provably correct instead of correct-by-luck. Good call on both.
+
+**Task 2.1 — Trim the currency list (#11)**
+Keep BDT, USD, EUR, GBP, INR (plus whatever you add in Question 3). Drop the rest. Also make the conversion function **fail loudly** instead of silently pretending an unknown currency is 1:1.
+
+One useful side effect: dropping **JPY** simplifies Phase 6 significantly. Japanese yen has no decimal subunit — 1 yen is the smallest unit, unlike 100 paisa in a taka. Keeping it would force per-currency special handling in the whole-number money work.
+
+**Task 2.2 — Remove the transaction currency picker (#6)**
+Delete the dropdown; show the account's currency as read-only text — exactly how the Give/Take screen already does it. The create-vs-edit inconsistency disappears with it.
+
+**Task 2.3 — Lock account currency (#5)**
+On **create**, the picker works, with a clear note: *"Currency can't be changed later."*
+On **edit**, it's read-only.
+Currency is also removed from the update function entirely, so it can't be changed even by accident.
+
+**Task 2.4 — One-time repair script**
+Your existing data may already contain transactions that break the new rule. This script scans everything and **reports first without changing anything**, so you can see the scale of any damage before deciding to repair it.
+
+*New file:* `scripts/repair-currency.mjs`
+
+---
+
+### PHASE 3 — Account deletion
+*Issue #4. Your call: delete the transactions too, and warn properly.*
+
+**Task 3.1 — Count every reference**
+The current count only looks at one of the three fields that can point to an account, so today's warning under-reports. Transfers reference accounts through two *other* fields, and those are invisible to it right now.
+
+**Task 3.2 — Cascade delete with an honest warning**
+Delete every transaction that references the account through any of the three fields, and make the confirmation dialog state plainly what is about to happen — including the two consequences that aren't obvious (see **Question 2**).
+
+Because this is permanent and has no undo, the dialog will require **typing the account name** to confirm, rather than a single tap.
+
+One technical caveat worth knowing: Appwrite can't delete many documents as one all-or-nothing operation. If the delete fails halfway, some transactions are gone and some remain. The task includes handling that rather than pretending it can't happen.
+
+⚠️ **I want your answer to Question 2 before building this one.**
+
+---
+
+### PHASE 4 — Naming and the chart
+*Issues #15, #14.*
+
+**Task 4.1 — "Exchange" → "Transfer"**
+Rename every label you can see. **The stored value in the database stays `exchange`** — changing it would mean rewriting every existing row for no benefit the user can see. Internal name unchanged, display name fixed.
+
+While we're there: the Summary tile labelled "Exchange" isn't showing transfers at all — it's showing *the fees lost during transfers*. I suggest relabelling it **"Transfer fees"**, which is what the number actually is. (Flagged in Question 4.)
+
+**Task 4.2 — Fix the cash-flow chart (#14)**
+Two changes: size the bars in real pixels rather than percentages of an undefined height, and put income and expense **side by side** instead of stacked, so they can't compete for the same 120 pixels.
+
+⚠️ One browser look needed first, per the correction note above.
+
+---
+
+### PHASE 5 — Search and speed
+*Issues #17a and #17b — the two you asked for suggestions on. Full write-up in the next section.*
+
+**Task 5.1 — Fix payee search**
+**Task 5.2 — Load your transactions once instead of three times**
+
+---
+
+### PHASE 6 — Whole-number money
+*Issue #17c. Biggest, riskiest, deliberately last.*
+
+You asked for the "standard system", and you're right that it's the standard — serious finance software stores **whole paisa** (12,345 paisa) rather than **decimal taka** (123.45), because decimals in computers can't represent every value exactly and tiny errors accumulate.
+
+Being straight with you about the size: **70 places across 12 files** read or write an amount. Every one has to change together, or numbers will be wrong by a factor of 100 — which is a far worse bug than the rounding drift we're fixing.
+
+It also needs a **database migration**. Appwrite won't change a column's type in place, so this means adding new fields, copying every value across, verifying, then switching over.
+
+**This is why it's last.** By the time we get here, Phases 0–5 will have covered the money logic in tests, so the migration has a safety net that doesn't exist today.
+
+**Tasks 6.1–6.4:** decide the storage format and rounding rules → convert the calculation layer with tests → migrate the database with a verified, reversible script → convert the screens.
+
+⚠️ **Blocked on Question 1.** If your database only holds test data, this gets dramatically simpler and safer — we reset the schema instead of migrating it.
+
+---
+
+## 💬 The suggestions you asked for
+
+### 17(a) — Payee search is broken
+
+**The problem:** the code searches both the note and the merchant/payee field, but the database only has a search index on `note`. Appwrite requires an index on any field you full-text search, so this query should fail outright — meaning search may be showing *"Couldn't load transactions"* rather than just missing results.
+
+*Still unverified — I found this by reading the setup script, and would need a live database to watch it fail.*
+
+| Option | What it means | My take |
+|---|---|---|
+| **A. Add the missing index** | One line in `scripts/setup-db.mjs`, then re-run it. The script is safe to re-run — it skips anything that already exists | ✅ **Recommended.** Smallest possible change, keeps the feature you intended |
+| B. Stop searching payee | Delete half the search query | Solves it by removing something useful |
+| C. Merge note + payee into one field | Cleaner queries long-term | Needs a migration; not worth it for this alone |
+
+**Recommendation: A.** It's a one-line fix. The only catch is that your *already-deployed* database needs the index created too — re-running the setup script handles that.
+
+---
+
+### 17(b) — Everything downloads your whole history
+
+**The problem:** three separate parts of the app each page through *every transaction you've ever made*, 500 at a time, into your phone's browser. On the Home screen two of them run simultaneously. It's fine at a few hundred transactions; at several thousand it means a slow screen and real mobile data burned every visit.
+
+| Option | Effort | Benefit |
+|---|---|---|
+| **A. Load once, share it** — one place fetches your transactions, the three calculators all read from it | Low | **Immediately cuts the work by ~3×.** No change to any calculation, so no risk to correctness |
+| **B. Only fetch the dates you're looking at** — Summary asks for the selected period plus what it needs for comparison, instead of everything | Medium | Big win on the Summary screen. Some care needed — the opening balance genuinely needs everything before the period |
+| **C. Add the numbers up on the server** — a small endpoint returns totals instead of raw rows | High | The proper long-term answer. Phone downloads a few numbers instead of thousands of records |
+| **D. Store locally and sync only what changed** — the app already has a service worker | High | Best experience, works offline. Real complexity |
+
+**Recommendation: A now, C later.**
+
+Option A is genuinely cheap and gives most of the benefit — it's pure plumbing that doesn't touch a single calculation. Option C is the right destination but is a bigger piece of work that deserves its own plan, and it's the one most exposed to the Next.js version differences flagged in `AGENTS.md`. Options B and D I'd skip for now.
+
+**One honest caveat on A:** those three calculators currently refresh independently. Merging them into one shared load changes *when* each screen updates. It's very manageable, but it's the kind of thing that causes "why didn't my balance update" bugs if rushed — so it gets its own task and its own testing rather than being slipped in.
+
+---
+
+## ❓ Questions — I need these before starting
+
+Answers to **1 and 2** genuinely change what gets built. The rest have a sensible default, and I'll use it if you'd rather not decide.
+
+---
+
+### Question 1 — Is there real data in the database yet? ⚠️ *most important*
+
+Is your Appwrite database holding **months of your own real transactions**, or is it still **test data you'd happily throw away**?
+
+This changes Phase 6 completely:
+- **Disposable data** → reset the schema, done in a fraction of the time, near-zero risk
+- **Real data** → careful migration: add fields, copy every value, verify, switch over, keep a rollback
+
+It also decides how cautious the Phase 2 repair script needs to be.
+
+<!-- ================== APNAR COMMENT EKHANE ==================
+
+
+
+
+============================================================ -->
+
+---
+
+### Question 2 — Deleting an account has two consequences you may not have intended
+
+You said deleting an account should delete its transactions and calculate as if it never existed. Clear, and I can build that. But two side effects follow that I don't think were part of the picture — I'd rather raise them now than surprise you later:
+
+**(a) It will delete give/take history with people.**
+If you recorded *"gave Rahim 5,000"* from your Cash account, deleting Cash deletes that record. Rahim's page silently changes from **"Owes you ৳5,000"** to **"Settled"** — even though in real life he still owes you. The money debt has nothing to do with which account it came from.
+
+**(b) It will pull money out of your *other* accounts.**
+Transfers touch two accounts. Deleting *Cash* also deletes the transfer *Cash → Bank*, so **Bank's balance drops too** — an account you never asked to touch.
+
+Which do you want?
+
+| Option | Behaviour |
+|---|---|
+| **A. Delete everything** (what you described) | Simple and consistent. Accepts (a) and (b) above. Warning dialog spells both out |
+| **B. Delete spending history, keep people history** | Give/take records survive, so who-owes-whom stays correct. Slightly inconsistent, but protects the data that's hardest to reconstruct |
+| **C. Move transactions to another account first** | Nothing is ever lost. You pick a destination account when deleting. More work, but no data loss at all |
+
+**My recommendation: C, falling back to A.** Option C is how most finance apps handle this, and account deletion is usually a *reorganising* action ("I don't use bKash any more") rather than a *destroying* one — you rarely want the history gone with it. But A is exactly what you asked for and I'll build it without argument if you still prefer it after seeing (a) and (b).
+
+<!-- ================== APNAR COMMENT EKHANE ==================
+
+
+
+
+============================================================ -->
+
+---
+
+### Question 3 — Exactly which currencies stay?
+
+You said BDT, USD and a few famous ones. My proposed list:
+
+**Keep:** BDT, USD, EUR, GBP, INR
+**Remove:** JPY, CAD, AUD, CHF, BRL, SGD, HKD, CNY
+
+**Worth considering — should I add SAR (Saudi Riyal), AED (UAE Dirham) and MYR (Malaysian Ringgit)?** They aren't in the app today, but for a Bangladeshi audience they're far more relevant than Brazilian Real or Swiss Franc — a very large share of money coming into Bangladesh comes from exactly those three countries.
+
+**One thing to know:** if you already have transactions recorded in a currency we remove, the app will no longer know its rate. I'll make the repair script in Task 2.4 report any of those first, so nothing disappears quietly.
+
+*Default if you don't answer: the list above, plus SAR and AED.*
+
+<!-- ================== APNAR COMMENT EKHANE ==================
+
+
+
+
+============================================================ -->
+
+---
+
+### Question 4 — Rename the "Exchange" summary tile too?
+
+Renaming Exchange → Transfer everywhere is settled. But the **Summary tile** labelled "Exchange" is a separate thing: it doesn't show how much you transferred, it shows **the fees you lost while transferring**. Calling it "Transfer" would be just as misleading as "Exchange" is now.
+
+Options: **"Transfer fees"** *(recommended)* · **"Transfer loss/gain"** · remove the tile entirely, since it's usually zero.
+
+*Default: "Transfer fees".*
+
+<!-- ================== APNAR COMMENT EKHANE ==================
+
+
+
+
+============================================================ -->
+
+---
+
+### Question 5 — Existing accounts with the wrong currency
+
+Once account currency is locked (#5), it's locked for **every** account, including ones you already have.
+
+If any existing account currently has the wrong currency, that becomes permanent — the only escape would be creating a new account and re-entering its transactions.
+
+Do you want a **one-time correction pass** before the lock goes in — a script that lists your accounts and lets you fix any that are wrong?
+
+*Default: yes, I'll include it. It's cheap and it's the kind of thing that's painful to discover too late.*
+
+<!-- ================== APNAR COMMENT EKHANE ==================
+
+
+
+
+============================================================ -->
+
+---
+
+### Question 6 — Should I run the fixes past you phase by phase?
+
+Two ways to work through this:
+
+**A. Phase by phase** *(recommended)* — I finish a phase, show you what changed and the tests proving it, you check the app, then we move on. More checkpoints, easier to change direction.
+
+**B. All at once** — I work through everything and hand you the finished result. Fewer interruptions, but a much bigger thing to review, and a wrong assumption early could propagate.
+
+Given Phase 2 removes features and Phase 3 permanently deletes data, I'd strongly prefer **A** — those two in particular deserve a look from you before they're final.
+
+<!-- ================== APNAR COMMENT EKHANE ==================
+
+
+
+
+============================================================ -->
+
+---
+
+## What I'd do first if you just said "go"
+
+1. **Phase 0** — get it running, add tests, move the maths somewhere testable *(no visible change)*
+2. **Phase 1** — fix all five wrong numbers, each with a test that fails before and passes after
+3. **Stop and show you** the Summary screen with correct trends
+
+That's the point where you'd see the biggest difference for the least risk — nothing deleted, no features removed, no database touched. Everything after that (Phases 2, 3, 6) either removes a feature or changes data, so those wait for your answers above.
+
+
