@@ -1096,9 +1096,22 @@ Then, once deployed, at your convenience:
 
 ---
 
+## A review round on my own work
+
+After finishing, I ran a review pass over the whole branch. It found **8 real problems in my own changes**, all now fixed. Two were serious enough to be worth naming:
+
+- **Editing a transaction would have rewritten its currency.** Because the transaction currency now follows the account, simply opening an old transaction and saving it would relabel a 500 USD row on a BDT account as 500 BDT — exactly the silent damage the audit script refuses to do without asking you. Fixed: on edit, the stored currency wins, and the account list is limited to accounts already using it.
+- **Account deletion could have orphaned a transaction.** The Delete button enables as soon as the count reads zero. A transaction created in that gap would have been moved to an empty account id and lost. The reassignment now verifies both accounts itself instead of trusting the screen.
+
+The rest: a zero baseline making a loss look like a gain, failed loads showing a confident balance of zero, an amount of "0.004" passing validation and saving as nothing, and two performance regressions I had introduced.
+
+I mention this because it is the argument for the tests. None of these would have been visible by reading the diff.
+
+---
+
 ## Proof it works
 
-**66 automated tests**, up from zero. Typecheck clean, **0 lint errors** (down from 1 pre-existing), production build passes.
+**68 automated tests**, up from zero. Typecheck clean, **0 lint errors** (down from 1 pre-existing), production build passes.
 
 The tests aren't generic. Each fixed bug has a test written to fail against the old behaviour first — and `src/lib/audit-scenarios.test.ts` replays the exact scenarios from Part 1 of this document, pinning the wrong number the app used to produce. It also asserts the Home total and the Summary closing balance are equal, which is the check that would have caught issue #4.
 
