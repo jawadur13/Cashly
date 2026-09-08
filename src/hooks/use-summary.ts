@@ -13,6 +13,7 @@ import {
 } from '@/lib/calculations'
 import { convertMinor } from '@/lib/currency/currencies'
 import { useAllTransactions } from '@/providers/all-transactions-provider'
+import { useAccounts } from './use-accounts'
 import { useSettings } from '@/providers/settings-provider'
 import { useExchangeRates } from './use-exchange-rates'
 
@@ -79,13 +80,16 @@ export function useSummary(range: SummaryRange) {
   const { defaultCurrency } = useSettings()
   const { rates } = useExchangeRates()
   const { transactions, loading, error, refresh } = useAllTransactions()
+  const { accounts } = useAccounts()
 
   const data = useMemo<SummaryData>(() => {
     const { start, end, hasOpening, previous } = range
     const convert = (amount: number, currency: string) =>
       convertMinor(amount, currency, defaultCurrency, rates)
+    const currencyOf = new Map(accounts.map((a) => [a.$id, a.currency]))
+    const accountCurrency = (id: string | undefined) => (id ? currencyOf.get(id) : undefined)
 
-    const curr = aggregatePeriod(transactions, { start, end, hasOpening, convert })
+    const curr = aggregatePeriod(transactions, { start, end, hasOpening, convert, accountCurrency })
 
     if (curr.transactionCount === 0) {
       return { ...EMPTY, openingBalance: curr.openingBalance, closingBalance: curr.openingBalance }
@@ -100,6 +104,7 @@ export function useSummary(range: SummaryRange) {
         end: previous.end,
         hasOpening: false,
         convert,
+        accountCurrency,
       })
       if (prev.transactionCount > 0) {
         incomeTrend = percentChange(curr.income, prev.income)
@@ -127,6 +132,7 @@ export function useSummary(range: SummaryRange) {
         end: mEnd,
         hasOpening: false,
         convert,
+        accountCurrency,
       })
       months.push({
         month: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
@@ -156,7 +162,7 @@ export function useSummary(range: SummaryRange) {
       incomeTrend, expenseTrend, savingsTrend,
       months,
     }
-  }, [transactions, range, defaultCurrency, rates])
+  }, [transactions, accounts, range, defaultCurrency, rates])
 
   return { data, loading, error, refresh }
 }

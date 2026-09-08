@@ -11,10 +11,10 @@ interface TransactionRowProps {
   transaction: Transaction
   /** Category – must be the category row for income/expense txns. */
   category?: { $id: string; name: string; icon?: string }
-  /** Source account for income/expense, or the from-account for exchanges. */
-  account?: { $id: string; name: string }
-  /** Destination account, only meaningful for exchanges. */
-  toAccount?: { $id: string; name: string }
+  /** Source account for income/expense, or the from-account for transfers. */
+  account?: { $id: string; name: string; currency?: string }
+  /** Destination account, only meaningful for transfers. */
+  toAccount?: { $id: string; name: string; currency?: string }
   /** Person for give/take transactions. */
   person?: { $id: string; name: string }
   onClick?: () => void
@@ -34,18 +34,26 @@ export function TransactionRow({ transaction, category, account, toAccount, pers
     .filter(Boolean)
     .join(' · ')
 
+  // Each leg is denominated in its own account's currency. They normally match
+  // — the form requires it — but older rows can cross currencies, and
+  // subtracting one from the other then would be meaningless.
+  const fromCurrency = account?.currency ?? transaction.currency
+  const toCurrency = toAccount?.currency ?? transaction.currency
+  const sameCurrency = fromCurrency === toCurrency
+
   const exchangeLabel = useMemo(() => {
     if (!isExchange || !account || !toAccount) return ''
+    if (!sameCurrency) return 'Currency exchange'
     const diff = readToAmountMinor(transaction) - readFromAmountMinor(transaction)
-    if (diff > 0) return `+${formatMoney(diff, transaction.currency)}`
-    if (diff < 0) return `-${formatMoney(Math.abs(diff), transaction.currency)}`
+    if (diff > 0) return `+${formatMoney(diff, toCurrency)}`
+    if (diff < 0) return `-${formatMoney(Math.abs(diff), toCurrency)}`
     return 'No change'
-  }, [isExchange, account, toAccount, transaction])
+  }, [isExchange, account, toAccount, transaction, sameCurrency, toCurrency])
 
   const exchangeGainLoss = useMemo(() => {
-    if (!isExchange) return null
+    if (!isExchange || !sameCurrency) return null
     return readToAmountMinor(transaction) - readFromAmountMinor(transaction)
-  }, [isExchange, transaction])
+  }, [isExchange, transaction, sameCurrency])
 
   return (
     <button
@@ -82,7 +90,7 @@ export function TransactionRow({ transaction, category, account, toAccount, pers
         )}
         {isExchange && (
           <span className="block text-xs text-text-tertiary">
-            {formatMoney(readFromAmountMinor(transaction), transaction.currency)} → {formatMoney(readToAmountMinor(transaction), transaction.currency)} · {exchangeLabel}
+            {formatMoney(readFromAmountMinor(transaction), fromCurrency)} → {formatMoney(readToAmountMinor(transaction), toCurrency)} · {exchangeLabel}
           </span>
         )}
         {!isExchange && (
@@ -102,7 +110,7 @@ export function TransactionRow({ transaction, category, account, toAccount, pers
         >
           {exchangeGainLoss !== null && exchangeGainLoss > 0 ? `+${formatMoney(exchangeGainLoss, transaction.currency)}` : null}
           {exchangeGainLoss !== null && exchangeGainLoss < 0 ? formatMoney(exchangeGainLoss, transaction.currency) : null}
-          {exchangeGainLoss === 0 ? '—' : null}
+          {exchangeGainLoss === 0 || exchangeGainLoss === null ? '—' : null}
         </span>
       ) : isPersonType ? (
         <span className={cn('shrink-0 text-[0.9375rem] font-semibold tabular-nums', isGive ? 'text-expense' : 'text-income')}>

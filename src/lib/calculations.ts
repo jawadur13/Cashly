@@ -144,6 +144,17 @@ export interface AggregateOptions {
   /** When true, everything before `start` is accumulated into openingBalance. */
   hasOpening: boolean
   convert: ConvertFn
+  /**
+   * Currency of an account, used to value the two sides of a transfer
+   * independently.
+   *
+   * The form only permits same-currency transfers, but real data predates that
+   * rule: a 2 USD -> 224 BDT transfer stored `currency: 'USD'`, so subtracting
+   * one side from the other and converting once reported 222 USD of profit
+   * rather than a small loss. Omit to fall back to the transaction's own
+   * currency, which is correct whenever both accounts really do match.
+   */
+  accountCurrency?: (accountId: string | undefined) => string | undefined
 }
 
 /**
@@ -153,8 +164,13 @@ export interface AggregateOptions {
  */
 export function aggregatePeriod(
   transactions: Transaction[],
-  { start, end, hasOpening, convert }: AggregateOptions
+  { start, end, hasOpening, convert, accountCurrency }: AggregateOptions
 ): PeriodTotals {
+  /** Net cash effect of a transfer, valuing each leg in its own currency. */
+  const transferNet = (t: Transaction) =>
+    convert(readToAmountMinor(t), accountCurrency?.(t.toAccountId) ?? t.currency) -
+    convert(readFromAmountMinor(t), accountCurrency?.(t.fromAccountId) ?? t.currency)
+
   let income = 0
   let expense = 0
   let exchangeNet = 0
@@ -176,7 +192,7 @@ export function aggregatePeriod(
     if (ts < start) {
       if (hasOpening) {
         if (t.type === 'exchange') {
-          openingBalance += convert(readToAmountMinor(t) - readFromAmountMinor(t), t.currency)
+          openingBalance += transferNet(t)
         } else {
           openingBalance += signedCashDelta({
             type: t.type,
@@ -211,7 +227,7 @@ export function aggregatePeriod(
       personRows.push({ personId: t.personId ?? '', type: 'take', amount: value })
     } else if (t.type === 'exchange') {
       exchangeCount += 1
-      exchangeNet += convert(readToAmountMinor(t) - readFromAmountMinor(t), t.currency)
+      exchangeNet += transferNet(t)
     }
   }
 

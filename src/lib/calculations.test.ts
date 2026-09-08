@@ -213,6 +213,54 @@ describe('aggregatePeriod', () => {
   })
 })
 
+describe('cross-currency transfers', () => {
+  // Real data contains a 2 USD -> 224 BDT transfer that predates the
+  // same-currency rule. Subtracting one leg from the other and converting once
+  // reported 222 USD (about 27,000 BDT) of profit instead of a small loss.
+  const usdToBdt = [
+    tx({
+      type: 'exchange', amount: 222, currency: 'USD', date: iso(2026, 9, 7),
+      fromAccountId: 'acc_card', toAccountId: 'acc_bkash', fromAmount: 2, toAmount: 224,
+    }),
+  ]
+  const rate = (minor: number, c: string) => Math.round(c === 'USD' ? minor * 123.25 : minor)
+  const opts = { ...monthPeriod(2026, 9), hasOpening: false, convert: rate }
+
+  it('values each leg in its own account currency', () => {
+    const r = aggregatePeriod(usdToBdt, {
+      ...opts,
+      accountCurrency: (id) => (id === 'acc_card' ? 'USD' : 'BDT'),
+    })
+    // 224 BDT received, 2 USD (= 246.50 BDT) given up.
+    expect(r.exchangeNet).toBe(tk(224) - Math.round(tk(2) * 123.25))
+    expect(r.exchangeNet).toBe(-2250) // a 22.50 BDT loss
+  })
+
+  it('reports a wildly wrong figure without the account currencies', () => {
+    // Documents the old behaviour, so the regression is visible if it returns.
+    const r = aggregatePeriod(usdToBdt, opts)
+    expect(r.exchangeNet).toBe(Math.round(tk(222) * 123.25)) // ~27,361 BDT of phantom gain
+  })
+
+  it('is unchanged for a same-currency transfer', () => {
+    const sameCurrency = [
+      tx({
+        type: 'exchange', amount: 20, date: iso(2026, 9, 7),
+        fromAccountId: 'a', toAccountId: 'b', fromAmount: 1000, toAmount: 980,
+      }),
+    ]
+    const withLookup = aggregatePeriod(sameCurrency, {
+      ...monthPeriod(2026, 9), hasOpening: false, convert: asIs,
+      accountCurrency: () => 'BDT',
+    })
+    const without = aggregatePeriod(sameCurrency, {
+      ...monthPeriod(2026, 9), hasOpening: false, convert: asIs,
+    })
+    expect(withLookup.exchangeNet).toBe(tk(-20))
+    expect(withLookup.exchangeNet).toBe(without.exchangeNet)
+  })
+})
+
 describe('buildBreakdown', () => {
   it('groups by category, sums, counts and shares', () => {
     const rows = [
