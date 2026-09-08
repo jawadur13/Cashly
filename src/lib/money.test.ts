@@ -46,6 +46,12 @@ describe('toMinorUnits', () => {
     expect(toMinorUnits(0)).toBe(0)
   })
 
+  it('rounds sub-paisa input down to zero so validation can reject it', () => {
+    // "0.004" is > 0 as a float but worth nothing once stored.
+    expect(toMinorUnits('0.004')).toBe(0)
+    expect(Number('0.004') > 0).toBe(true)
+  })
+
   it('never returns NaN for junk input', () => {
     expect(toMinorUnits('abc')).toBe(0)
     expect(toMinorUnits(Number.NaN)).toBe(0)

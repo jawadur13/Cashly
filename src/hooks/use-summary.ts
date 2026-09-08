@@ -78,7 +78,7 @@ const EMPTY: SummaryData = {
 export function useSummary(range: SummaryRange) {
   const { defaultCurrency } = useSettings()
   const { rates } = useExchangeRates()
-  const { transactions, loading, refresh } = useAllTransactions()
+  const { transactions, loading, error, refresh } = useAllTransactions()
 
   const data = useMemo<SummaryData>(() => {
     const { start, end, hasOpening, previous } = range
@@ -158,5 +158,5 @@ export function useSummary(range: SummaryRange) {
     }
   }, [transactions, range, defaultCurrency, rates])
 
-  return { data, loading, refresh }
+  return { data, loading, error, refresh }
 }

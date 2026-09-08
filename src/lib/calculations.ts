@@ -71,7 +71,13 @@ export function previousYearPeriod(year: number): Period {
  * grew from nothing (no meaningful percentage exists).
  */
 export function percentChange(current: number, previous: number): number | null {
-  if (previous === 0) return current === 0 ? null : Infinity
+  // Signed infinity, not bare Infinity: going from break-even to a 50,000 loss
+  // is a fall, and a caller colouring by `trend > 0` would otherwise paint it
+  // as a rise.
+  if (previous === 0) {
+    if (current === 0) return null
+    return current > 0 ? Infinity : -Infinity
+  }
   return ((current - previous) / Math.abs(previous)) * 100
 }
 
@@ -166,19 +172,25 @@ export function aggregatePeriod(
 
   for (const t of transactions) {
     const ts = new Date(t.date).getTime()
-    const value = convert(readAmountMinor(t), t.currency)
 
     if (ts < start) {
       if (hasOpening) {
         if (t.type === 'exchange') {
           openingBalance += convert(readToAmountMinor(t) - readFromAmountMinor(t), t.currency)
         } else {
-          openingBalance += signedCashDelta({ type: t.type, amount: value })
+          openingBalance += signedCashDelta({
+            type: t.type,
+            amount: convert(readAmountMinor(t), t.currency),
+          })
         }
       }
       continue
     }
     if (ts >= end) continue
+
+    // Converted only once the row is known to be in range — the 12-month chart
+    // runs this fourteen times over the full history.
+    const value = convert(readAmountMinor(t), t.currency)
 
     if (t.type === 'income') {
       income += value

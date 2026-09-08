@@ -240,7 +240,7 @@ function TrendRow({
     return (
       <div className={cn('flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium', good ? 'bg-income-soft text-income' : 'bg-expense-soft text-expense')}>
         {rising ? <ArrowUpRight className="size-3.5" /> : <ArrowDownRight className="size-3.5" />}
-        {label}: {trend === Infinity ? 'New' : `${Math.abs(trend).toFixed(0)}%`}
+        {label}: {Number.isFinite(trend) ? `${Math.abs(trend).toFixed(0)}%` : 'New'}
       </div>
     )
   }

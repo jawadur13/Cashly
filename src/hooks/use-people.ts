@@ -19,7 +19,7 @@ export function usePeople() {
   const { user } = useAuth()
   const { defaultCurrency } = useSettings()
   const { rates } = useExchangeRates()
-  const { transactions, loading: txLoading } = useAllTransactions()
+  const { transactions, loading: txLoading, error: txError } = useAllTransactions()
   const [people, setPeople] = useState<Person[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -89,5 +89,5 @@ export function usePeople() {
     [people, balances]
   )
 
-  return { people: enriched, loading: loading || txLoading, error, refresh, add, update, remove }
+  return { people: enriched, loading: loading || txLoading, error: error ?? txError, refresh, add, update, remove }
 }

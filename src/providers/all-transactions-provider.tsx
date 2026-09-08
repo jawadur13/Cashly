@@ -19,6 +19,9 @@ import type { Transaction } from '@/lib/types'
 interface AllTransactionsValue {
   transactions: Transaction[]
   loading: boolean
+  /** Non-null when the history could not be loaded. Balances derived from a
+   *  failed load would read as a confident zero, so callers must show this. */
+  error: string | null
   refresh: () => Promise<void>
 }
 
@@ -28,6 +31,7 @@ export function AllTransactionsProvider({ children }: { children: React.ReactNod
   const { user } = useAuth()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   // Guards against an earlier, slower fetch overwriting a later one.
   const seqRef = useRef(0)
 
@@ -35,10 +39,12 @@ export function AllTransactionsProvider({ children }: { children: React.ReactNod
     const seq = ++seqRef.current
     if (!user) {
       setTransactions([])
+      setError(null)
       setLoading(false)
       return
     }
     setLoading(true)
+    setError(null)
     try {
       const PAGE_SIZE = 500
       let all: Transaction[] = []
@@ -53,8 +59,11 @@ export function AllTransactionsProvider({ children }: { children: React.ReactNod
         if (res.documents.length === 0) break
       } while (offset < total)
       if (seqRef.current === seq) setTransactions(all)
-    } catch {
-      if (seqRef.current === seq) setTransactions([])
+    } catch (e) {
+      if (seqRef.current === seq) {
+        setTransactions([])
+        setError(e instanceof Error ? e.message : 'Failed to load transactions')
+      }
     } finally {
       if (seqRef.current === seq) setLoading(false)
     }
@@ -66,7 +75,7 @@ export function AllTransactionsProvider({ children }: { children: React.ReactNod
   }, [refresh])
 
   return (
-    <AllTransactionsContext.Provider value={{ transactions, loading, refresh }}>
+    <AllTransactionsContext.Provider value={{ transactions, loading, error, refresh }}>
       {children}
     </AllTransactionsContext.Provider>
   )

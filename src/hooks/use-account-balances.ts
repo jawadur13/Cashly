@@ -9,7 +9,7 @@ import { useExchangeRates } from './use-exchange-rates'
 
 export function useAccountBalances(defaultCurrency?: string) {
   const { accounts, loading: accountsLoading } = useAccounts()
-  const { transactions, loading, refresh } = useAllTransactions()
+  const { transactions, loading, error, refresh } = useAllTransactions()
   const { rates } = useExchangeRates()
 
   const balances = useMemo(() => accountBalances(transactions), [transactions])
@@ -26,5 +26,5 @@ export function useAccountBalances(defaultCurrency?: string) {
     [accounts, balances, defaultCurrency, rates]
   )
 
-  return { balances, total, loading: loading || accountsLoading, refresh }
+  return { balances, total, loading: loading || accountsLoading, error, refresh }
 }

@@ -138,6 +138,12 @@ describe('percentChange — issue #3', () => {
   it('returns Infinity when something grew out of nothing', () => {
     expect(percentChange(500, 0)).toBe(Infinity)
   })
+
+  it('returns negative infinity when it fell out of nothing', () => {
+    // Break-even last month, 50,000 lost this month. Reporting bare Infinity
+    // would let a caller colouring on `trend > 0` paint this as good news.
+    expect(percentChange(-50000, 0)).toBe(-Infinity)
+  })
 })
 
 describe('savingsRate — issue #8', () => {

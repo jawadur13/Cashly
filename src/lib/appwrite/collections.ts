@@ -85,13 +85,6 @@ export async function listTransactionsByAccount(
   )
 }
 
-export async function countTransactionsByAccount(
-  userId: string,
-  accountId: string
-): Promise<number> {
-  return (await listTransactionsByAccount(userId, accountId)).length
-}
-
 /**
  * Points every transaction on `fromAccountId` at `toAccountId`, then removes the
  * now-empty account. Nothing is ever deleted except the account record itself.
@@ -111,6 +104,21 @@ export async function reassignAndDeleteAccount(
 ): Promise<{ moved: number }> {
   if (accountId === destinationAccountId) {
     throw new Error('Choose a different destination account')
+  }
+
+  // Checked here rather than trusted from the caller: the accounts page enables
+  // Delete as soon as its pre-fetched count reads zero, and a transaction
+  // created in between would otherwise be reassigned to an empty id and
+  // orphaned permanently.
+  const accounts = await listAccounts(userId)
+  const source = accounts.find((a) => a.$id === accountId)
+  const destination = accounts.find((a) => a.$id === destinationAccountId)
+  if (!source) throw new Error('Account not found')
+  if (!destination) throw new Error('Choose an account to move the transactions to')
+  if (source.currency !== destination.currency) {
+    throw new Error(
+      `Transactions can only move between accounts of the same currency (${source.currency} to ${destination.currency})`
+    )
   }
 
   const affected = await listTransactionsByAccount(userId, accountId)

@@ -13,20 +13,18 @@ import { useAccounts } from '@/hooks/use-accounts'
 import { useAccountBalances } from '@/hooks/use-account-balances'
 import { useToast } from '@/providers/toast-provider'
 import { useSettings } from '@/providers/settings-provider'
-import { useAuth } from '@/providers/auth-provider'
-import { countTransactionsByAccount } from '@/lib/appwrite/collections'
+import { useAllTransactions } from '@/providers/all-transactions-provider'
 import type { Account } from '@/lib/types'
 
 export default function AccountsPage() {
   const { defaultCurrency } = useSettings()
-  const { user } = useAuth()
   const { accounts, loading, add, update, removeAndReassign } = useAccounts()
   const { balances, loading: balancesLoading } = useAccountBalances(defaultCurrency)
+  const { transactions } = useAllTransactions()
   const { toast } = useToast()
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<Account | null>(null)
   const [deleting, setDeleting] = useState<Account | null>(null)
-  const [txnCount, setTxnCount] = useState<number | null>(null)
   const [destinationId, setDestinationId] = useState('')
   const [busy, setBusy] = useState(false)
 
@@ -36,19 +34,21 @@ export default function AccountsPage() {
     ? accounts.filter((a) => a.$id !== deleting.$id && a.currency === deleting.currency)
     : []
 
-  const handleSetDeleting = async (account: Account | null) => {
+  // Counted from the already-loaded history rather than a separate query: it
+  // avoids a second full download, and there is no loading or error state to
+  // disambiguate before the Delete button can be enabled.
+  const txnCount = deleting
+    ? transactions.filter(
+        (t) =>
+          t.accountId === deleting.$id ||
+          t.fromAccountId === deleting.$id ||
+          t.toAccountId === deleting.$id
+      ).length
+    : 0
+
+  const handleSetDeleting = (account: Account | null) => {
     setDeleting(account)
     setDestinationId('')
-    if (account && user) {
-      try {
-        const count = await countTransactionsByAccount(user.$id, account.$id)
-        setTxnCount(count)
-      } catch {
-        setTxnCount(null)
-      }
-    } else {
-      setTxnCount(null)
-    }
   }
 
   return (
@@ -117,9 +117,7 @@ export default function AccountsPage() {
           Delete <span className="font-medium text-text-primary">{deleting?.name}</span>?
         </p>
 
-        {txnCount == null ? (
-          <p className="mb-4 text-sm text-text-tertiary">Checking transactions…</p>
-        ) : txnCount === 0 ? (
+        {txnCount === 0 ? (
           <p className="mb-4 rounded-[var(--radius-md)] bg-surface-hover px-3 py-2.5 text-xs text-text-secondary">
             No transactions use this account, so nothing needs to be moved.
           </p>
@@ -160,7 +158,7 @@ export default function AccountsPage() {
             variant="danger"
             fullWidth
             loading={busy}
-            disabled={txnCount == null || (txnCount > 0 && !destinationId)}
+            disabled={txnCount > 0 && !destinationId}
             onClick={async () => {
               if (!deleting) return
               setBusy(true)
