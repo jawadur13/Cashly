@@ -41,7 +41,10 @@ export async function GET(
       Query.equal('userId', share.userId),
       Query.equal('personId', share.personId),
       Query.equal('type', ['give', 'take']),
+      // `$id` makes the sort total. `date` alone leaves ties unspecified, and
+      // offset pagination assumes a total order.
       Query.orderDesc('date'),
+      Query.orderDesc('$id'),
       Query.limit(PAGE_SIZE),
       Query.offset(offset),
     ])

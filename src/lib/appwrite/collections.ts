@@ -273,7 +273,22 @@ export interface TransactionFilters {
 export async function listTransactions(
   filters: TransactionFilters
 ): Promise<{ documents: Transaction[]; total: number }> {
-  const queries = [Query.equal('userId', filters.userId), Query.orderDesc('date'), Query.limit(filters.limit ?? 20)]
+  // `date` is not unique — 99 of one real user's 247 rows share a timestamp
+  // with another. Ordering by it alone leaves those ties in an *unspecified*
+  // order, and offset pagination assumes a total order: if the order of tied
+  // rows differs between two pages of the same sweep, a row can be returned
+  // twice or skipped.
+  //
+  // Paginating that user's history at 20 per page returned every row exactly
+  // once both with and without this tiebreaker, so no loss has been observed —
+  // unspecified is not the same as unstable. `$id` makes the order total so it
+  // cannot depend on that.
+  const queries = [
+    Query.equal('userId', filters.userId),
+    Query.orderDesc('date'),
+    Query.orderDesc('$id'),
+    Query.limit(filters.limit ?? 20),
+  ]
   if (filters.type) queries.push(Query.equal('type', filters.type))
   if (filters.currency) queries.push(Query.equal('currency', filters.currency))
   if (filters.accountId) queries.push(Query.equal('accountId', filters.accountId))
