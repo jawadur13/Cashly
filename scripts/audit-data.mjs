@@ -12,7 +12,7 @@
    Reported but never auto-repaired (they need a human decision):
      2. transactions in a currency the app no longer supports
      3. transactions pointing at an account that no longer exists
-     4. transfers whose two accounts disagree on currency
+     4. transfers whose two accounts disagree on currency (informational)
 
    Reads .env.local (APPWRITE_* values). Safe to re-run.
 */
@@ -159,7 +159,9 @@ for (const t of badTransfers.slice(0, 25)) {
   console.log(`      ${t.$id}  ${String(t.date).slice(0, 10)}  ${from.name} (${from.currency}) -> ${to.name} (${to.currency})`)
 }
 if (badTransfers.length > 0) {
-  console.log('      The app treats a transfer as same-currency, so these net incorrectly.')
+  console.log('      The form no longer allows these, but existing rows are handled:')
+  console.log('      the summary values each leg in its own account currency, so the net')
+  console.log('      effect is correct. Listed so you know they exist.')
 }
 
 const clean =

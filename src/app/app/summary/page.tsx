@@ -13,6 +13,7 @@ import { Select } from '@/components/ui/select'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { formatMoney } from '@/lib/currency/format'
 import { monthPeriod, previousMonthPeriod, previousYearPeriod, yearPeriod } from '@/lib/calculations'
+import { CHART_HEIGHT, barHeightPx, chartScale } from '@/lib/chart'
 import { cn } from '@/lib/utils'
 import { useSettings } from '@/providers/settings-provider'
 import { useCategories } from '@/hooks/use-categories'
@@ -292,8 +293,6 @@ function IncomeExpenseSavings({ data, fmt }: { data: SummaryData; fmt: (v: numbe
   )
 }
 
-const CHART_HEIGHT = 120
-
 /**
  * Income and expense per month, side by side.
  *
@@ -309,8 +308,8 @@ const CHART_HEIGHT = 120
  * readers. Position, the legend and per-bar labels carry the identity.
  */
 function CashFlowChart({ months, fmt }: { months: MonthlyBar[]; fmt: (v: number) => string }) {
-  const maxBar = Math.max(...months.map((m) => Math.max(m.income, m.expense)), 1)
-  const barHeight = (value: number) => (value <= 0 ? 0 : Math.max(2, Math.round((value / maxBar) * CHART_HEIGHT)))
+  const scale = chartScale(months.flatMap((m) => [m.income, m.expense]))
+  const barHeight = (value: number) => barHeightPx(value, scale)
 
   return (
     <section className="space-y-2">
