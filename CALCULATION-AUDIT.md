@@ -1047,23 +1047,31 @@ no need to stop. use you judgement and finish all. tell me when all done
 
 *8 September 2026. Branch `fix/calculation-audit`, 4 commits.*
 
-## ⚠️ Run this BEFORE deploying
+## ✅ Database work — already done
 
-**`node scripts/setup-db.mjs`**
+You gave me the keys, so I ran all of it. Results:
 
-The app now saves an extra whole-number amount column on every transaction. That column has to exist in the database **before** the new code goes live, or saving a transaction will fail. The script is safe to re-run and skips anything already there. It also adds the missing search index that was breaking merchant search.
-
-Then, once deployed, at your convenience:
-
-| Command | What it does |
+| Step | Result |
 |---|---|
-| `node scripts/audit-data.mjs` | **Read-only.** Reports currency mismatches, transactions pointing at deleted accounts, and cross-currency transfers |
-| `node scripts/migrate-to-minor-units.mjs` | **Read-only.** Shows what the backfill would write |
-| `node scripts/migrate-to-minor-units.mjs --apply` | Writes the backfill |
+| `setup-db.mjs` | Added `amountMinor`, `fromAmountMinor`, `toAmountMinor` and the missing `search_payee` index |
+| `audit-data.mjs` (read-only) | **0** currency mismatches · **0** unsupported currencies · **0** orphaned transactions · **1** cross-currency transfer (below) |
+| Backup taken | `backup-2026-09-08T16-54-20.json` — full copy of transactions, accounts and people *before* any write. Gitignored |
+| `migrate-to-minor-units.mjs --apply` | **247 of 247 backfilled, 0 failures** |
 
-**Nothing deletes anything.** Every script reports first and only writes with `--apply`, and none of them removes a row. The old amount columns are left untouched, so the whole-number change can be undone by clearing the new columns.
+**Verified afterwards against the backup:**
 
-**There is no rush on the migration.** The app reads the new column *if present* and falls back to the old one otherwise, so your numbers are identical before, during and after. It can sit half-migrated indefinitely.
+```
+rows before / after         : 247 / 247   same
+rows disappeared            : 0
+float columns modified      : 0           (none — as intended)
+integer != round(float*100) : 0           (all correct)
+rows carrying amountMinor   : 247 / 247
+ALL CHECKS PASSED
+```
+
+Your original amount columns were not touched, so this is still reversible — clearing the three new columns puts everything back.
+
+**Nothing was deleted at any point.**
 
 ---
 
@@ -1085,6 +1093,29 @@ Then, once deployed, at your convenience:
 | 17c | Amounts are stored as whole paisa, so long histories no longer drift |
 
 **Left alone as you asked:** #7 (live rates), #9 (signed people balance), #10 (People net sign), #12 (Avg. txn).
+
+---
+
+## 🔴 A real error found in your live data
+
+The audit turned up one genuine problem, and it was a big one.
+
+**4 August 2026 — 2 USD from Card → 224 BDT into bKash.** A real currency exchange. But the app assumed both sides of a transfer share a currency, so it stored `amount: 222, currency: USD` and read that as **222 US dollars of profit**.
+
+What that did to your Summary:
+
+```
+August 2026 "Transfer fees" and closing balance
+   showed:   +27,257.82 BDT      <- phantom gain
+   actual:      -126.18 BDT      <- real fees paid
+   overstated by 27,384 BDT
+```
+
+Your account balances were always fine — Card really did lose $2 and bKash really did gain ৳224. It was the Summary that was inflated by roughly **৳27,384**.
+
+**Fixed.** The summary now values each side of a transfer in its own account's currency, so this row nets to a small real loss instead of a large fake gain. Same-currency transfers behave exactly as before. The measurement above is from your actual database, before and after.
+
+The transaction record itself is correct and I left it alone — only the maths reading it was wrong. New transfers can't be cross-currency anyway, since the form requires matching currencies.
 
 ---
 
@@ -1115,11 +1146,13 @@ I mention this because it is the argument for the tests. None of these would hav
 
 The tests aren't generic. Each fixed bug has a test written to fail against the old behaviour first — and `src/lib/audit-scenarios.test.ts` replays the exact scenarios from Part 1 of this document, pinning the wrong number the app used to produce. It also asserts the Home total and the Summary closing balance are equal, which is the check that would have caught issue #4.
 
-**What I could not verify:** I never connected to your database and never opened the app in a browser. So the calculations are proven, but the *screens* are not. Worth eyeballing after deploy:
+**On the chart (issue #14):** I never got a browser onto it, but the failure mode is now gone by construction rather than by inspection — the bars no longer use a percentage height anywhere, so there is no undefined parent height for them to collapse against. The geometry lives in `src/lib/chart.ts` and is covered by tests: the tallest bar fills the box exactly, no bar can exceed it (that was the overflow half), a tiny month still shows 2px, and an all-zero series does not divide by zero.
 
-- the Summary chart actually renders bars (issue #14 — I could not confirm whether they were collapsing or overflowing)
+**What I still could not verify:** I ran against your database but never opened the app in a browser. The calculations and the data are proven; the *screens* are not. Worth a look when convenient:
+
+- the Summary page renders (chart bars visible, trend badges the right colour)
 - the account delete flow end to end, on a throwaway account
-- merchant search, once the new index exists
+- merchant search, now that the index exists
 
 **One thing I noticed but did not change:** the app can't run `npm run build` without a `.env.local`, because the Appwrite client is constructed as the file loads rather than when it's used. This is pre-existing and doesn't affect you — your builds have the env file. I started to fix it, then reverted: the same pattern is in a second file, and half-fixing it would have added noise to this diff for no benefit. Worth doing on its own if you ever want CI to build without secrets.
 
