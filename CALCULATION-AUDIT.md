@@ -907,7 +907,7 @@ It also decides how cautious the Phase 2 repair script needs to be.
 
 <!-- ================== APNAR COMMENT EKHANE ==================
 
-
+yes there is real data in database. you delete none, not even by mistake 
 
 
 ============================================================ -->
@@ -937,7 +937,7 @@ Which do you want?
 <!-- ================== APNAR COMMENT EKHANE ==================
 
 
-
+do C if you prefer
 
 ============================================================ -->
 
@@ -959,7 +959,8 @@ You said BDT, USD and a few famous ones. My proposed list:
 <!-- ================== APNAR COMMENT EKHANE ==================
 
 
-
+keep BDT, USD, EUR, GBP, INR.. add SAR (Saudi Riyal), AED (UAE Dirham) and MYR (Malaysian Ringgit)
+and i dont have transaction in any other currency. dont worry
 
 ============================================================ -->
 
@@ -976,7 +977,7 @@ Options: **"Transfer fees"** *(recommended)* · **"Transfer loss/gain"** · remo
 <!-- ================== APNAR COMMENT EKHANE ==================
 
 
-
+i think transfer fees make some sense, rename it.
 
 ============================================================ -->
 
@@ -995,7 +996,7 @@ Do you want a **one-time correction pass** before the lock goes in — a script 
 <!-- ================== APNAR COMMENT EKHANE ==================
 
 
-
+no need , lock them
 
 ============================================================ -->
 
@@ -1013,7 +1014,7 @@ Given Phase 2 removes features and Phase 3 permanently deletes data, I'd strongl
 
 <!-- ================== APNAR COMMENT EKHANE ==================
 
-
+do whatever is quick, i have complete faith on you, no need to interrupt me. also the plan is locked , based on that complete the whole task perfectly, use whatever skill and superpower you need from available ones 
 
 
 ============================================================ -->
@@ -1029,3 +1030,11 @@ Given Phase 2 removes features and Phase 3 permanently deletes data, I'd strongl
 That's the point where you'd see the biggest difference for the least risk — nothing deleted, no features removed, no database touched. Everything after that (Phases 2, 3, 6) either removes a feature or changes data, so those wait for your answers above.
 
 
+<!-- ================== APNAR COMMENT EKHANE ==================
+
+
+
+no need to stop. use you judgement and finish all. tell me when all done
+
+
+============================================================ -->

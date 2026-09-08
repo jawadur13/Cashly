@@ -12,11 +12,12 @@ import { CategoryIcon } from '@/components/ui/category-icon'
 import { Select } from '@/components/ui/select'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { formatCurrency } from '@/lib/currency/format'
+import { monthPeriod, previousMonthPeriod, previousYearPeriod, yearPeriod } from '@/lib/calculations'
 import { cn } from '@/lib/utils'
 import { useSettings } from '@/providers/settings-provider'
 import { useCategories } from '@/hooks/use-categories'
 import { usePeople } from '@/hooks/use-people'
-import { useSummary, type CategoryBreakdownItem, type SummaryData, type SummaryRange } from '@/hooks/use-summary'
+import { useSummary, type CategoryBreakdownItem, type MonthlyBar, type SummaryData, type SummaryRange } from '@/hooks/use-summary'
 
 type Scope = 'month' | 'year' | 'all'
 
@@ -57,25 +58,23 @@ export default function SummaryPage() {
 
   const { range, periodLabel } = useMemo<{ range: SummaryRange; periodLabel: string }>(() => {
     if (scope === 'all') {
-      return { range: { start: -Infinity, end: Infinity, hasOpening: false, previousOffset: 0 }, periodLabel: 'All time' }
+      return {
+        range: { start: -Infinity, end: Infinity, hasOpening: false, previous: null },
+        periodLabel: 'All time',
+      }
     }
     if (scope === 'year') {
       return {
-        range: { start: new Date(year, 0, 1).getTime(), end: new Date(year + 1, 0, 1).getTime(), hasOpening: true, previousOffset: 365 * 24 * 60 * 60 * 1000 },
+        range: { ...yearPeriod(year), hasOpening: true, previous: previousYearPeriod(year) },
         periodLabel: String(year),
       }
     }
     const [y, m] = monthKey.split('-').map(Number)
     return {
-      range: { start: new Date(y, m - 1, 1).getTime(), end: new Date(y, m, 1).getTime(), hasOpening: true, previousOffset: endOffset(y, m) },
+      range: { ...monthPeriod(y, m), hasOpening: true, previous: previousMonthPeriod(y, m) },
       periodLabel: monthOptions.find((o) => o.key === monthKey)?.label ?? '',
     }
   }, [scope, monthKey, year, monthOptions])
-
-  function endOffset(y: number, m: number): number {
-    const prev = new Date(y, m - 2, 1)
-    return new Date(y, m - 1, 1).getTime() - new Date(prev.getFullYear(), prev.getMonth(), 1).getTime()
-  }
 
   const { data, loading } = useSummary(range)
 
@@ -95,7 +94,6 @@ export default function SummaryPage() {
   const fmt = (v: number) => formatCurrency(v, defaultCurrency)
   const hasData = data.transactionCount > 0
   const peopleNet = data.peopleNet
-  const maxBar = Math.max(...data.months.map((m) => Math.max(m.income, m.expense)), 1)
 
   return (
     <div className="space-y-6">
@@ -172,7 +170,7 @@ export default function SummaryPage() {
                 <StatTile icon={<Calendar className="size-4" />} label="≈ per day" value={fmt(data.dailyAverage)} tone="expense" />
               </section>
 
-              <CashFlowChart months={data.months} maxBar={maxBar} fmt={fmt} />
+              <CashFlowChart months={data.months} fmt={fmt} />
 
               {data.personBreakdown.length > 0 && (
                 <section className="space-y-2">
@@ -229,21 +227,28 @@ function TrendRow({
   savingsTrend: number | null
 }) {
   if (incomeTrend == null && expenseTrend == null && savingsTrend == null) return null
-  const badge = (label: string, trend: number | null) => {
+
+  /**
+   * The arrow always shows which way the number moved. The colour shows whether
+   * that movement is good news, which is the opposite for spending: earning more
+   * is green, spending more is red.
+   */
+  const badge = (label: string, trend: number | null, risingIsGood: boolean) => {
     if (trend == null) return null
-    const up = trend > 0
+    const rising = trend > 0
+    const good = rising === risingIsGood
     return (
-      <div className={cn('flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium', up ? 'bg-income-soft text-income' : 'bg-expense-soft text-expense')}>
-        {up ? <ArrowUpRight className="size-3.5" /> : <ArrowDownRight className="size-3.5" />}
+      <div className={cn('flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium', good ? 'bg-income-soft text-income' : 'bg-expense-soft text-expense')}>
+        {rising ? <ArrowUpRight className="size-3.5" /> : <ArrowDownRight className="size-3.5" />}
         {label}: {trend === Infinity ? 'New' : `${Math.abs(trend).toFixed(0)}%`}
       </div>
     )
   }
   return (
     <section className="flex flex-wrap gap-2">
-      {badge('Income', incomeTrend)}
-      {badge('Expense', expenseTrend)}
-      {badge('Savings', savingsTrend)}
+      {badge('Income', incomeTrend, true)}
+      {badge('Expense', expenseTrend, false)}
+      {badge('Savings', savingsTrend, true)}
     </section>
   )
 }
@@ -254,7 +259,7 @@ function NetSavingsHero({ data, fmt }: { data: SummaryData; fmt: (v: number) => 
       <div className="flex items-center justify-between">
         <p className="text-sm text-text-secondary">Net savings</p>
         <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', data.savings >= 0 ? 'bg-income-soft text-income' : 'bg-expense-soft text-expense')}>
-          {(data.savingsRate * 100).toFixed(0)}% saved
+          {data.savingsRate == null ? 'No income' : `${(data.savingsRate * 100).toFixed(0)}% saved`}
         </span>
       </div>
       <p className={cn('mt-1 text-[1.75rem] font-bold tabular-nums tracking-tight', data.savings >= 0 ? 'text-text-primary' : 'text-expense')}>
@@ -281,35 +286,74 @@ function IncomeExpenseSavings({ data, fmt }: { data: SummaryData; fmt: (v: numbe
     <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
       {cell('Income', data.income, 'income')}
       {cell('Expense', data.expense, 'expense')}
-      {cell('Exchange', data.exchange, 'exchange', true)}
+      {cell('Transfer fees', data.exchange, 'exchange', true)}
       {cell('Savings', data.savings, 'neutral')}
     </section>
   )
 }
 
-function CashFlowChart({ months, maxBar, fmt }: { months: { month: string; label: string; income: number; expense: number }[]; maxBar: number; fmt: (v: number) => string }) {
+const CHART_HEIGHT = 120
+
+/**
+ * Income and expense per month, side by side.
+ *
+ * Bar heights are computed in pixels rather than as percentages: the bars used
+ * to be sized as a % of a parent whose own height was left undefined (the row
+ * is `items-end`, so columns size to their content), which browsers resolve to
+ * zero. They were also stacked, so a month at the top of the scale needed 200%
+ * of the available height.
+ *
+ * Income is always the left bar and expense always the right. That fixed order
+ * is deliberate: the app's income/expense green and red sit at a deutan ΔE of
+ * 5.0, so colour alone does not separate them for red-green colourblind
+ * readers. Position, the legend and per-bar labels carry the identity.
+ */
+function CashFlowChart({ months, fmt }: { months: MonthlyBar[]; fmt: (v: number) => string }) {
+  const maxBar = Math.max(...months.map((m) => Math.max(m.income, m.expense)), 1)
+  const barHeight = (value: number) => (value <= 0 ? 0 : Math.max(2, Math.round((value / maxBar) * CHART_HEIGHT)))
+
   return (
     <section className="space-y-2">
       <h2 className="flex items-center gap-2 text-sm font-semibold text-text-primary">
         <BarChart3 className="size-4" /> Cash flow — last 12 months
       </h2>
       <div className="rounded-[var(--radius-md)] border border-border bg-surface p-3 shadow-[var(--shadow-sm)]">
-        <div className="flex items-end gap-1" style={{ height: 120 }}>
-          {months.map((m) => (
-            <div key={m.month} className="relative flex flex-1 flex-col items-center justify-end gap-0.5" title={`${m.label}: ${fmt(m.income)} / ${fmt(m.expense)}`}>
-              <div className="w-full rounded-t-sm bg-income/70" style={{ height: maxBar > 0 ? `${(m.income / maxBar) * 100}%` : '0%', minHeight: m.income > 0 ? 3 : 0 }} />
-              <div className="w-full rounded-t-sm bg-expense/70" style={{ height: maxBar > 0 ? `${(m.expense / maxBar) * 100}%` : '0%', minHeight: m.expense > 0 ? 3 : 0 }} />
+        <div className="overflow-x-auto">
+          <div className="min-w-[280px]">
+            <div className="flex items-end gap-1 border-b border-border" style={{ height: CHART_HEIGHT }}>
+              {months.map((m) => (
+                <div
+                  key={m.month}
+                  className="flex flex-1 items-end justify-center gap-[2px]"
+                  style={{ height: CHART_HEIGHT }}
+                >
+                  <span
+                    className="w-1/2 max-w-[10px] rounded-t-[3px] bg-income"
+                    style={{ height: barHeight(m.income) }}
+                    title={`${m.label} · Income ${fmt(m.income)}`}
+                    aria-label={`${m.label} income ${fmt(m.income)}`}
+                  />
+                  <span
+                    className="w-1/2 max-w-[10px] rounded-t-[3px] bg-expense"
+                    style={{ height: barHeight(m.expense) }}
+                    title={`${m.label} · Expense ${fmt(m.expense)}`}
+                    aria-label={`${m.label} expense ${fmt(m.expense)}`}
+                  />
+                </div>
+              ))}
             </div>
-          ))}
+            <div className="mt-2 flex gap-1">
+              {months.map((m) => (
+                <span key={m.month} className="flex-1 text-center text-xs font-medium text-text-secondary" title={m.label}>
+                  {m.label.slice(0, 3)}
+                </span>
+              ))}
+            </div>
+          </div>
         </div>
-        <div className="mt-2 flex gap-1">
-          {months.map((m) => (
-            <span key={m.month} className="flex-1 text-center text-xs font-medium text-text-secondary transition-colors hover:text-text-primary" title={m.label}>{m.label.slice(0, 3)}</span>
-          ))}
-        </div>
-        <div className="mt-2 flex gap-4 text-xs">
-          <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-sm bg-income/70" /> Income</span>
-          <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-sm bg-expense/70" /> Expense</span>
+        <div className="mt-3 flex gap-4 text-xs text-text-secondary">
+          <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-sm bg-income" /> Income <span className="text-text-tertiary">(left)</span></span>
+          <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-sm bg-expense" /> Expense <span className="text-text-tertiary">(right)</span></span>
         </div>
       </div>
     </section>
