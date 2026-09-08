@@ -5,6 +5,9 @@
 **Build Status:** ✅ `npm run build` successful  
 **Lint Status:** ✅ No new lint errors introduced
 
+
+> **Status note (9 September 2026).** Point-in-time record of the fixes made in response to [UI-UX-AUDIT.md](UI-UX-AUDIT.md), not maintained. Later calculation and UI work is recorded in [CALCULATION-AUDIT.md](CALCULATION-AUDIT.md).
+
 ---
 
 ## Changes Made

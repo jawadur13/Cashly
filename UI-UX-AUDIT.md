@@ -4,6 +4,9 @@
 **Scope:** Read-only audit of all pages, components, responsiveness, theme support, and interaction states  
 **Status:** NO CHANGES MADE — Audit findings only
 
+
+> **Status note (9 September 2026).** Point-in-time audit, not maintained. Still broadly accurate; note that the transaction type shown as "Exchange" is now labelled **Transfer** in the UI (the stored value and the `exchange` colour token are unchanged), and the Summary tile that read "Exchange" is now "Transfer fees". The cash-flow chart has since been rebuilt — see [CALCULATION-AUDIT.md](CALCULATION-AUDIT.md) issue #14.
+
 ---
 
 ## Overall Assessment

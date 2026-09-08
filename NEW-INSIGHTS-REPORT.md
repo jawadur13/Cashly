@@ -5,6 +5,12 @@
 **Constraint:** NO schema changes, NO new user inputs required  
 **Status:** Research only — no implementation performed
 
+
+> **Status note (9 September 2026).** This is a point-in-time research document and is not maintained. Two things have changed since it was written, which affect some of the proposals below:
+>
+> - **Amounts are now stored as whole minor units** (`amountMinor`, in paisa) rather than as a decimal float in `amount`. Any derivation here that reads `amount` should read `amountMinor` via `readAmountMinor`.
+> - **The "exchange" type is now called Transfer in the UI** (the stored value is unchanged), and its gain/loss is computed by valuing each leg in its own account currency. The `to_amount - from_amount` derivation proposed in the exchange-insight sections is only valid when both accounts share a currency — it produced a 27,384 BDT error on real data. See [CALCULATION-AUDIT.md](CALCULATION-AUDIT.md).
+
 ---
 
 ## Executive Summary
