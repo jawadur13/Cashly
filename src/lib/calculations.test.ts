@@ -1,10 +1,12 @@
 import { describe, it, expect } from 'vitest'
 import {
+  accountBalances,
   aggregatePeriod,
   buildBreakdown,
   buildPersonBreakdown,
   daysInPeriod,
   monthPeriod,
+  peopleBalances,
   percentChange,
   previousMonthPeriod,
   previousYearPeriod,
@@ -237,5 +239,114 @@ describe('daysInPeriod', () => {
 
   it('never returns zero', () => {
     expect(daysInPeriod(now, now, 0, now)).toBe(1)
+  })
+})
+
+describe('accountBalances', () => {
+  it('applies income and expense to the owning account', () => {
+    const b = accountBalances([
+      tx({ type: 'income', amount: 1000, accountId: 'a' }),
+      tx({ type: 'expense', amount: 300, accountId: 'a' }),
+    ])
+    expect(b.a).toBe(700)
+  })
+
+  it('moves money out of one account and into the other for a transfer', () => {
+    const b = accountBalances([
+      tx({
+        type: 'exchange', amount: 20, accountId: 'a',
+        fromAccountId: 'a', toAccountId: 'b', fromAmount: 1000, toAmount: 980,
+      }),
+    ])
+    expect(b.a).toBe(-1000)
+    expect(b.b).toBe(980)
+  })
+
+  it('applies give and take to the account the cash moved through', () => {
+    const b = accountBalances([
+      tx({ type: 'give', amount: 500, accountId: 'a', personId: 'p1' }),
+      tx({ type: 'take', amount: 200, accountId: 'a', personId: 'p2' }),
+    ])
+    expect(b.a).toBe(-300)
+  })
+})
+
+describe('deleting an account by reassignment — issue #4', () => {
+  // Option C: transactions move to another account, nothing is deleted.
+  // The grand total must be identical before and after.
+  const before = [
+    tx({ type: 'income', amount: 5000, accountId: 'old' }),
+    tx({ type: 'expense', amount: 1200, accountId: 'old' }),
+    tx({ type: 'give', amount: 800, accountId: 'old', personId: 'p1' }),
+    tx({ type: 'income', amount: 2000, accountId: 'keep' }),
+  ]
+  const reassign = (txns: Transaction[], from: string, to: string) =>
+    txns.map((t) => ({
+      ...t,
+      accountId: t.accountId === from ? to : t.accountId,
+      fromAccountId: t.fromAccountId === from ? to : t.fromAccountId,
+      toAccountId: t.toAccountId === from ? to : t.toAccountId,
+    })) as Transaction[]
+
+  const sum = (b: Record<string, number>) => Object.values(b).reduce((a, n) => a + n, 0)
+
+  it('preserves the grand total', () => {
+    const after = reassign(before, 'old', 'keep')
+    expect(sum(accountBalances(after))).toBe(sum(accountBalances(before)))
+  })
+
+  it('leaves no balance behind on the removed account', () => {
+    const after = accountBalances(reassign(before, 'old', 'keep'))
+    expect(after.old).toBeUndefined()
+    expect(after.keep).toBe(5000 - 1200 - 800 + 2000)
+  })
+
+  it('preserves people balances, since give/take are moved not deleted', () => {
+    const conv = (a: number) => a
+    expect(peopleBalances(reassign(before, 'old', 'keep'), conv)).toEqual(
+      peopleBalances(before, conv)
+    )
+  })
+
+  it('keeps a transfer correct when its other side is the destination', () => {
+    // Transfer old -> keep, then old is merged into keep. The transfer becomes
+    // keep -> keep, which must still cost exactly the 20 fee and nothing more.
+    const withTransfer = [
+      tx({
+        type: 'exchange', amount: 20, accountId: 'old',
+        fromAccountId: 'old', toAccountId: 'keep', fromAmount: 1000, toAmount: 980,
+      }),
+    ]
+    const totalBefore = sum(accountBalances(withTransfer))
+    const after = accountBalances(reassign(withTransfer, 'old', 'keep'))
+    expect(sum(after)).toBe(totalBefore)
+    expect(after.keep).toBe(-20)
+  })
+})
+
+describe('peopleBalances', () => {
+  it('is negative when they owe you, positive when you owe them', () => {
+    const b = peopleBalances(
+      [
+        tx({ type: 'give', amount: 5000, personId: 'rahim' }),
+        tx({ type: 'take', amount: 2000, personId: 'karim' }),
+      ],
+      (a) => a
+    )
+    expect(b.rahim).toBe(-5000)
+    expect(b.karim).toBe(2000)
+  })
+
+  it('ignores transactions that are not give or take', () => {
+    const b = peopleBalances([tx({ type: 'expense', amount: 100, personId: 'rahim' })], (a) => a)
+    expect(b.rahim).toBeUndefined()
+  })
+
+  it('converts into the display currency', () => {
+    const b = peopleBalances(
+      [tx({ type: 'give', amount: 100, currency: 'USD', personId: 'rahim' })],
+      (a, c) => (c === 'USD' ? a * 123.25 : a)
+    )
+    expect(b.rahim).toBeCloseTo(-12325, 5)
   })
 })

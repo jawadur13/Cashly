@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { listPeople, createPerson, updatePerson, deletePerson, listTransactions } from '@/lib/appwrite/collections'
-import { signedCashDelta } from '@/lib/calculations'
+import { peopleBalances } from '@/lib/calculations'
 import { convertCurrency } from '@/lib/currency/currencies'
 import { useAuth } from '@/providers/auth-provider'
 import { useSettings } from '@/providers/settings-provider'
@@ -44,13 +44,9 @@ export function usePeople() {
       offset += res.documents.length
     } while (offset < total)
 
-    const map: Record<string, number> = {}
-    for (const t of allDocs) {
-      if (!t.personId) continue
-      const converted = convertCurrency(t.amount, t.currency, defaultCurrency, rates)
-      map[t.personId] = (map[t.personId] ?? 0) + signedCashDelta({ type: t.type, amount: converted })
-    }
-    return map
+    return peopleBalances(allDocs, (amount, currency) =>
+      convertCurrency(amount, currency, defaultCurrency, rates)
+    )
   }, [defaultCurrency, rates])
 
   const refresh = useCallback(async () => {

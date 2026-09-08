@@ -218,6 +218,44 @@ export function aggregatePeriod(
   }
 }
 
+/**
+ * Balance per account id, in each account's own currency.
+ *
+ * Amounts are summed raw: a transaction is always denominated in its account's
+ * currency (the form offers no other option), so there is nothing to convert
+ * here. Transfers move money between two accounts and are applied to both.
+ */
+export function accountBalances(transactions: Transaction[]): Record<string, number> {
+  const map: Record<string, number> = {}
+  for (const t of transactions) {
+    if (t.type === 'exchange') {
+      if (t.fromAccountId) map[t.fromAccountId] = (map[t.fromAccountId] ?? 0) - (t.fromAmount ?? 0)
+      if (t.toAccountId) map[t.toAccountId] = (map[t.toAccountId] ?? 0) + (t.toAmount ?? 0)
+    } else {
+      map[t.accountId] = (map[t.accountId] ?? 0) + signedCashDelta(t)
+    }
+  }
+  return map
+}
+
+/**
+ * What each person owes or is owed, in the display currency.
+ * Positive means you owe them; negative means they owe you.
+ */
+export function peopleBalances(
+  transactions: Transaction[],
+  convert: ConvertFn
+): Record<string, number> {
+  const map: Record<string, number> = {}
+  for (const t of transactions) {
+    if (!t.personId) continue
+    if (t.type !== 'give' && t.type !== 'take') continue
+    const converted = convert(t.amount, t.currency)
+    map[t.personId] = (map[t.personId] ?? 0) + signedCashDelta({ type: t.type, amount: converted })
+  }
+  return map
+}
+
 export function buildBreakdown(rows: CategoryRow[], total: number): CategoryBreakdownItem[] {
   const map = new Map<string, { amount: number; count: number }>()
   for (const r of rows) {

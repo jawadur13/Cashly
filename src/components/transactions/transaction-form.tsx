@@ -9,7 +9,6 @@ import { SegmentedControl } from '@/components/ui/segmented-control'
 import { Chip } from '@/components/ui/chip'
 import { Sheet } from '@/components/ui/sheet'
 import { CategoryIcon } from '@/components/ui/category-icon'
-import { CURRENCIES } from '@/lib/currency/currencies'
 import { useSettings } from '@/providers/settings-provider'
 import type { Account, Category, Person, Transaction, TransactionType } from '@/lib/types'
 
@@ -69,7 +68,6 @@ export function TransactionForm({
   const [type, setType] = useState<TransactionType>(initial?.type ?? 'expense')
   const [accountId, setAccountId] = useState(initial?.accountId ?? (accounts[0]?.$id ?? ''))
   const [amount, setAmount] = useState(initial ? String(initial.amount) : '')
-  const [currency, setCurrency] = useState(initial?.currency ?? defaultCurrency)
   const [categoryId, setCategoryId] = useState(initial?.categoryId ?? '')
   const [payee, setPayee] = useState(initial?.payee ?? '')
   const [note, setNote] = useState(initial?.note ?? '')
@@ -111,7 +109,10 @@ export function TransactionForm({
   }, [accountId, accounts])
 
   const currentAccountId = selectAccount?.$id ?? accountId
-  const effectiveCurrency = initial ? currency : (selectAccount?.currency ?? defaultCurrency)
+  // A transaction is always denominated in its account's currency. There is no
+  // separate picker: allowing the two to diverge let the same amount be read as
+  // two different values by the Home and Summary screens.
+  const effectiveCurrency = selectAccount?.currency ?? defaultCurrency
 
   const fromAccount = accounts.find((a) => a.$id === fromAccountId)
   const toAccount = accounts.find((a) => a.$id === toAccountId)
@@ -273,7 +274,7 @@ export function TransactionForm({
             name="account"
             label="Account"
             value={currentAccountId}
-            onChange={(e) => { setAccountId(e.target.value); setCurrency(accounts.find((a) => a.$id === e.target.value)?.currency ?? defaultCurrency) }}
+            onChange={(e) => setAccountId(e.target.value)}
             error={errors.accountId}
           >
             {accounts.length === 0 && <option value="">No accounts — create one first</option>}
@@ -330,7 +331,7 @@ export function TransactionForm({
             name="account"
             label="Account"
             value={currentAccountId}
-            onChange={(e) => { setAccountId(e.target.value); setCurrency(accounts.find((a) => a.$id === e.target.value)?.currency ?? defaultCurrency) }}
+            onChange={(e) => setAccountId(e.target.value)}
             error={errors.accountId}
           >
             {accounts.length === 0 && <option value="">No accounts — create one first</option>}
@@ -352,16 +353,10 @@ export function TransactionForm({
               onChange={(e) => setAmount(e.target.value)}
               error={errors.amount}
             />
-            <Select
-              name="currency"
-              label="Currency"
-              value={effectiveCurrency}
-              onChange={(e) => setCurrency(e.target.value)}
-            >
-              {CURRENCIES.map((c) => (
-                <option key={c.code} value={c.code}>{c.code}</option>
-              ))}
-            </Select>
+            <div className="rounded-[var(--radius-md)] border border-border bg-surface-hover px-3.5 py-2.5">
+              <span className="block text-[0.8125rem] font-medium text-text-secondary">Currency</span>
+              <span className="block text-sm text-text-primary tabular-nums">{effectiveCurrency}</span>
+            </div>
           </div>
 
           <div>

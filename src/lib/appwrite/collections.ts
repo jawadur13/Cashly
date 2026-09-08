@@ -35,27 +35,104 @@ export async function createAccount(data: {
   )
 }
 
+/**
+ * Currency is deliberately absent: balances are stored as bare numbers whose
+ * currency comes from the account, so changing it would re-value every past
+ * transaction without recording anything. It is fixed at creation.
+ */
 export async function updateAccount(
   accountId: string,
-  data: { name?: string; type?: AccountType; currency?: string }
+  data: { name?: string; type?: AccountType }
 ): Promise<Account> {
-  return databases.updateDocument<Account>(DATABASE_ID, COLLECTIONS.accounts, accountId, data)
+  // Built field by field rather than forwarding `data`: a caller passing a
+  // wider object (the account form submits a currency too) would otherwise
+  // write it straight through, and TypeScript does not flag extra properties
+  // on a variable.
+  const payload: Record<string, string> = {}
+  if (data.name !== undefined) payload.name = data.name
+  if (data.type !== undefined) payload.type = data.type
+  return databases.updateDocument<Account>(DATABASE_ID, COLLECTIONS.accounts, accountId, payload)
 }
 
 export async function deleteAccount(accountId: string): Promise<void> {
   await databases.deleteDocument(DATABASE_ID, COLLECTIONS.accounts, accountId)
 }
 
+/** Every transaction that touches an account, through any of its three references. */
+export async function listTransactionsByAccount(
+  userId: string,
+  accountId: string
+): Promise<Transaction[]> {
+  // Filtered in memory rather than with a server-side OR: `fromAccountId` and
+  // `toAccountId` have no index, so a query on them is not guaranteed to be
+  // accepted. Transfers reference accounts only through those two fields, and
+  // missing them here would under-report what a deletion affects.
+  const PAGE_SIZE = 500
+  const all: Transaction[] = []
+  let offset = 0
+  let total = 0
+  do {
+    const res = await listTransactions({ userId, limit: PAGE_SIZE, offset })
+    all.push(...res.documents)
+    if (total === 0) total = res.total
+    offset += res.documents.length
+    if (res.documents.length === 0) break
+  } while (offset < total)
+
+  return all.filter(
+    (t) => t.accountId === accountId || t.fromAccountId === accountId || t.toAccountId === accountId
+  )
+}
+
 export async function countTransactionsByAccount(
   userId: string,
   accountId: string
 ): Promise<number> {
-  const res = await databases.listDocuments<Transaction>(DATABASE_ID, COLLECTIONS.transactions, [
-    Query.equal('userId', userId),
-    Query.equal('accountId', accountId),
-    Query.limit(1),
-  ])
-  return res.total
+  return (await listTransactionsByAccount(userId, accountId)).length
+}
+
+/**
+ * Points every transaction on `fromAccountId` at `toAccountId`, then removes the
+ * now-empty account. Nothing is ever deleted except the account record itself.
+ *
+ * The two accounts must share a currency: amounts are stored as bare numbers and
+ * take their currency from the account, so moving them somewhere else would
+ * silently re-value them.
+ *
+ * If any transaction fails to move, the account is left in place — a partly
+ * reassigned account is recoverable, an account deleted out from under its
+ * transactions is not.
+ */
+export async function reassignAndDeleteAccount(
+  userId: string,
+  accountId: string,
+  destinationAccountId: string
+): Promise<{ moved: number }> {
+  if (accountId === destinationAccountId) {
+    throw new Error('Choose a different destination account')
+  }
+
+  const affected = await listTransactionsByAccount(userId, accountId)
+
+  let moved = 0
+  for (const t of affected) {
+    const patch: Record<string, string> = {}
+    if (t.accountId === accountId) patch.accountId = destinationAccountId
+    if (t.fromAccountId === accountId) patch.fromAccountId = destinationAccountId
+    if (t.toAccountId === accountId) patch.toAccountId = destinationAccountId
+    if (Object.keys(patch).length === 0) continue
+
+    await databases.updateDocument<Transaction>(
+      DATABASE_ID,
+      COLLECTIONS.transactions,
+      t.$id,
+      patch
+    )
+    moved += 1
+  }
+
+  await deleteAccount(accountId)
+  return { moved }
 }
 
 /* ---------------- People ---------------- */
