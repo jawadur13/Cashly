@@ -27,7 +27,7 @@ export function TransactionList({
   loading,
   onSelect,
   emptyTitle = 'No transactions yet',
-  emptyDescription = 'Add your first income, expense, or exchange to get started.',
+  emptyDescription = 'Add your first income, expense, or transfer to get started.',
   rows = 8,
 }: TransactionListProps) {
   const categoryMap = useMemo(

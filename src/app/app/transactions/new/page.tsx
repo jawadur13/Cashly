@@ -29,7 +29,7 @@ export default function NewTransactionPage() {
       </button>
       <div>
         <h1 className="text-lg font-semibold text-text-primary">New transaction</h1>
-        <p className="text-sm text-text-secondary">Record income, expense, or exchange</p>
+        <p className="text-sm text-text-secondary">Record income, expense, or transfer</p>
       </div>
       {(accountsLoading || categoriesLoading || peopleLoading) ? (
         <Loader className="py-12" />

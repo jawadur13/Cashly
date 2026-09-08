@@ -194,7 +194,7 @@ export function TransactionForm({
         options={[
           { value: 'expense', label: 'Expense' },
           { value: 'income', label: 'Income' },
-          { value: 'exchange', label: 'Exchange' },
+          { value: 'exchange', label: 'Transfer' },
           { value: 'give', label: 'Give' },
           { value: 'take', label: 'Take' },
         ]}
@@ -264,7 +264,7 @@ export function TransactionForm({
             <span className="block text-[0.8125rem] font-medium text-text-secondary">Currency</span>
             <span className="block text-sm text-text-primary tabular-nums">{exchangeCurrency}</span>
             {fromAccount && toAccount && !sameCurrencyExchange && (
-              <p className="mt-1 text-xs text-expense">Accounts must share the same currency to exchange between them.</p>
+              <p className="mt-1 text-xs text-expense">Both accounts must use the same currency to transfer between them.</p>
             )}
           </div>
         </>

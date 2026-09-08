@@ -151,7 +151,7 @@ export default function SummaryPage() {
             <EmptyState
               icon={<TrendingUp className="size-6" />}
               title="No activity in this period"
-              description="No income, expenses, exchanges, or give/take transactions were recorded here."
+              description="No income, expenses, transfers, or give/take transactions were recorded here."
             />
           ) : (
             <>

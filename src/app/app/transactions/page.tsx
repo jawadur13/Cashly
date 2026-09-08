@@ -51,7 +51,7 @@ export default function TransactionsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-semibold text-text-primary">Transactions</h1>
-          <p className="text-sm text-text-secondary">All your income, expenses, exchanges, and people</p>
+          <p className="text-sm text-text-secondary">All your income, expenses, transfers, and people</p>
         </div>
         <Button onClick={() => router.push('/app/transactions/new')} aria-label="Add transaction">
           <Plus className="size-5" />
@@ -66,7 +66,7 @@ export default function TransactionsPage() {
             { value: 'all', label: 'All' },
             { value: 'income', label: 'Income' },
             { value: 'expense', label: 'Expense' },
-            { value: 'exchange', label: 'Exchange' },
+            { value: 'exchange', label: 'Transfer' },
             { value: 'give', label: 'Give' },
             { value: 'take', label: 'Take' },
           ]}
@@ -98,7 +98,7 @@ export default function TransactionsPage() {
               description={
                 filtersActive
                   ? 'Try a different search or filter.'
-                  : 'Tap + to add your first income, expense, exchange, give, or take.'
+                  : 'Tap + to add your first income, expense, transfer, give, or take.'
               }
               action={
                 <Button variant="secondary" onClick={filtersActive ? clearFilters : () => router.push('/app/transactions/new')}>

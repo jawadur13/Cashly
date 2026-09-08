@@ -69,7 +69,7 @@ export function TransactionRow({ transaction, category, account, toAccount, pers
       </span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[0.9375rem] font-medium text-text-primary">
-          {isExchange ? 'Exchange' : isPersonType ? (person?.name ?? 'Unknown') : (category?.name ?? 'Uncategorized')}
+          {isExchange ? 'Transfer' : isPersonType ? (person?.name ?? 'Unknown') : (category?.name ?? 'Uncategorized')}
         </span>
         {isExchange && account && toAccount ? (
           <span className="block truncate text-xs text-text-secondary">

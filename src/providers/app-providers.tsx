@@ -1,5 +1,6 @@
 'use client'
 
+import { AllTransactionsProvider } from './all-transactions-provider'
 import { AuthProvider } from './auth-provider'
 import { ExchangeRatesProvider } from './exchange-rates-provider'
 import { SettingsProvider } from './settings-provider'
@@ -10,7 +11,9 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
     <ThemeProvider>
       <AuthProvider>
         <SettingsProvider>
-          <ExchangeRatesProvider>{children}</ExchangeRatesProvider>
+          <ExchangeRatesProvider>
+            <AllTransactionsProvider>{children}</AllTransactionsProvider>
+          </ExchangeRatesProvider>
         </SettingsProvider>
       </AuthProvider>
     </ThemeProvider>

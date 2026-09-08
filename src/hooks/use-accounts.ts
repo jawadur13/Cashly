@@ -2,11 +2,13 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { listAccounts, createAccount, updateAccount, reassignAndDeleteAccount } from '@/lib/appwrite/collections'
+import { useAllTransactions } from '@/providers/all-transactions-provider'
 import { useAuth } from '@/providers/auth-provider'
 import type { Account, AccountType } from '@/lib/types'
 
 export function useAccounts() {
   const { user } = useAuth()
+  const { refresh: refreshAll } = useAllTransactions()
   const [accounts, setAccounts] = useState<Account[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -62,9 +64,10 @@ export function useAccounts() {
       if (!user) throw new Error('Not authenticated')
       const result = await reassignAndDeleteAccount(user.$id, accountId, destinationAccountId)
       setAccounts((prev) => prev.filter((a) => a.$id !== accountId))
+      await refreshAll()
       return result
     },
-    [user]
+    [user, refreshAll]
   )
 
   return { accounts, loading, error, refresh, add, update, removeAndReassign }

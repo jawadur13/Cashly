@@ -160,6 +160,9 @@ await ensureIndex(TRANSACTIONS, 'by_user_account', 'key', ['userId', 'accountId'
 await ensureIndex(TRANSACTIONS, 'by_user_currency', 'key', ['userId', 'currency'], 'ASC')
 await ensureIndex(TRANSACTIONS, 'by_user_type', 'key', ['userId', 'type'], 'ASC')
 await ensureIndex(TRANSACTIONS, 'search_note', 'fulltext', ['note'], 'ASC')
+// listTransactions searches note OR payee; Appwrite requires a fulltext index on
+// every attribute a search touches, so without this the whole query fails.
+await ensureIndex(TRANSACTIONS, 'search_payee', 'fulltext', ['payee'], 'ASC')
 await wait(1500)
 
 /* ---------- people ---------- */

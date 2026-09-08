@@ -1,13 +1,14 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { listPeople, createPerson, updatePerson, deletePerson, listTransactions } from '@/lib/appwrite/collections'
+import { listPeople, createPerson, updatePerson, deletePerson } from '@/lib/appwrite/collections'
 import { peopleBalances } from '@/lib/calculations'
 import { convertCurrency } from '@/lib/currency/currencies'
+import { useAllTransactions } from '@/providers/all-transactions-provider'
 import { useAuth } from '@/providers/auth-provider'
 import { useSettings } from '@/providers/settings-provider'
 import { useExchangeRates } from './use-exchange-rates'
-import type { Person, Transaction, TransactionType } from '@/lib/types'
+import type { Person } from '@/lib/types'
 
 export interface PersonWithBalance extends Person {
   balance: number
@@ -18,59 +19,34 @@ export function usePeople() {
   const { user } = useAuth()
   const { defaultCurrency } = useSettings()
   const { rates } = useExchangeRates()
+  const { transactions, loading: txLoading } = useAllTransactions()
   const [people, setPeople] = useState<Person[]>([])
-  const [balances, setBalances] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
-  const computeBalances = useCallback(async (userId: string) => {
-    const PAGE_SIZE = 500
-    let allDocs: Transaction[] = []
-    let offset = 0
-    let total = 0
-    do {
-      const res = await listTransactions({ userId, type: 'give' as TransactionType, limit: PAGE_SIZE, offset })
-      allDocs = allDocs.concat(res.documents)
-      if (total === 0) total = res.total
-      offset += res.documents.length
-    } while (offset < total)
-
-    offset = 0
-    total = 0
-    do {
-      const res = await listTransactions({ userId, type: 'take' as TransactionType, limit: PAGE_SIZE, offset })
-      allDocs = allDocs.concat(res.documents)
-      if (total === 0) total = res.total
-      offset += res.documents.length
-    } while (offset < total)
-
-    return peopleBalances(allDocs, (amount, currency) =>
+  const balances = useMemo(
+    () => peopleBalances(transactions, (amount, currency) =>
       convertCurrency(amount, currency, defaultCurrency, rates)
-    )
-  }, [defaultCurrency, rates])
+    ),
+    [transactions, defaultCurrency, rates]
+  )
+  const [error, setError] = useState<string | null>(null)
 
   const refresh = useCallback(async () => {
     if (!user) {
       setPeople([])
-      setBalances({})
       setLoading(false)
       return
     }
     setLoading(true)
     try {
-      const [res, bals] = await Promise.all([
-        listPeople(user.$id),
-        computeBalances(user.$id),
-      ])
-      setPeople(res)
-      setBalances(bals)
+      setPeople(await listPeople(user.$id))
       setError(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load people')
     } finally {
       setLoading(false)
     }
-  }, [user, computeBalances])
+  }, [user])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -113,5 +89,5 @@ export function usePeople() {
     [people, balances]
   )
 
-  return { people: enriched, loading, error, refresh, add, update, remove }
+  return { people: enriched, loading: loading || txLoading, error, refresh, add, update, remove }
 }

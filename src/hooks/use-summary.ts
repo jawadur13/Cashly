@@ -1,7 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { listTransactions } from '@/lib/appwrite/collections'
+import { useMemo } from 'react'
 import {
   aggregatePeriod,
   buildBreakdown,
@@ -13,10 +12,9 @@ import {
   type PersonBreakdownItem,
 } from '@/lib/calculations'
 import { convertCurrency } from '@/lib/currency/currencies'
-import { useAuth } from '@/providers/auth-provider'
+import { useAllTransactions } from '@/providers/all-transactions-provider'
 import { useSettings } from '@/providers/settings-provider'
 import { useExchangeRates } from './use-exchange-rates'
-import type { Transaction } from '@/lib/types'
 
 export type { CategoryBreakdownItem, PersonBreakdownItem }
 
@@ -78,37 +76,9 @@ const EMPTY: SummaryData = {
 }
 
 export function useSummary(range: SummaryRange) {
-  const { user } = useAuth()
   const { defaultCurrency } = useSettings()
   const { rates } = useExchangeRates()
-  const [transactions, setTransactions] = useState<Transaction[]>([])
-  const [loading, setLoading] = useState(true)
-  const ignoreRef = useRef(false)
-
-  const refresh = useCallback(async () => {
-    if (!user) { setTransactions([]); setLoading(false); return }
-    setLoading(true)
-    try {
-      const PAGE_SIZE = 500
-      let allDocs: Transaction[] = []
-      let offset = 0; let total = 0
-      do {
-        const res = await listTransactions({ userId: user.$id, limit: PAGE_SIZE, offset })
-        if (ignoreRef.current) return
-        allDocs = allDocs.concat(res.documents)
-        total = res.total; offset += res.documents.length
-      } while (offset < total)
-      if (!ignoreRef.current) setTransactions(allDocs)
-    } catch { if (!ignoreRef.current) setTransactions([]) }
-    finally { if (!ignoreRef.current) setLoading(false) }
-  }, [user])
-
-  useEffect(() => {
-    ignoreRef.current = false
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    refresh()
-    return () => { ignoreRef.current = true }
-  }, [refresh])
+  const { transactions, loading, refresh } = useAllTransactions()
 
   const data = useMemo<SummaryData>(() => {
     const { start, end, hasOpening, previous } = range

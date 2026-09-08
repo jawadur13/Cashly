@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { ChevronLeft, ArrowUpRight, ArrowDownRight, Share2, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -13,9 +13,9 @@ import { useToast } from '@/providers/toast-provider'
 import { useCategories } from '@/hooks/use-categories'
 import { useAccounts } from '@/hooks/use-accounts'
 import { usePeople } from '@/hooks/use-people'
-import { listTransactions, generateShareToken, removeShareToken } from '@/lib/appwrite/collections'
+import { generateShareToken, removeShareToken } from '@/lib/appwrite/collections'
+import { useAllTransactions } from '@/providers/all-transactions-provider'
 import { cn } from '@/lib/utils'
-import type { Transaction } from '@/lib/types'
 
 export default function PersonDetailPage() {
   const params = useParams<{ id: string }>()
@@ -26,8 +26,7 @@ export default function PersonDetailPage() {
   const { accounts } = useAccounts()
   const { people, loading: peopleLoading } = usePeople()
   const { toast } = useToast()
-  const [transactions, setTransactions] = useState<Transaction[]>([])
-  const [loading, setLoading] = useState(true)
+  const { transactions: allTransactions, loading } = useAllTransactions()
   const [sharing, setSharing] = useState(false)
   const [copied, setCopied] = useState(false)
   const [shareToken, setShareToken] = useState<string | null>(null)
@@ -66,25 +65,13 @@ export default function PersonDetailPage() {
     }
   }
 
-  useEffect(() => {
-    if (!user || !params.id) return
-    let active = true
-    setLoading(true)
-    const PAGE_SIZE = 100
-    ;(async () => {
-      const all: Transaction[] = []
-      let offset = 0
-      while (true) {
-        const res = await listTransactions({ userId: user.$id, personId: params.id, limit: PAGE_SIZE, offset })
-        all.push(...res.documents)
-        offset += res.documents.length
-        if (res.documents.length < PAGE_SIZE) break
-      }
-      if (active) setTransactions(all.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()))
-      if (active) setLoading(false)
-    })()
-    return () => { active = false }
-  }, [user, params.id])
+  const transactions = useMemo(
+    () =>
+      allTransactions
+        .filter((t) => t.personId === params.id)
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+    [allTransactions, params.id]
+  )
 
   if (peopleLoading) {
     return (
