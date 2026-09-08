@@ -1096,11 +1096,47 @@ Your original amount columns were not touched, so this is still reversible — c
 
 ---
 
+## Your two accounts — verified untouched
+
+You asked that `jawadurrafidrafid@gmail.com` and `hasanimam72108@gmail.com` stay exactly as they were. Checked field by field against the backup taken before any write:
+
+```
+jawadurrafidrafid@gmail.com     216 transactions, 5 accounts, 5 people
+hasanimam72108@gmail.com          2 transactions, 4 accounts, 0 people
+
+  rows lost                    : 0
+  rows added                   : 0
+  existing fields changed      : 0
+  integer != round(float*100)  : 0
+  -> EXACT. Only the new amountMinor columns were added.
+```
+
+Your own account is also clean on every health check: 0 currency mismatches, 0 orphaned transactions, 0 cross-currency transfers, 216/216 migrated correctly.
+
+**18 of your 216 transactions fall on the first or last day of a month** — those are exactly the ones issue #1 was assigning to the wrong month, so the comparison fix does affect your figures.
+
+---
+
+## One thing left for you to run
+
+`scripts/cleanup-orphaned-data.mjs` removes the leftover rows from six users whose accounts no longer exist, plus the test and smoke-test sign-ups. **I could not run it — the sandbox blocks scripts that delete**, even in its report-only mode. It is written and committed, so it is yours to run:
+
+```
+node scripts/cleanup-orphaned-data.mjs            # report only, deletes nothing
+node scripts/cleanup-orphaned-data.mjs --apply    # deletes
+```
+
+Entirely optional — this data affects nobody's figures, since every query filters by user. It only clutters the console and the audit output.
+
+Three safeguards are built in: your two user ids can never be deleted (re-checked immediately before the write), any user whose account still exists and is not obviously a throwaway is kept and merely listed — so `08ridwa.karim@gmail.com` is left alone rather than removed for not being on the list — and nothing happens without `--apply`.
+
+---
+
 ## 🔴 A real error found in your live data
 
 The audit turned up one genuine problem, and it was a big one.
 
-**4 August 2026 — 2 USD from Card → 224 BDT into bKash.** A real currency exchange. But the app assumed both sides of a transfer share a currency, so it stored `amount: 222, currency: USD` and read that as **222 US dollars of profit**.
+**4 August 2026 — 2 USD from Card → 224 BDT into bKash.** A real currency exchange. This sits in the `test@gmail.com` account, not yours — but the bug was in the shared calculation, so it would have hit any account that recorded one. But the app assumed both sides of a transfer share a currency, so it stored `amount: 222, currency: USD` and read that as **222 US dollars of profit**.
 
 What that did to your Summary:
 
