@@ -14,7 +14,7 @@ interface AccountBalancesProps {
 export function AccountBalances({ accounts, balances, defaultCurrency, loading }: AccountBalancesProps) {
   return (
     <section className="space-y-2">
-      <h2 className="text-sm font-semibold text-text-primary">Accounts</h2>
+      <h2 className="text-sm font-bold uppercase tracking-wide text-text-secondary">Accounts</h2>
       {loading ? (
         <div className="space-y-2">
           <Skeleton className="h-[72px] rounded-[var(--radius-md)]" />

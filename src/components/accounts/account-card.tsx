@@ -28,9 +28,9 @@ export function AccountCard({ account, balance = 0, defaultCurrency, onClick, ma
   return (
     <button
       onClick={onClick}
-      className="flex w-full items-center gap-3 rounded-[var(--radius-md)] border border-border bg-surface px-3.5 py-3 text-left shadow-[var(--shadow-sm)] transition-colors hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-accent"
+      className="card-lift flex w-full cursor-pointer items-center gap-3 rounded-[var(--radius-lg)] border border-border bg-surface px-4 py-3.5 text-left shadow-[var(--shadow-sm)] hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
     >
-      <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent">
+      <span className="flex size-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-primary-soft text-primary">
         <AccountIcon name={account.type} className="size-5" />
       </span>
       <span className="min-w-0 flex-1">

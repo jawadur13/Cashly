@@ -58,11 +58,11 @@ export function TransactionRow({ transaction, category, account, toAccount, pers
   return (
     <button
       onClick={onClick}
-      className="flex w-full items-center gap-3 rounded-[var(--radius-md)] px-2 py-3 text-left transition-colors hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-accent"
+      className="flex w-full cursor-pointer items-center gap-3 rounded-[var(--radius-lg)] px-2.5 py-3.5 text-left transition-all duration-200 hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-accent"
     >
       <span
         className={cn(
-          'flex size-10 shrink-0 items-center justify-center rounded-full',
+          'flex size-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] shadow-[var(--shadow-sm)]',
           isExchange && 'bg-exchange-soft text-exchange',
           isPersonType && isGive && 'bg-expense-soft text-expense',
           isPersonType && isTake && 'bg-income-soft text-income',
