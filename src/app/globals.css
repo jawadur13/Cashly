@@ -1,39 +1,86 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #fafafa;
+  /* ——— Primitive layer (raw values) ——— */
+  --blue-950: #0f172a;
+  --blue-900: #1e3a8a;
+  --blue-700: #1e40af;
+  --blue-600: #2563eb;
+  --blue-500: #3b82f6;
+  --green-700: #059669;
+  --green-600: #16a34a;
+  --green-500: #22c55e;
+  --red-600: #dc2626;
+  --red-500: #ef4444;
+  --slate-50: #f8fafc;
+  --slate-100: #e8ecf1;
+  --slate-200: #e2e8f0;
+  --slate-500: #475569;
+  --slate-400: #94a3b8;
+
+  /* ——— Semantic layer (purpose aliases) ——— */
+  --bg: var(--slate-50);
   --surface: #ffffff;
-  --surface-hover: #f2f2f3;
-  --border: #e5e5ea;
-  --text-primary: #111113;
-  --text-secondary: #6b6b70;
+  --surface-hover: #f1f5f9;
+  --border: var(--slate-200);
+  --text-primary: #020617;
+  --text-secondary: var(--slate-500);
   --text-tertiary: #9b9ba1;
-  --accent: #2563eb;
+  --accent: var(--blue-600);
   --accent-soft: #eaf1fe;
-  --income: #16a34a;
+  --primary: var(--blue-950);
+  --primary-soft: var(--slate-100);
+  --on-primary: #ffffff;
+  --cta: var(--green-700);
+  --cta-soft: #e6f6ee;
+  --on-cta: #ffffff;
+  --income: var(--green-600);
   --income-soft: #eaf7ef;
-  --expense: #dc2626;
+  --expense: var(--red-600);
   --expense-soft: #fdecec;
-  --exchange: #2563eb;
+  --exchange: var(--blue-600);
   --exchange-soft: #dbeafe;
-  --danger: #dc2626;
-  --shadow-sm: 0 1px 2px rgba(17, 17, 19, 0.06);
-  --shadow-md: 0 4px 12px rgba(17, 17, 19, 0.08);
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
+  --danger: var(--red-600);
+  --ring: var(--blue-950);
+
+  /* ——— Component layer ——— */
+  --button-primary-bg: var(--primary);
+  --button-primary-fg: #ffffff;
+  --button-cta-bg: var(--cta);
+  --button-cta-fg: #ffffff;
+  --card-bg: var(--surface);
+  --card-border: var(--border);
+  --input-bg: var(--surface);
+  --input-border: var(--border);
+  --nav-active-bg: var(--primary-soft);
+  --nav-active-fg: var(--primary);
+
+  --shadow-sm: 0 1px 2px rgba(2, 6, 23, 0.06);
+  --shadow-md: 0 4px 12px rgba(2, 6, 23, 0.08);
+  --shadow-lg: 0 12px 32px rgba(2, 6, 23, 0.14);
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 24px;
+  --radius-full: 999px;
 }
 
 [data-theme="dark"] {
-  --bg: #0e0e11;
-  --surface: #191a1f;
-  --surface-hover: #23242a;
-  --border: #2c2d34;
-  --text-primary: #f4f4f5;
-  --text-secondary: #a1a1aa;
+  --bg: var(--blue-950);
+  --surface: #192134;
+  --surface-hover: #232f4d;
+  --border: rgba(255, 255, 255, 0.08);
+  --text-primary: #ffffff;
+  --text-secondary: var(--slate-400);
   --text-tertiary: #71717a;
-  --accent: #3b82f6;
+  --accent: var(--blue-500);
   --accent-soft: #1e2a4a;
+  --primary: #dbeafe;
+  --primary-soft: #101a34;
+  --on-primary: #0f172a;
+  --cta: var(--green-500);
+  --cta-soft: #12261a;
+  --on-cta: #0f172a;
   --income: #22c55e;
   --income-soft: #12261a;
   --expense: #ef4444;
@@ -41,8 +88,20 @@
   --exchange: #3b82f6;
   --exchange-soft: #1e2a4a;
   --danger: #ef4444;
+  --ring: #ffffff;
+  --button-primary-bg: #dbeafe;
+  --button-primary-fg: #0f172a;
+  --button-cta-bg: var(--green-500);
+  --button-cta-fg: #0f172a;
+  --card-bg: #192134;
+  --card-border: rgba(255, 255, 255, 0.08);
+  --input-bg: #101a34;
+  --input-border: rgba(255, 255, 255, 0.1);
+  --nav-active-bg: #101a34;
+  --nav-active-fg: #dbeafe;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.5);
 }
 
 @theme inline {
@@ -55,6 +114,12 @@
   --color-text-tertiary: var(--text-tertiary);
   --color-accent: var(--accent);
   --color-accent-soft: var(--accent-soft);
+  --color-primary: var(--primary);
+  --color-primary-soft: var(--primary-soft);
+  --color-on-primary: var(--on-primary);
+  --color-cta: var(--cta);
+  --color-cta-soft: var(--cta-soft);
+  --color-on-cta: var(--on-cta);
   --color-income: var(--income);
   --color-income-soft: var(--income-soft);
   --color-expense: var(--expense);
@@ -62,7 +127,8 @@
   --color-exchange: var(--exchange);
   --color-exchange-soft: var(--exchange-soft);
   --color-danger: var(--danger);
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+  --color-ring: var(--ring);
+  --font-sans: var(--font-plex), ui-sans-serif, system-ui, -apple-system,
     "Segoe UI", Roboto, sans-serif;
 }
 
@@ -91,6 +157,23 @@
 @layer utilities {
   .tabular-nums {
     font-variant-numeric: tabular-nums;
+  }
+  .card-lift {
+    transition: transform 200ms ease, box-shadow 200ms ease, background-color 200ms ease;
+  }
+  .card-lift:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-lg);
+  }
+  .card-lift:active {
+    transform: scale(0.99);
+  }
+  .hero-panel {
+    background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 60%, #1e40af 100%);
+  }
+  [data-theme="dark"] .hero-panel {
+    background: linear-gradient(135deg, #192134 0%, #101a34 100%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
   }
 }
 
