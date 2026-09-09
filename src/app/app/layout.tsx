@@ -38,8 +38,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <BalanceVisibilityProvider>
       <div className="min-h-dvh bg-bg">
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-[var(--radius-md)] focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-on-primary"
+        >
+          Skip to content
+        </a>
         <Sidebar collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed((value) => !value)} />
-        <header className="fixed left-0 right-0 top-0 z-30 flex items-center justify-between border-b border-border bg-bg/95 px-4 py-3 backdrop-blur md:hidden">
+        <header className="fixed left-0 right-0 top-0 z-30 flex items-center justify-between border-b border-border bg-bg/95 px-4 py-3 shadow-[var(--shadow-sm)] backdrop-blur md:hidden">
           <button
             type="button"
             onClick={() => setMobileMenuOpen(true)}
@@ -54,8 +60,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
           <div className="w-10" />
         </header>
-        <div className={cn('pb-28 md:pb-12', sidebarCollapsed ? 'md:pl-16' : 'md:pl-60', 'pt-16 md:pt-6')}>
-          <main className="mx-auto w-full max-w-2xl px-4 pt-6">
+        <div className={cn('pb-28 md:pb-12', sidebarCollapsed ? 'md:pl-16' : 'md:pl-60', 'pt-16 md:pt-8')}>
+          <main id="main-content" className="mx-auto w-full max-w-2xl px-4 pt-6 md:max-w-3xl">
             <div key={pathname}>{children}</div>
           </main>
         </div>
@@ -77,9 +83,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   }}
                   aria-current={active ? 'page' : undefined}
                   className={cn(
-                    'flex w-full items-center gap-3 rounded-[var(--radius-md)] px-3.5 py-3 text-left text-sm font-medium transition-colors',
+                    'flex w-full items-center gap-3 rounded-[var(--radius-md)] px-3.5 py-3.5 text-left text-sm font-semibold transition-colors',
                     active
-                      ? 'bg-accent-soft text-accent'
+                      ? 'bg-primary-soft text-primary'
                       : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
                   )}
                 >
