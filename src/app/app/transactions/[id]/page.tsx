@@ -52,8 +52,8 @@ export default function EditTransactionPage() {
         <ChevronLeft className="size-4" /> Back
       </button>
       <div>
-        <h1 className="text-lg font-semibold text-text-primary">Edit transaction</h1>
-        <p className="text-sm text-text-secondary">Update the details below</p>
+        <h1 className="text-xl font-bold tracking-tight text-text-primary">Edit transaction</h1>
+        <p className="mt-0.5 text-sm text-text-secondary">Update the details below</p>
       </div>
       {loading || accountsLoading || categoriesLoading || peopleLoading ? (
         <Loader className="py-12" />

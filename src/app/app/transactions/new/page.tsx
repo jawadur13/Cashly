@@ -28,7 +28,7 @@ export default function NewTransactionPage() {
         <ChevronLeft className="size-4" /> Back
       </button>
       <div>
-        <h1 className="text-lg font-semibold text-text-primary">New transaction</h1>
+        <h1 className="text-xl font-bold tracking-tight text-text-primary">New transaction</h1>
         <p className="text-sm text-text-secondary">Record income, expense, or transfer</p>
       </div>
       {(accountsLoading || categoriesLoading || peopleLoading) ? (

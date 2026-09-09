@@ -15,7 +15,6 @@ import { useAccounts } from '@/hooks/use-accounts'
 import { usePeople } from '@/hooks/use-people'
 import { generateShareToken, removeShareToken } from '@/lib/appwrite/collections'
 import { useAllTransactions } from '@/providers/all-transactions-provider'
-import { cn } from '@/lib/utils'
 
 export default function PersonDetailPage() {
   const params = useParams<{ id: string }>()
@@ -98,29 +97,19 @@ export default function PersonDetailPage() {
         <ChevronLeft className="size-4" /> Back
       </button>
 
-        <section className="rounded-[var(--radius-lg)] border border-border bg-surface p-5 shadow-[var(--shadow-sm)]">
-          <div className="flex items-start justify-between">
+        <section className="hero-panel card-lift rounded-[var(--radius-lg)] p-5 shadow-[var(--shadow-md)] md:p-6">
+          <div className="flex items-start justify-between gap-3">
             <div>
-              <h1 className="text-lg font-semibold text-text-primary">{person.name}</h1>
-              <div className={cn(
-          'mt-2 text-2xl font-bold tabular-nums tracking-tight',
-          person.balance > 0 && 'text-expense',
-          person.balance < 0 && 'text-income',
-          person.balance === 0 && 'text-text-primary'
-        )}>
+              <h1 className="text-xl font-bold tracking-tight text-white">{person.name}</h1>
+              <div className="mt-2 break-words text-2xl font-bold tabular-nums tracking-tight text-white">
           {person.balance === 0 ? formatMoney(0, defaultCurrency) : formatMoney(person.balance, defaultCurrency)}
         </div>
-        <p className={cn(
-          'mt-1 flex items-center gap-1 text-sm',
-          person.status === 'they-owe' && 'text-income',
-          person.status === 'you-owe' && 'text-expense',
-          person.status === 'settled' && 'text-text-tertiary'
-        )}>
-          {person.status === 'they-owe' && <><ArrowUpRight className="size-4" /> They owe you</>}
-          {person.status === 'you-owe' && <><ArrowDownRight className="size-4" /> You owe them</>}
+        <p className="mt-2 inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 text-xs font-semibold text-white/85">
+          {person.status === 'they-owe' && <><ArrowUpRight className="size-3.5" /> They owe you</>}
+          {person.status === 'you-owe' && <><ArrowDownRight className="size-3.5" /> You owe them</>}
           {person.status === 'settled' && 'Settled'}
         </p>
-        {person.note && <p className="mt-2 text-sm text-text-secondary">{person.note}</p>}
+        {person.note && <p className="mt-2 text-sm text-white/70">{person.note}</p>}
             </div>
             <div className="flex shrink-0 gap-1">
               <Button

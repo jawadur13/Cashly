@@ -37,7 +37,7 @@ export default function PeoplePage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-semibold text-text-primary">People</h1>
+          <h1 className="text-xl font-bold tracking-tight text-text-primary">People</h1>
           <p className="text-sm text-text-secondary">{people.length} person{people.length === 1 ? '' : 's'}</p>
         </div>
         <Button onClick={() => { setEditing(null); setName(''); setNote(''); setFormOpen(true) }}>
