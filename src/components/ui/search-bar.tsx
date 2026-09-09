@@ -18,7 +18,7 @@ export function SearchBar({ value, onChange, placeholder = 'Search…' }: Search
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         aria-label="Search"
-        className="h-12 w-full rounded-[var(--radius-md)] border border-border bg-surface pl-11 pr-11 text-[0.9375rem] text-text-primary placeholder:text-text-tertiary focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-soft [&::-webkit-search-cancel-button]:hidden"
+        className="h-12 w-full rounded-[var(--radius-full)] border border-border bg-surface pl-11 pr-11 text-[0.9375rem] text-text-primary shadow-[var(--shadow-sm)] placeholder:text-text-tertiary focus:border-primary focus:outline-none focus:ring-2 focus:ring-accent-soft [&::-webkit-search-cancel-button]:hidden"
       />
       {value && (
         <button

@@ -20,7 +20,7 @@ export function SegmentedControl<T extends string>({
 }: SegmentedControlProps<T>) {
   return (
     <div
-      className="grid rounded-[var(--radius-full)] bg-surface-hover p-1"
+      className="grid rounded-[var(--radius-lg)] border border-border bg-surface-hover p-1"
       style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
       role="tablist"
     >
@@ -36,9 +36,9 @@ export function SegmentedControl<T extends string>({
             aria-selected={selected}
             onClick={() => onChange(option.value)}
             className={cn(
-              'h-10 rounded-[var(--radius-full)] text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-accent',
+              'h-11 rounded-[var(--radius-md)] text-sm font-semibold transition-all duration-200 cursor-pointer focus-visible:outline-2 focus-visible:outline-accent',
               selected
-                ? 'bg-surface text-text-primary shadow-[var(--shadow-sm)]'
+                ? 'bg-surface text-text-primary shadow-[var(--shadow-md)]'
                 : 'text-text-secondary hover:text-text-primary',
               selected && isIncome && 'text-income',
               selected && isExpense && 'text-expense',

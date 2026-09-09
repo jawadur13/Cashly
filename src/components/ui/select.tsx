@@ -18,10 +18,10 @@ export function Select({
       )}
       <select
         className={cn(
-          'h-12 w-full rounded-[var(--radius-md)] border bg-surface px-3.5 text-[0.9375rem] text-text-primary focus:outline-none focus:ring-2',
+          'h-12 w-full rounded-[var(--radius-md)] border bg-surface px-3.5 text-[0.9375rem] text-text-primary shadow-[var(--shadow-sm)] focus:outline-none focus:ring-2',
           error
             ? 'border-expense focus:border-expense focus:ring-expense/30'
-            : 'border-border focus:border-accent focus:ring-accent-soft',
+            : 'border-border focus:border-primary focus:ring-accent-soft',
           className
         )}
         {...props}

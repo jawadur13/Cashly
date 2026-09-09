@@ -30,10 +30,10 @@ export function Input({ label, error, hint, className, id, showPasswordToggle, o
           aria-invalid={!!error}
           aria-describedby={error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined}
           className={cn(
-            'h-12 w-full rounded-[var(--radius-md)] border bg-surface px-3.5 text-[0.9375rem] text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2',
+            'h-12 w-full rounded-[var(--radius-md)] border bg-surface px-3.5 text-[0.9375rem] text-text-primary shadow-[var(--shadow-sm)] placeholder:text-text-tertiary focus:outline-none focus:ring-2',
             error
               ? 'border-expense focus:border-expense focus:ring-expense/30'
-              : 'border-border focus:border-accent focus:ring-accent-soft',
+              : 'border-border focus:border-primary focus:ring-accent-soft',
             showPasswordToggle && isPassword ? 'pr-11' : undefined,
             className
           )}

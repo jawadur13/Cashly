@@ -24,7 +24,7 @@ export function MaskedAmount({ amount, currency, masked = false, className }: Ma
     <span className={className} aria-label="Hidden amount">
       {prefix && <span aria-hidden="true">{prefix}</span>}
       {number && (
-        <span aria-hidden="true" className="select-none blur-[6px]">
+        <span aria-hidden="true" className="select-none blur-[8px]">
           {number}
         </span>
       )}

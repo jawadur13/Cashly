@@ -19,7 +19,7 @@ export function ToastStack({ toasts, onDismiss }: { toasts: ToastItem[]; onDismi
         <div
           key={toast.id}
           className={cn(
-            'pointer-events-auto flex items-center gap-2.5 rounded-[var(--radius-md)] bg-surface px-4 py-3 text-sm font-medium text-text-primary shadow-[var(--shadow-md)]',
+            'pointer-events-auto flex items-center gap-2.5 rounded-[var(--radius-full)] border border-border bg-surface px-4 py-3 text-sm font-medium text-text-primary shadow-[var(--shadow-lg)]',
             'animate-[toast-in_.2s_ease-out]'
           )}
         >
