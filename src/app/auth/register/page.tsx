@@ -42,7 +42,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="rounded-[var(--radius-lg)] border border-border bg-surface p-6 shadow-[var(--shadow-sm)]">
+    <div className="rounded-[var(--radius-lg)] border border-border bg-surface p-6 shadow-[var(--shadow-lg)] md:p-8">
       <h1 className="mb-1 text-xl font-bold text-text-primary">Create your account</h1>
       <p className="mb-5 text-sm text-text-secondary">Start tracking your money in minutes.</p>
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
@@ -85,7 +85,7 @@ export default function RegisterPage() {
           showPasswordToggle
         />
         {errors.form && (
-          <p className="rounded-[var(--radius-md)] bg-expense-soft px-3.5 py-2.5 text-sm text-expense">{errors.form}</p>
+          <p className="rounded-[var(--radius-md)] border border-expense/30 bg-expense-soft px-3.5 py-2.5 text-sm font-medium text-expense">{errors.form}</p>
         )}
         <Button type="submit" fullWidth loading={loading}>Create account</Button>
       </form>
@@ -96,3 +96,4 @@ export default function RegisterPage() {
     </div>
   )
 }
+

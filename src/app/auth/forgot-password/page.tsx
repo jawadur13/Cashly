@@ -29,7 +29,7 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="rounded-[var(--radius-lg)] border border-border bg-surface p-6 shadow-[var(--shadow-sm)]">
+    <div className="rounded-[var(--radius-lg)] border border-border bg-surface p-6 shadow-[var(--shadow-lg)] md:p-8">
       <h1 className="mb-1 text-xl font-bold text-text-primary">Reset your password</h1>
       <p className="mb-5 text-sm text-text-secondary">
         Enter your email and we&apos;ll send you a link to set a new password.
@@ -55,7 +55,7 @@ export default function ForgotPasswordPage() {
             onChange={(e) => setEmail(e.target.value)}
           />
           {error && (
-            <p className="rounded-[var(--radius-md)] bg-expense-soft px-3.5 py-2.5 text-sm text-expense">{error}</p>
+            <p className="rounded-[var(--radius-md)] border border-expense/30 bg-expense-soft px-3.5 py-2.5 text-sm font-medium text-expense">{error}</p>
           )}
           <Button type="submit" fullWidth loading={loading}>Send reset link</Button>
         </form>
@@ -67,3 +67,4 @@ export default function ForgotPasswordPage() {
     </div>
   )
 }
+

@@ -41,7 +41,7 @@ function ResetPasswordForm() {
 
   if (!userId || !secret) {
     return (
-      <p className="rounded-[var(--radius-md)] bg-expense-soft px-3.5 py-2.5 text-sm text-expense">
+      <p className="rounded-[var(--radius-md)] border border-expense/30 bg-expense-soft px-3.5 py-2.5 text-sm font-medium text-expense">
         Invalid or expired reset link. Request a new one from the forgot password page.
       </p>
     )
@@ -76,7 +76,7 @@ function ResetPasswordForm() {
         onChange={(e) => setConfirm(e.target.value)}
       />
       {error && (
-        <p className="rounded-[var(--radius-md)] bg-expense-soft px-3.5 py-2.5 text-sm text-expense">{error}</p>
+        <p className="rounded-[var(--radius-md)] border border-expense/30 bg-expense-soft px-3.5 py-2.5 text-sm font-medium text-expense">{error}</p>
       )}
       <Button type="submit" fullWidth loading={loading}>Update password</Button>
     </form>
@@ -85,7 +85,7 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <div className="rounded-[var(--radius-lg)] border border-border bg-surface p-6 shadow-[var(--shadow-sm)]">
+    <div className="rounded-[var(--radius-lg)] border border-border bg-surface p-6 shadow-[var(--shadow-lg)] md:p-8">
       <h1 className="mb-1 text-xl font-bold text-text-primary">Set a new password</h1>
       <p className="mb-5 text-sm text-text-secondary">Choose a strong password for your account.</p>
       <Suspense fallback={<p className="text-sm text-text-tertiary">Loading…</p>}>
@@ -94,3 +94,4 @@ export default function ResetPasswordPage() {
     </div>
   )
 }
+

@@ -73,31 +73,21 @@ export default function SharePage() {
   }, 0)
 
   return (
-    <div className="mx-auto min-h-dvh max-w-lg bg-bg px-4 py-6">
-      <section className="rounded-[var(--radius-lg)] border border-border bg-surface p-5 shadow-[var(--shadow-sm)]">
-        <p className="text-sm text-text-secondary">Shared summary for</p>
-        <h1 className="mt-1 text-xl font-bold text-text-primary">{personName}</h1>
-        <div className={cn(
-          'mt-3 text-3xl font-bold tabular-nums tracking-tight',
-          balance > 0 && 'text-expense',
-          balance < 0 && 'text-income',
-          balance === 0 && 'text-text-primary'
-        )}>
+    <div className="hero-panel mx-auto min-h-dvh max-w-lg px-4 py-6">
+      <section className="rounded-[var(--radius-lg)] p-5 shadow-[var(--shadow-md)] md:p-6">
+        <p className="text-sm font-medium text-white/70">Shared summary for</p>
+        <h1 className="mt-1 text-xl font-bold tracking-tight text-white">{personName}</h1>
+        <div className="mt-3 break-words text-3xl font-bold tabular-nums tracking-tight text-white">
           {formatMoney(Math.abs(balance), currency)}
         </div>
-        <p className={cn(
-          'mt-1 text-sm font-medium',
-          balance > 0 && 'text-expense',
-          balance < 0 && 'text-income',
-          balance === 0 && 'text-text-tertiary'
-        )}>
+        <p className="mt-2 inline-flex items-center rounded-full bg-white/10 px-2.5 py-1 text-xs font-semibold text-white/85">
           {balance > 0 ? 'You owe' : balance < 0 ? 'You are owed' : 'Settled'}
         </p>
-        {sharedByName && <p className="mt-2 text-sm text-text-secondary">Shared by {sharedByName}</p>}
+        {sharedByName && <p className="mt-2 text-sm text-white/70">Shared by {sharedByName}</p>}
       </section>
 
-      <section className="mt-6 space-y-1">
-        <h2 className="mb-2 text-sm font-semibold text-text-primary">
+      <section className="mt-6 space-y-1 rounded-[var(--radius-lg)] border border-border bg-surface p-4 shadow-[var(--shadow-sm)]">
+        <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-text-secondary">
           Transaction history ({converted.length})
         </h2>
         {converted.length === 0 ? (
@@ -111,8 +101,8 @@ export default function SharePage() {
             const Icon = isGive ? ArrowDownRight : ArrowUpRight
             const amountColor = isGive ? 'text-income' : 'text-expense'
             return (
-              <div key={i} className="flex items-center gap-3 rounded-[var(--radius-md)] px-2 py-2.5">
-                <span className={cn('flex size-9 shrink-0 items-center justify-center rounded-full', iconColor)}>
+              <div key={i} className="flex items-center gap-3 rounded-[var(--radius-md)] px-2 py-3 transition-colors hover:bg-surface-hover">
+                <span className={cn('flex size-10 shrink-0 items-center justify-center rounded-[var(--radius-md)]', iconColor)}>
                   <Icon className="size-4" />
                 </span>
                 <span className="min-w-0 flex-1">
@@ -141,22 +131,22 @@ function MarketingFooter() {
       <p className="text-xs text-text-tertiary">
         Shared via Cashly · {new Date().toLocaleDateString()}
       </p>
-      <div className="mt-4 rounded-[var(--radius-md)] border border-border bg-surface p-4 text-center">
-        <p className="text-sm font-medium text-text-primary">
-          Track your own money with Cashly
-        </p>
-        <p className="mt-1 text-xs text-text-secondary">
-          The easiest way to manage income, expenses, and people.
-        </p>
-        <a
-          href="https://cashly.mvp.bd"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-3 inline-flex items-center gap-1.5 rounded-[var(--radius-md)] bg-accent px-4 py-2 text-sm font-medium text-white hover:opacity-90 transition-opacity"
-        >
-          Try Cashly free
-        </a>
-      </div>
+        <div className="mt-4 rounded-[var(--radius-lg)] border border-border bg-surface p-5 text-center shadow-[var(--shadow-sm)]">
+          <p className="text-sm font-semibold text-text-primary">
+            Track your own money with Cashly
+          </p>
+          <p className="mt-1 text-xs text-text-secondary">
+            The easiest way to manage income, expenses, and people.
+          </p>
+          <a
+            href="https://cashly.mvp.bd"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 inline-flex items-center gap-1.5 rounded-[var(--radius-md)] bg-primary px-4 py-2.5 text-sm font-semibold text-on-primary shadow-[var(--shadow-sm)] transition-all duration-200 hover:-translate-y-px hover:shadow-[var(--shadow-md)]"
+          >
+            Try Cashly free
+          </a>
+        </div>
     </footer>
   )
 }
