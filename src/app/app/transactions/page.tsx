@@ -50,8 +50,8 @@ export default function TransactionsPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-semibold text-text-primary">Transactions</h1>
-          <p className="text-sm text-text-secondary">All your income, expenses, transfers, and people</p>
+          <h1 className="text-xl font-bold tracking-tight text-text-primary">Transactions</h1>
+          <p className="mt-0.5 text-sm text-text-secondary">All your income, expenses, transfers, and people</p>
         </div>
         <Button onClick={() => router.push('/app/transactions/new')} aria-label="Add transaction">
           <Plus className="size-5" />

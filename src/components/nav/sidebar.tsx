@@ -52,10 +52,10 @@ export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
               aria-current={active ? 'page' : undefined}
               title={collapsed ? item.label : undefined}
               className={cn(
-                'flex w-full items-center rounded-[var(--radius-md)] py-3 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-accent',
+                'flex w-full items-center rounded-[var(--radius-md)] py-3 text-sm font-semibold transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
                 collapsed ? 'justify-center px-2' : 'gap-3 px-3.5',
                 active
-                  ? 'bg-accent-soft text-accent'
+                  ? 'bg-primary-soft text-primary shadow-[var(--shadow-sm)]'
                   : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
               )}
             >

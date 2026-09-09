@@ -21,12 +21,13 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
   }
 
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center bg-bg px-4 py-10">
+    <div className="hero-panel flex min-h-dvh flex-col items-center justify-center px-4 py-10">
       <div className="mb-8 flex items-center gap-2.5">
         <img src="/cashly-logo.svg" alt="" aria-hidden="true" className="size-10 shrink-0" />
-        <span className="text-2xl font-bold text-text-primary">Cashly</span>
+        <span className="text-2xl font-bold tracking-tight text-white">Cashly</span>
       </div>
       <div className="w-full max-w-sm">{children}</div>
+      <p className="mt-6 text-xs text-white/50">Simple income and expense tracking</p>
     </div>
   )
 }

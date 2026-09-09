@@ -19,12 +19,12 @@ export function Button({
   disabled,
   ...props
 }: ButtonProps) {
-  const base = 'inline-flex items-center justify-center gap-2 font-medium rounded-[var(--radius-md)] transition-colors focus-visible:outline-2 focus-visible:outline-accent disabled:opacity-50 disabled:pointer-events-none select-none'
+  const base = 'inline-flex items-center justify-center gap-2 font-semibold rounded-[var(--radius-md)] transition-all duration-200 hover:-translate-y-px active:translate-y-0 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-50 disabled:pointer-events-none disabled:transform-none select-none cursor-pointer'
   const variants = {
-    primary: 'bg-accent text-white hover:opacity-90',
-    secondary: 'bg-surface border border-border text-text-primary hover:bg-surface-hover',
+    primary: 'bg-primary text-on-primary shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)]',
+    secondary: 'bg-surface border border-border text-text-primary shadow-[var(--shadow-sm)] hover:bg-surface-hover hover:shadow-[var(--shadow-md)]',
     ghost: 'bg-transparent text-accent hover:bg-accent-soft',
-    danger: 'bg-expense text-white hover:opacity-90',
+    danger: 'bg-expense text-white shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)]',
   }
   const sizes = {
     sm: 'h-11 px-3 text-sm',

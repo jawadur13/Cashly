@@ -25,15 +25,15 @@ export default function HomePage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-semibold text-text-primary">
+          <h1 className="text-xl font-bold tracking-tight text-text-primary">
             Welcome back{user?.name ? `, ${user.name}` : ''}
           </h1>
-          <p className="text-sm text-text-secondary">Your money at a glance</p>
+          <p className="mt-0.5 text-sm text-text-secondary">Your money at a glance</p>
         </div>
       </div>
 
       {balancesError && (
-        <p className="rounded-[var(--radius-md)] bg-expense-soft px-3.5 py-2.5 text-sm text-expense">
+        <p className="rounded-[var(--radius-md)] border border-expense/30 bg-expense-soft px-4 py-3 text-sm font-medium text-expense shadow-[var(--shadow-sm)]">
           Couldn&apos;t load your transactions, so these balances may be wrong. {balancesError}
         </p>
       )}

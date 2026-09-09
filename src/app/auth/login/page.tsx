@@ -30,8 +30,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="rounded-[var(--radius-lg)] border border-border bg-surface p-6 shadow-[var(--shadow-sm)]">
-      <h1 className="mb-1 text-xl font-bold text-text-primary">Welcome back</h1>
+    <div className="rounded-[var(--radius-lg)] border border-border bg-surface p-6 shadow-[var(--shadow-lg)] md:p-8">
+      <h1 className="mb-1 text-xl font-bold tracking-tight text-text-primary">Welcome back</h1>
       <p className="mb-5 text-sm text-text-secondary">Log in to your Cashly account.</p>
       <form onSubmit={handleSubmit} className="space-y-4">
         <Input
@@ -54,7 +54,7 @@ export default function LoginPage() {
           showPasswordToggle
         />
         {error && (
-          <p className="rounded-[var(--radius-md)] bg-expense-soft px-3.5 py-2.5 text-sm text-expense">{error}</p>
+          <p className="rounded-[var(--radius-md)] border border-expense/30 bg-expense-soft px-3.5 py-2.5 text-sm font-medium text-expense">{error}</p>
         )}
         <Button type="submit" fullWidth loading={loading}>Log in</Button>
       </form>

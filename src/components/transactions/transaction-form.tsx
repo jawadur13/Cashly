@@ -217,9 +217,9 @@ export function TransactionForm({
 
       {isExchange ? (
         <>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
             <div>
-              <span className="mb-1.5 block text-[0.8125rem] font-medium text-text-secondary">From Account</span>
+              <span className="mb-2 block text-xs font-medium text-text-secondary">From Account</span>
               <Select
                 name="fromAccount"
                 value={fromAccountId}
@@ -233,7 +233,7 @@ export function TransactionForm({
               {errors.fromAccountId && <p className="mt-1 text-xs text-expense">{errors.fromAccountId}</p>}
             </div>
             <div>
-              <span className="mb-1.5 block text-[0.8125rem] font-medium text-text-secondary">To Account</span>
+              <span className="mb-2 block text-xs font-medium text-text-secondary">To Account</span>
               <Select
                 name="toAccount"
                 value={toAccountId}
@@ -248,7 +248,7 @@ export function TransactionForm({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
             <Input
               name="fromAmount"
               label="From Amount"
@@ -276,7 +276,7 @@ export function TransactionForm({
           </div>
 
           <div className="rounded-[var(--radius-md)] border border-border bg-surface-hover px-3.5 py-2.5">
-            <span className="block text-[0.8125rem] font-medium text-text-secondary">Currency</span>
+            <span className="block text-xs font-medium text-text-secondary">Currency</span>
             <span className="block text-sm text-text-primary tabular-nums">{exchangeCurrency}</span>
             {fromAccount && toAccount && !sameCurrencyExchange && (
               <p className="mt-1 text-xs text-expense">Both accounts must use the same currency to transfer between them.</p>
@@ -299,7 +299,7 @@ export function TransactionForm({
           </Select>
 
           <div>
-            <span className="mb-1.5 block text-[0.8125rem] font-medium text-text-secondary">Person</span>
+            <span className="mb-2 block text-xs font-medium text-text-secondary">Person</span>
             {people.length === 0 ? (
               <p className="text-sm text-text-tertiary">No people added yet.</p>
             ) : (
@@ -321,7 +321,7 @@ export function TransactionForm({
             {errors.personId && <p className="mt-1 text-xs text-expense">{errors.personId}</p>}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
             <Input
               name="amount"
               label="Amount"
@@ -335,7 +335,7 @@ export function TransactionForm({
               error={errors.amount}
             />
             <div className="rounded-[var(--radius-md)] border border-border bg-surface-hover px-3.5 py-2.5">
-              <span className="block text-[0.8125rem] font-medium text-text-secondary">Currency</span>
+              <span className="block text-xs font-medium text-text-secondary">Currency</span>
               <span className="block text-sm text-text-primary tabular-nums">{effectiveCurrency}</span>
             </div>
           </div>
@@ -355,7 +355,7 @@ export function TransactionForm({
             ))}
           </Select>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
             <Input
               name="amount"
               label="Amount"
@@ -369,13 +369,13 @@ export function TransactionForm({
               error={errors.amount}
             />
             <div className="rounded-[var(--radius-md)] border border-border bg-surface-hover px-3.5 py-2.5">
-              <span className="block text-[0.8125rem] font-medium text-text-secondary">Currency</span>
+              <span className="block text-xs font-medium text-text-secondary">Currency</span>
               <span className="block text-sm text-text-primary tabular-nums">{effectiveCurrency}</span>
             </div>
           </div>
 
           <div>
-            <span className="mb-1.5 block text-[0.8125rem] font-medium text-text-secondary">Category</span>
+            <span className="mb-2 block text-xs font-medium text-text-secondary">Category</span>
             {filteredCategories.length === 0 ? (
               <p className="text-sm text-text-tertiary">No {type} categories available.</p>
             ) : (
@@ -416,7 +416,7 @@ export function TransactionForm({
         onChange={(e) => setNote(e.target.value)}
       />
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
         <Input
           name="date"
           label="Date"
@@ -467,3 +467,4 @@ export function TransactionForm({
     </form>
   )
 }
+

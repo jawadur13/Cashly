@@ -25,9 +25,9 @@ export function RecentTransactions({ transactions, loading, onSeeAll }: RecentTr
   return (
     <section className="space-y-2">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-text-primary">Recent transactions</h2>
+        <h2 className="text-sm font-bold uppercase tracking-wide text-text-secondary">Recent transactions</h2>
         {onSeeAll && (
-          <button onClick={onSeeAll} className="text-xs font-medium text-accent hover:underline">
+          <button onClick={onSeeAll} className="cursor-pointer rounded-[var(--radius-md)] px-2 py-1 text-xs font-semibold text-accent hover:bg-accent-soft focus-visible:outline-2 focus-visible:outline-accent">
             See all
           </button>
         )}

@@ -99,8 +99,8 @@ export default function SummaryPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-lg font-semibold text-text-primary">Summary</h1>
-        <p className="text-sm text-text-secondary">{periodLabel}</p>
+        <h1 className="text-xl font-bold tracking-tight text-text-primary">Summary</h1>
+        <p className="mt-0.5 text-sm text-text-secondary">{periodLabel}</p>
       </div>
 
       <div className="space-y-3">
@@ -133,14 +133,14 @@ export default function SummaryPage() {
 
           {range.hasOpening && (
             <section className="grid grid-cols-2 gap-3">
-              <div className="rounded-[var(--radius-md)] border border-border bg-surface px-3.5 py-3 shadow-[var(--shadow-sm)]">
-                <p className="text-xs text-text-secondary">Opening balance</p>
-                <p className="mt-1 text-base font-semibold tabular-nums text-text-primary">{fmt(data.openingBalance)}</p>
+              <div className="card-lift rounded-[var(--radius-lg)] border border-border bg-surface px-4 py-3.5 shadow-[var(--shadow-sm)]">
+                <p className="text-xs font-medium text-text-secondary">Opening balance</p>
+                <p className="mt-1 text-base font-bold tabular-nums text-text-primary">{fmt(data.openingBalance)}</p>
                 <p className="mt-0.5 text-xs text-text-tertiary">Start of {periodLabel}</p>
               </div>
-              <div className="rounded-[var(--radius-md)] border border-border bg-surface px-3.5 py-3 shadow-[var(--shadow-sm)]">
-                <p className="text-xs text-text-secondary">Closing balance</p>
-                <p className={cn('mt-1 text-base font-semibold tabular-nums', data.closingBalance >= data.openingBalance ? 'text-text-primary' : 'text-expense')}>
+              <div className="card-lift rounded-[var(--radius-lg)] border border-border bg-surface px-4 py-3.5 shadow-[var(--shadow-sm)]">
+                <p className="text-xs font-medium text-text-secondary">Closing balance</p>
+                <p className={cn('mt-1 text-base font-bold tabular-nums', data.closingBalance >= data.openingBalance ? 'text-text-primary' : 'text-expense')}>
                   {fmt(data.closingBalance)}
                 </p>
                 <p className="mt-0.5 text-xs text-text-tertiary">End of {periodLabel}</p>
@@ -175,8 +175,8 @@ export default function SummaryPage() {
 
               {data.personBreakdown.length > 0 && (
                 <section className="space-y-2">
-                  <h2 className="text-sm font-semibold text-text-primary">People activity</h2>
-                  <div className="space-y-2 rounded-[var(--radius-md)] border border-border bg-surface p-3 shadow-[var(--shadow-sm)]">
+                  <h2 className="text-sm font-bold uppercase tracking-wide text-text-secondary">People activity</h2>
+                  <div className="space-y-2 rounded-[var(--radius-lg)] border border-border bg-surface p-4 shadow-[var(--shadow-sm)]">
                     {data.personBreakdown.slice(0, 5).map((item) => (
                       <div key={item.personId} className="flex items-center justify-between text-sm">
                         <span className="font-medium text-text-primary">{personName(item.personId)}</span>
@@ -239,7 +239,7 @@ function TrendRow({
     const rising = trend > 0
     const good = rising === risingIsGood
     return (
-      <div className={cn('flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium', good ? 'bg-income-soft text-income' : 'bg-expense-soft text-expense')}>
+      <div className={cn('flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold', good ? 'bg-income-soft text-income' : 'bg-expense-soft text-expense')}>
         {rising ? <ArrowUpRight className="size-3.5" /> : <ArrowDownRight className="size-3.5" />}
         {label}: {Number.isFinite(trend) ? `${Math.abs(trend).toFixed(0)}%` : 'New'}
       </div>
@@ -256,19 +256,19 @@ function TrendRow({
 
 function NetSavingsHero({ data, fmt }: { data: SummaryData; fmt: (v: number) => string }) {
   return (
-    <section className="rounded-[var(--radius-lg)] border border-border bg-surface p-5 shadow-[var(--shadow-sm)]">
+    <section className="hero-panel card-lift rounded-[var(--radius-lg)] p-5 shadow-[var(--shadow-md)] md:p-6">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-text-secondary">Net savings</p>
-        <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', data.savings >= 0 ? 'bg-income-soft text-income' : 'bg-expense-soft text-expense')}>
+        <p className="text-sm font-medium text-white/70">Net savings</p>
+        <span className={cn('rounded-full px-2.5 py-1 text-xs font-semibold', data.savings >= 0 ? 'bg-white/15 text-white' : 'bg-expense-soft text-expense')}>
           {data.savingsRate == null ? 'No income' : `${(data.savingsRate * 100).toFixed(0)}% saved`}
         </span>
       </div>
-      <p className={cn('mt-1 text-[1.75rem] font-bold tabular-nums tracking-tight', data.savings >= 0 ? 'text-text-primary' : 'text-expense')}>
+      <p className={cn('mt-1 break-words text-[1.75rem] font-bold tabular-nums tracking-tight text-white')}>
         {fmt(data.savings)}
       </p>
-      <div className="mt-3 flex gap-4 text-sm">
-        <span className="inline-flex items-center gap-1 text-income"><ArrowUpRight className="size-4" /> {fmt(data.income)}</span>
-        <span className="inline-flex items-center gap-1 text-expense"><ArrowDownRight className="size-4" /> {fmt(data.expense)}</span>
+      <div className="mt-3 flex gap-4 text-sm font-medium text-white">
+        <span className="inline-flex items-center gap-1"><ArrowUpRight className="size-4 text-income" /> {fmt(data.income)}</span>
+        <span className="inline-flex items-center gap-1"><ArrowDownRight className="size-4 text-expense" /> {fmt(data.expense)}</span>
       </div>
     </section>
   )
@@ -276,11 +276,14 @@ function NetSavingsHero({ data, fmt }: { data: SummaryData; fmt: (v: number) => 
 
 function IncomeExpenseSavings({ data, fmt }: { data: SummaryData; fmt: (v: number) => string }) {
   const cell = (label: string, value: number, tone: 'income' | 'expense' | 'exchange' | 'neutral', signed = false) => (
-    <div className="rounded-[var(--radius-md)] border border-border bg-surface px-3 py-3 shadow-[var(--shadow-sm)]">
-      <p className="text-xs text-text-secondary">{label}</p>
-      <p className={cn('mt-1 text-base font-semibold tabular-nums', tone === 'income' && 'text-income', tone === 'expense' && 'text-expense', tone === 'exchange' && 'text-exchange', tone === 'neutral' && data.savings < 0 && 'text-expense', tone === 'neutral' && data.savings >= 0 && 'text-text-primary')}>
+    <div className="card-lift overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)]">
+      <div className={cn('h-1', tone === 'income' && 'bg-income', tone === 'expense' && 'bg-expense', tone === 'exchange' && 'bg-exchange', tone === 'neutral' && 'bg-primary')} />
+      <div className="px-3.5 py-3">
+      <p className="text-xs font-medium text-text-secondary">{label}</p>
+      <p className={cn('mt-1 text-base font-bold tabular-nums', tone === 'income' && 'text-income', tone === 'expense' && 'text-expense', tone === 'exchange' && 'text-exchange', tone === 'neutral' && data.savings < 0 && 'text-expense', tone === 'neutral' && data.savings >= 0 && 'text-text-primary')}>
         {signed ? (value >= 0 ? `+${fmt(value)}` : `-${fmt(Math.abs(value))}`) : fmt(value)}
       </p>
+      </div>
     </div>
   )
   return (
@@ -313,10 +316,10 @@ function CashFlowChart({ months, fmt }: { months: MonthlyBar[]; fmt: (v: number)
 
   return (
     <section className="space-y-2">
-      <h2 className="flex items-center gap-2 text-sm font-semibold text-text-primary">
+      <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-text-secondary">
         <BarChart3 className="size-4" /> Cash flow — last 12 months
       </h2>
-      <div className="rounded-[var(--radius-md)] border border-border bg-surface p-3 shadow-[var(--shadow-sm)]">
+      <div className="card-lift rounded-[var(--radius-lg)] border border-border bg-surface p-4 shadow-[var(--shadow-sm)]">
         <div className="overflow-x-auto">
           <div className="min-w-[280px]">
             <div className="flex items-end gap-1 border-b border-border" style={{ height: CHART_HEIGHT }}>
@@ -361,12 +364,12 @@ function CashFlowChart({ months, fmt }: { months: MonthlyBar[]; fmt: (v: number)
 
 function StatTile({ icon, label, value, tone }: { icon: React.ReactNode; label: string; value: string; tone?: 'income' | 'expense' }) {
   return (
-    <div className="rounded-[var(--radius-md)] border border-border bg-surface px-3.5 py-3 shadow-[var(--shadow-sm)]">
+    <div className="card-lift rounded-[var(--radius-lg)] border border-border bg-surface px-3.5 py-3 shadow-[var(--shadow-sm)]">
       <div className="flex items-center gap-1.5 text-text-secondary">
         {icon}
-        <span className="text-xs">{label}</span>
+        <span className="text-xs font-medium">{label}</span>
       </div>
-      <p className={cn('mt-1 text-base font-semibold tabular-nums', tone === 'income' && 'text-income', tone === 'expense' && 'text-expense', !tone && 'text-text-primary')}>{value}</p>
+      <p className={cn('mt-1 text-base font-bold tabular-nums', tone === 'income' && 'text-income', tone === 'expense' && 'text-expense', !tone && 'text-text-primary')}>{value}</p>
     </div>
   )
 }
@@ -384,8 +387,8 @@ function Breakdown({ title, items, tone, fmt, name, icon }: BreakdownProps) {
   if (items.length === 0) return null
   return (
     <section className="space-y-2">
-      <h2 className="text-sm font-semibold text-text-primary">{title}</h2>
-      <div className="space-y-2 rounded-[var(--radius-md)] border border-border bg-surface p-3 shadow-[var(--shadow-sm)]">
+      <h2 className="text-sm font-bold uppercase tracking-wide text-text-secondary">{title}</h2>
+      <div className="space-y-3 rounded-[var(--radius-lg)] border border-border bg-surface p-4 shadow-[var(--shadow-sm)]">
         {items.map((item) => (
           <div key={item.categoryId} className="space-y-1">
             <div className="flex items-center gap-2.5">

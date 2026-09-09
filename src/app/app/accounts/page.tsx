@@ -55,8 +55,8 @@ export default function AccountsPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-semibold text-text-primary">Accounts</h1>
-          <p className="text-sm text-text-secondary">{accounts.length} account{accounts.length === 1 ? '' : 's'}</p>
+          <h1 className="text-xl font-bold tracking-tight text-text-primary">Accounts</h1>
+          <p className="mt-0.5 text-sm text-text-secondary">{accounts.length} account{accounts.length === 1 ? '' : 's'}</p>
         </div>
         <Button onClick={() => { setEditing(null); setFormOpen(true) }}>
           <Plus className="size-5" /> Add
@@ -85,7 +85,7 @@ export default function AccountsPage() {
               <button
                 onClick={() => handleSetDeleting(account)}
                 aria-label={`Delete ${account.name}`}
-                className="absolute right-3 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full text-text-tertiary hover:text-expense"
+                className="absolute right-2.5 top-1/2 flex size-10 -translate-y-1/2 items-center justify-center rounded-full text-text-tertiary transition-colors hover:bg-surface-hover hover:text-expense focus-visible:outline-2 focus-visible:outline-accent"
               >
                 <Trash2 className="size-4" />
               </button>
