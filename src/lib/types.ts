@@ -50,7 +50,8 @@ export interface Category extends Models.Document {
   type: TransactionType
   name: string
   icon: string
-  color: string
+  /** Null on the predefined categories. */
+  color: string | null
   isCustom: boolean
   ownerId: string
 }
