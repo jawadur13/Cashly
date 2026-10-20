@@ -119,7 +119,7 @@ export default function SettingsPage() {
           onChange={(e) => handleCurrency(e.target.value)}
         >
           {CURRENCIES.map((c) => (
-            <option key={c.code} value={c.code}>{c.code} â€” {c.name}</option>
+            <option key={c.code} value={c.code}>{c.code} — {c.name}</option>
           ))}
         </Select>
       </section>
