@@ -1,17 +1,20 @@
 'use client'
 
 import { useState } from 'react'
+import { Lock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
+import { AccountIcon } from '@/components/ui/category-icon'
 import { CURRENCIES } from '@/lib/currency/currencies'
+import { cn } from '@/lib/utils'
 import { useSettings } from '@/providers/settings-provider'
 import type { Account, AccountType } from '@/lib/types'
 
 const ACCOUNT_TYPES: { value: AccountType; label: string }[] = [
   { value: 'cash', label: 'Cash' },
   { value: 'bank', label: 'Bank' },
-  { value: 'mobile-wallet', label: 'Mobile Wallet' },
+  { value: 'mobile-wallet', label: 'Mobile wallet' },
 ]
 
 interface AccountFormProps {
@@ -32,76 +35,81 @@ export function AccountForm({ initial, onSubmit, onCancel, submitLabel }: Accoun
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!name.trim()) {
-      setError('Enter an account name')
+      setError('Give the account a name')
       return
     }
     setError(null)
     setSubmitting(true)
     try {
       await onSubmit({ name: name.trim(), type, currency })
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save account')
+    } catch {
+      setError("Couldn't save the account. Please try again.")
     } finally {
       setSubmitting(false)
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+    <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+      <fieldset>
+        <legend className="mb-2 text-sm font-medium text-text-secondary">Type</legend>
+        <div className="grid grid-cols-3 gap-2">
+          {ACCOUNT_TYPES.map((t) => {
+            const selected = type === t.value
+            return (
+              <button
+                key={t.value}
+                type="button"
+                onClick={() => setType(t.value)}
+                aria-pressed={selected}
+                className={cn(
+                  'pressable flex min-h-[4.5rem] flex-col items-center justify-center gap-1.5 rounded-[var(--radius-lg)] text-sm font-semibold',
+                  selected ? 'bg-primary text-on-primary shadow-[var(--shadow-sm)]' : 'bg-surface text-text-secondary ring-1 ring-inset ring-border hover:text-text-primary'
+                )}
+              >
+                <AccountIcon name={t.value} className="size-5" />
+                {t.label}
+              </button>
+            )
+          })}
+        </div>
+      </fieldset>
       <Input
         name="name"
-        label="Account name"
-        placeholder="e.g. Cash, Bank, bKash"
+        label="Name"
+        placeholder="e.g. City Bank, bKash"
+        autoFocus={!initial}
         value={name}
         onChange={(e) => setName(e.target.value)}
         error={error ?? undefined}
       />
-      <div>
-        <span className="mb-2 block text-xs font-medium text-text-secondary">Type</span>
-        <div className="flex gap-2">
-          {ACCOUNT_TYPES.map((t) => (
-            <button
-              key={t.value}
-              type="button"
-              onClick={() => setType(t.value)}
-              aria-pressed={type === t.value}
-              className={
-                type === t.value
-                  ? 'flex-1 rounded-[var(--radius-md)] border border-accent bg-accent-soft px-3 py-3 text-sm font-medium text-accent transition-colors focus-visible:outline-2 focus-visible:outline-accent'
-                  : 'flex-1 rounded-[var(--radius-md)] border border-border bg-surface px-3 py-3 text-sm font-medium text-text-secondary transition-colors hover:text-text-primary focus-visible:outline-2 focus-visible:outline-accent'
-              }
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-      </div>
       {initial ? (
-        <div className="rounded-[var(--radius-md)] border border-border bg-surface-hover px-3.5 py-2.5">
-          <span className="block text-xs font-medium text-text-secondary">Currency</span>
-          <span className="block text-sm text-text-primary tabular-nums">{currency}</span>
-          <p className="mt-1 text-xs text-text-tertiary">
-            An account&apos;s currency is fixed once it is created. Its balance is stored as plain
-            numbers, so changing it would silently re-value every transaction in this account.
+        <div className="flex gap-3 rounded-[var(--radius-md)] bg-surface-sunken px-4 py-3">
+          <Lock className="mt-0.5 size-4 shrink-0 text-text-tertiary" aria-hidden />
+          <p className="text-sm text-text-secondary">
+            <span className="font-semibold text-text-primary">{currency}</span> — an account&apos;s currency can&apos;t
+            change, because every amount in it is stored in that currency.
           </p>
         </div>
       ) : (
-        <div>
-          <Select name="currency" label="Currency" value={currency} onChange={(e) => setCurrency(e.target.value)}>
-            {CURRENCIES.map((c) => (
-              <option key={c.code} value={c.code}>{c.code} — {c.name}</option>
-            ))}
-          </Select>
-          <p className="mt-1 text-xs text-text-tertiary">
-            Choose carefully — this can&apos;t be changed later.
-          </p>
-        </div>
+        <Select
+          name="currency"
+          label="Currency"
+          hint="This can’t be changed later."
+          value={currency}
+          onChange={(e) => setCurrency(e.target.value)}
+        >
+          {CURRENCIES.map((c) => (
+            <option key={c.code} value={c.code}>
+              {c.code} — {c.name}
+            </option>
+          ))}
+        </Select>
       )}
-      <div className="flex gap-3 pt-1">
-        <Button type="button" variant="secondary" fullWidth onClick={onCancel}>Cancel</Button>
+      <div className="flex gap-2 pt-1">
+        <Button variant="secondary" fullWidth onClick={onCancel}>Cancel</Button>
         <Button type="submit" fullWidth loading={submitting}>{submitLabel}</Button>
       </div>
     </form>
   )
 }
-

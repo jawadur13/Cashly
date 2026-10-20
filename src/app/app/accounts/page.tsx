@@ -1,184 +1,277 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Landmark, Trash2 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import Link from 'next/link'
+import { ArrowRight, Landmark, Pencil, Plus, Trash2 } from 'lucide-react'
+import { Amount } from '@/components/ui/amount'
+import { Button, BUTTON_BASE, BUTTON_SIZES, BUTTON_VARIANTS } from '@/components/ui/button'
 import { Sheet } from '@/components/ui/sheet'
 import { Select } from '@/components/ui/select'
-import { Skeleton } from '@/components/ui/skeleton'
+import { ListSkeleton, Skeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/ui/empty-state'
 import { ErrorState } from '@/components/ui/error-state'
-import { AccountCard } from '@/components/accounts/account-card'
+import { PageHeader } from '@/components/ui/page-header'
+import { IconTile, ListGroup, ListRow, SectionHeader } from '@/components/ui/list'
+import { AccountIcon } from '@/components/ui/category-icon'
 import { AccountForm } from '@/components/accounts/account-form'
+import { TransactionList } from '@/components/transactions/transaction-list'
+import { incomeExpenseTotals, monthKeyOf, sortNewestFirst } from '@/lib/activity'
+import { convertMinor } from '@/lib/currency/currencies'
+import { cn } from '@/lib/utils'
 import { useAccounts } from '@/hooks/use-accounts'
 import { useAccountBalances } from '@/hooks/use-account-balances'
+import { useExchangeRates } from '@/hooks/use-exchange-rates'
 import { useToast } from '@/providers/toast-provider'
 import { useSettings } from '@/providers/settings-provider'
 import { useAllTransactions } from '@/providers/all-transactions-provider'
-import type { Account } from '@/lib/types'
+import type { Account, AccountType } from '@/lib/types'
+
+const GROUPS: { type: AccountType; title: string }[] = [
+  { type: 'cash', title: 'Cash' },
+  { type: 'bank', title: 'Bank' },
+  { type: 'mobile-wallet', title: 'Mobile wallets' },
+]
+
+type Mode = 'view' | 'edit' | 'delete'
 
 export default function AccountsPage() {
   const { defaultCurrency } = useSettings()
+  const { rates } = useExchangeRates()
   const { accounts, loading, error, refresh, add, update, removeAndReassign } = useAccounts()
-  const { balances, loading: balancesLoading } = useAccountBalances(defaultCurrency)
+  const { balances, total, loading: balancesLoading } = useAccountBalances(defaultCurrency)
   const { transactions } = useAllTransactions()
   const { toast } = useToast()
-  const [formOpen, setFormOpen] = useState(false)
-  const [editing, setEditing] = useState<Account | null>(null)
-  const [deleting, setDeleting] = useState<Account | null>(null)
+  const [adding, setAdding] = useState(false)
+  const [selected, setSelected] = useState<Account | null>(null)
+  const [mode, setMode] = useState<Mode>('view')
   const [destinationId, setDestinationId] = useState('')
   const [busy, setBusy] = useState(false)
 
+  const toDefault = (a: Account) => convertMinor(balances[a.$id] ?? 0, a.currency, defaultCurrency, rates)
+  const assets = accounts.reduce((s, a) => s + Math.max(0, toDefault(a)), 0)
+  const overdrawn = accounts.reduce((s, a) => s + Math.min(0, toDefault(a)), 0)
+
+  const touches = (a: Account) =>
+    transactions.filter((t) => t.accountId === a.$id || t.fromAccountId === a.$id || t.toAccountId === a.$id)
+
   // Transactions carry no currency of their own — they inherit the account's.
   // Moving them somewhere with a different currency would silently re-value them.
-  const destinationOptions = deleting
-    ? accounts.filter((a) => a.$id !== deleting.$id && a.currency === deleting.currency)
+  const destinationOptions = selected
+    ? accounts.filter((a) => a.$id !== selected.$id && a.currency === selected.currency)
     : []
+  const selectedHistory = selected ? sortNewestFirst(touches(selected)) : []
+  const txnCount = selectedHistory.length
+  const monthTotals = selected
+    ? incomeExpenseTotals(
+        selectedHistory.filter((t) => monthKeyOf(t.date) === monthKeyOf(new Date()) && t.accountId === selected.$id),
+        (m) => m
+      )
+    : null
 
-  // Counted from the already-loaded history rather than a separate query: it
-  // avoids a second full download, and there is no loading or error state to
-  // disambiguate before the Delete button can be enabled.
-  const txnCount = deleting
-    ? transactions.filter(
-        (t) =>
-          t.accountId === deleting.$id ||
-          t.fromAccountId === deleting.$id ||
-          t.toAccountId === deleting.$id
-      ).length
-    : 0
-
-  const handleSetDeleting = (account: Account | null) => {
-    setDeleting(account)
+  function openAccount(a: Account) {
+    setSelected(a)
+    setMode('view')
     setDestinationId('')
+  }
+  function close() {
+    setSelected(null)
+    setMode('view')
   }
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-text-primary">Accounts</h1>
-          <p className="mt-0.5 text-sm text-text-secondary">{accounts.length} account{accounts.length === 1 ? '' : 's'}</p>
-        </div>
-        <Button onClick={() => { setEditing(null); setFormOpen(true) }}>
-          <Plus className="size-5" /> Add
-        </Button>
-      </div>
+    <div className="mx-auto max-w-3xl space-y-6">
+      <PageHeader
+        title="Accounts"
+        subtitle={`${accounts.length} account${accounts.length === 1 ? '' : 's'}`}
+        actions={
+          <Button size="sm" onClick={() => setAdding(true)}>
+            <Plus className="size-4" /> Add
+          </Button>
+        }
+      />
 
       {loading || balancesLoading ? (
-        <div className="space-y-2">
-          <Skeleton className="h-[72px] rounded-[var(--radius-md)]" />
-          <Skeleton className="h-[72px] rounded-[var(--radius-md)]" />
-        </div>
+        <>
+          <Skeleton className="h-32 rounded-[var(--radius-xl)]" />
+          <ListSkeleton rows={4} />
+        </>
       ) : error ? (
         <ErrorState what="your accounts" error={error} onRetry={refresh} />
       ) : accounts.length === 0 ? (
         <EmptyState
-          icon={<Landmark className="size-6" />}
+          icon={<Landmark />}
           title="No accounts yet"
-          description="Add a Cash, Bank or Mobile Wallet account to start tracking."
-          action={<Button onClick={() => { setEditing(null); setFormOpen(true) }}>Add account</Button>}
+          description="Add the places your money lives — cash, a bank account, bKash or Nagad."
+          action={<Button onClick={() => setAdding(true)}>Add an account</Button>}
         />
       ) : (
-        <div className="space-y-2">
-          {accounts.map((account) => (
-            <div key={account.$id} className="relative">
-              <div className="pr-12">
-                <AccountCard account={account} balance={balances[account.$id] ?? 0} defaultCurrency={defaultCurrency} onClick={() => { setEditing(account); setFormOpen(true) }} />
+        <>
+          <section className="hero-panel gold-hairline rounded-[var(--radius-xl)] p-5 shadow-[var(--shadow-lg)] md:p-6">
+            <p className="text-sm font-medium text-hero-muted">Net worth</p>
+            <Amount value={total} currency={defaultCurrency} className="mt-1 text-[2rem] font-semibold leading-tight tracking-tight" currencyClassName="text-[0.5em] opacity-70" />
+            <dl className="mt-4 flex gap-6 border-t border-white/10 pt-3 text-sm">
+              <div>
+                <dt className="text-xs text-hero-muted">Assets</dt>
+                <dd><Amount value={assets} currency={defaultCurrency} className="font-semibold" /></dd>
               </div>
-              <button
-                onClick={() => handleSetDeleting(account)}
-                aria-label={`Delete ${account.name}`}
-                className="absolute right-2.5 top-1/2 flex size-10 -translate-y-1/2 items-center justify-center rounded-full text-text-tertiary transition-colors hover:bg-surface-hover hover:text-expense focus-visible:outline-2 focus-visible:outline-accent"
-              >
-                <Trash2 className="size-4" />
-              </button>
-            </div>
-          ))}
-        </div>
+              {overdrawn < 0 && (
+                <div>
+                  <dt className="text-xs text-hero-muted">Overdrawn</dt>
+                  <dd><Amount value={overdrawn} currency={defaultCurrency} className="font-semibold text-[var(--red-400)]" /></dd>
+                </div>
+              )}
+            </dl>
+          </section>
+
+          {GROUPS.map(({ type, title }) => {
+            const group = accounts.filter((a) => a.type === type)
+            if (group.length === 0) return null
+            return (
+              <section key={type} aria-label={title}>
+                <SectionHeader title={title} />
+                <ListGroup>
+                  {group.map((a) => {
+                    const balance = balances[a.$id] ?? 0
+                    return (
+                      <ListRow
+                        key={a.$id}
+                        onClick={() => openAccount(a)}
+                        chevron
+                        leading={<IconTile><AccountIcon name={a.type} /></IconTile>}
+                        title={a.name}
+                        subtitle={balance < 0 ? <span className="text-expense">Overdrawn</span> : a.currency}
+                        trailing={<Amount value={balance} currency={a.currency} tone={balance < 0 ? 'expense' : 'neutral'} />}
+                        trailingSub={
+                          a.currency !== defaultCurrency ? (
+                            <>≈ <Amount value={toDefault(a)} currency={defaultCurrency} /></>
+                          ) : undefined
+                        }
+                      />
+                    )
+                  })}
+                </ListGroup>
+              </section>
+            )
+          })}
+        </>
       )}
 
-      <Sheet open={formOpen} onClose={() => setFormOpen(false)} title={editing ? 'Edit account' : 'Add account'}>
+      <Sheet open={adding} onClose={() => setAdding(false)} title="Add account">
         <AccountForm
-          initial={editing ?? undefined}
-          submitLabel={editing ? 'Save changes' : 'Add account'}
-          onCancel={() => setFormOpen(false)}
+          submitLabel="Add account"
+          onCancel={() => setAdding(false)}
           onSubmit={async (values) => {
-            if (editing) {
-              await update(editing.$id, { name: values.name, type: values.type })
-              toast('Account updated', 'success')
-            } else {
-              await add(values)
-              toast('Account added', 'success')
-            }
-            setFormOpen(false)
+            await add(values)
+            toast(`${values.name} added`, 'success')
+            setAdding(false)
           }}
         />
       </Sheet>
 
-      <Sheet open={!!deleting} onClose={() => handleSetDeleting(null)} title="Delete account">
-        <p className="mb-4 text-sm text-text-secondary">
-          Delete <span className="font-medium text-text-primary">{deleting?.name}</span>?
-        </p>
-
-        {txnCount === 0 ? (
-          <p className="mb-4 rounded-[var(--radius-md)] bg-surface-hover px-3 py-2.5 text-xs text-text-secondary">
-            No transactions use this account, so nothing needs to be moved.
-          </p>
-        ) : (
-          <>
-            <p className="mb-3 rounded-[var(--radius-md)] bg-surface-hover px-3 py-2.5 text-xs text-text-secondary">
-              <span className="font-semibold text-text-primary">{txnCount}</span> transaction{txnCount === 1 ? '' : 's'} use
-              this account. They will be <span className="font-semibold text-text-primary">moved</span>, not deleted —
-              your totals and your people balances stay exactly the same.
-            </p>
-            {destinationOptions.length === 0 ? (
-              <p className="mb-4 rounded-[var(--radius-md)] bg-expense-soft px-3 py-2.5 text-xs text-expense">
-                There is no other {deleting?.currency} account to move them to. Create one first —
-                transactions can only move between accounts sharing a currency, otherwise their
-                amounts would change value.
-              </p>
-            ) : (
-              <div className="mb-4">
-                <Select
-                  name="destination"
-                  label="Move these transactions to"
-                  value={destinationId}
-                  onChange={(e) => setDestinationId(e.target.value)}
-                >
-                  <option value="">Select an account</option>
-                  {destinationOptions.map((a) => (
-                    <option key={a.$id} value={a.$id}>{a.name} ({a.currency})</option>
-                  ))}
-                </Select>
+      <Sheet
+        open={!!selected}
+        onClose={close}
+        title={mode === 'edit' ? 'Edit account' : mode === 'delete' ? `Delete ${selected?.name}?` : selected?.name}
+        description={mode === 'view' && selected ? `${selected.currency} · ${txnCount} transaction${txnCount === 1 ? '' : 's'}` : undefined}
+      >
+        {selected && mode === 'view' && (
+          <div className="space-y-5">
+            <div className="rounded-[var(--radius-lg)] bg-surface-sunken p-4">
+              <p className="text-xs font-medium text-text-tertiary">Balance</p>
+              <Amount
+                value={balances[selected.$id] ?? 0}
+                currency={selected.currency}
+                tone={(balances[selected.$id] ?? 0) < 0 ? 'expense' : 'neutral'}
+                className="text-2xl font-semibold tracking-tight"
+              />
+              {monthTotals && (monthTotals.income !== 0 || monthTotals.expense !== 0) && (
+                <p className="mt-2 text-sm text-text-secondary">
+                  This month: in <Amount value={monthTotals.income} currency={selected.currency} tone="income" className="font-semibold" /> · out{' '}
+                  <Amount value={monthTotals.expense} currency={selected.currency} className="font-semibold" />
+                </p>
+              )}
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <Button variant="secondary" size="sm" onClick={() => setMode('edit')}><Pencil className="size-4" /> Edit</Button>
+              <Link href={`/app/transactions?account=${selected.$id}`} className={cn(BUTTON_BASE, BUTTON_VARIANTS.secondary, BUTTON_SIZES.sm)}>
+                Activity <ArrowRight className="size-4" />
+              </Link>
+              <Button variant="secondary" size="sm" className="text-expense" onClick={() => setMode('delete')}><Trash2 className="size-4" /> Delete</Button>
+            </div>
+            {selectedHistory.length > 0 && (
+              <div>
+                <SectionHeader title="Recent" />
+                <TransactionList transactions={selectedHistory.slice(0, 5)} grouped={false} hideAccount />
               </div>
             )}
-          </>
+          </div>
         )}
 
-        <div className="flex gap-3">
-          <Button variant="secondary" fullWidth onClick={() => handleSetDeleting(null)}>Cancel</Button>
-          <Button
-            variant="danger"
-            fullWidth
-            loading={busy}
-            disabled={txnCount > 0 && !destinationId}
-            onClick={async () => {
-              if (!deleting) return
-              setBusy(true)
-              try {
-                const { moved } = await removeAndReassign(deleting.$id, destinationId)
-                toast(moved > 0 ? `Account deleted — ${moved} transaction${moved === 1 ? '' : 's'} moved` : 'Account deleted', 'success')
-                handleSetDeleting(null)
-              } catch (e) {
-                toast(e instanceof Error ? e.message : 'Failed to delete account', 'error')
-              } finally {
-                setBusy(false)
-              }
+        {selected && mode === 'edit' && (
+          <AccountForm
+            initial={selected}
+            submitLabel="Save changes"
+            onCancel={() => setMode('view')}
+            onSubmit={async (values) => {
+              const updated = await update(selected.$id, { name: values.name, type: values.type })
+              setSelected(updated)
+              setMode('view')
+              toast('Account updated', 'success')
             }}
-          >
-            Delete
-          </Button>
-        </div>
+          />
+        )}
+
+        {selected && mode === 'delete' && (
+          <div className="space-y-4">
+            {txnCount === 0 ? (
+              <p className="text-sm text-text-secondary">No transactions use this account, so nothing needs to move.</p>
+            ) : (
+              <>
+                <p className="text-sm text-text-secondary">
+                  <span className="font-semibold text-text-primary">{txnCount}</span> transaction{txnCount === 1 ? '' : 's'} use this
+                  account. They&apos;ll be <span className="font-semibold text-text-primary">moved</span>, not deleted — your totals
+                  and people balances stay exactly the same.
+                </p>
+                {destinationOptions.length === 0 ? (
+                  <p className="rounded-[var(--radius-md)] bg-expense-soft px-3.5 py-3 text-sm text-expense">
+                    There&apos;s no other {selected.currency} account to move them to. Add one first — transactions can only move
+                    between accounts with the same currency.
+                  </p>
+                ) : (
+                  <Select name="destination" label="Move them to" value={destinationId} onChange={(e) => setDestinationId(e.target.value)}>
+                    <option value="">Choose an account</option>
+                    {destinationOptions.map((a) => (
+                      <option key={a.$id} value={a.$id}>{a.name}</option>
+                    ))}
+                  </Select>
+                )}
+              </>
+            )}
+            <div className="flex gap-2">
+              <Button variant="secondary" fullWidth onClick={() => setMode('view')}>Cancel</Button>
+              <Button
+                variant="danger"
+                fullWidth
+                loading={busy}
+                disabled={txnCount > 0 && !destinationId}
+                onClick={async () => {
+                  setBusy(true)
+                  try {
+                    const { moved } = await removeAndReassign(selected.$id, destinationId)
+                    toast(moved > 0 ? `${selected.name} deleted — ${moved} transaction${moved === 1 ? '' : 's'} moved` : `${selected.name} deleted`, 'success')
+                    close()
+                  } catch (e) {
+                    toast(e instanceof Error ? e.message : "Couldn't delete the account.", 'error')
+                  } finally {
+                    setBusy(false)
+                  }
+                }}
+              >
+                Delete account
+              </Button>
+            </div>
+          </div>
+        )}
       </Sheet>
     </div>
   )

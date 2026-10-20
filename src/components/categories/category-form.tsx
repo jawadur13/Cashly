@@ -60,8 +60,8 @@ export function CategoryForm({ initial, defaultType, onSubmit, onCancel, submitL
         error={error ?? undefined}
       />
       <div>
-        <span className="mb-2 block text-xs font-medium text-text-secondary">Icon</span>
-        <div className="grid max-h-44 grid-cols-4 gap-2 overflow-y-auto rounded-[var(--radius-md)] border border-border bg-bg p-2.5 md:grid-cols-8">
+        <span className="mb-2 block text-sm font-medium text-text-secondary">Icon</span>
+        <div className="grid max-h-56 grid-cols-5 gap-2 overflow-y-auto rounded-[var(--radius-lg)] bg-surface-sunken p-2.5 sm:grid-cols-8">
           {Object.entries(CATEGORY_ICONS).map(([key, Icon]) => (
             <button
               key={key}
@@ -70,10 +70,10 @@ export function CategoryForm({ initial, defaultType, onSubmit, onCancel, submitL
               aria-pressed={icon === key}
               aria-label={key.replace(/-/g, ' ')}
               className={cn(
-                'flex aspect-square w-full items-center justify-center rounded-full border transition-colors',
+                'pressable flex aspect-square min-h-11 w-full items-center justify-center rounded-[var(--radius-md)]',
                 icon === key
-                  ? 'border-accent bg-accent-soft text-accent'
-                  : 'border-border bg-surface text-text-secondary hover:bg-surface-hover'
+                  ? 'bg-primary text-on-primary shadow-[var(--shadow-sm)]'
+                  : 'bg-surface text-text-secondary hover:text-text-primary'
               )}
             >
               <Icon className="size-[1.15rem]" />
@@ -82,7 +82,7 @@ export function CategoryForm({ initial, defaultType, onSubmit, onCancel, submitL
         </div>
       </div>
       <div className="flex gap-3 pt-1">
-        <Button type="button" variant="secondary" fullWidth onClick={onCancel}>Cancel</Button>
+        <Button variant="secondary" fullWidth onClick={onCancel}>Cancel</Button>
         <Button type="submit" fullWidth loading={submitting}>{submitLabel}</Button>
       </div>
     </form>

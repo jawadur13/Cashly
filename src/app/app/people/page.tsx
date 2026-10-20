@@ -1,202 +1,172 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { Plus, Users, Trash2, ArrowUpRight, ArrowDownRight, Pencil } from 'lucide-react'
+import { Plus, Users } from 'lucide-react'
+import { Amount } from '@/components/ui/amount'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Sheet } from '@/components/ui/sheet'
-import { Skeleton } from '@/components/ui/skeleton'
+import { ListSkeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/ui/empty-state'
 import { ErrorState } from '@/components/ui/error-state'
-import { formatMoney } from '@/lib/currency/format'
+import { PageHeader } from '@/components/ui/page-header'
+import { ListGroup, ListRow, SectionHeader } from '@/components/ui/list'
+import { initials } from '@/components/nav/nav-config'
+import { personRecency } from '@/lib/activity'
+import { formatDate } from '@/lib/currency/format'
+import { cn } from '@/lib/utils'
 import { useSettings } from '@/providers/settings-provider'
-import { usePeople } from '@/hooks/use-people'
+import { usePeople, type PersonWithBalance } from '@/hooks/use-people'
 import { useToast } from '@/providers/toast-provider'
 import { useAllTransactions } from '@/providers/all-transactions-provider'
-import { cn } from '@/lib/utils'
-import type { PersonWithBalance } from '@/hooks/use-people'
+
+function Avatar({ person }: { person: PersonWithBalance }) {
+  return (
+    <span
+      className={cn(
+        'flex size-10 items-center justify-center rounded-full text-sm font-semibold',
+        person.status === 'they-owe' ? 'bg-income-soft text-income' : person.status === 'you-owe' ? 'bg-expense-soft text-expense' : 'bg-surface-sunken text-text-secondary'
+      )}
+      aria-hidden
+    >
+      {initials(person.name, '')}
+    </span>
+  )
+}
 
 export default function PeoplePage() {
-  const router = useRouter()
   const { defaultCurrency } = useSettings()
-  const { people, loading, error, refresh, add, update, remove } = usePeople()
+  const { people, loading, error, refresh, add } = usePeople()
+  const { transactions } = useAllTransactions()
   const { toast } = useToast()
   const [formOpen, setFormOpen] = useState(false)
-  const [editing, setEditing] = useState<PersonWithBalance | null>(null)
-  const [deleting, setDeleting] = useState<PersonWithBalance | null>(null)
   const [name, setName] = useState('')
   const [note, setNote] = useState('')
+  const [touched, setTouched] = useState(false)
   const [busy, setBusy] = useState(false)
-  const { transactions } = useAllTransactions()
-  const deletingHistory = deleting ? transactions.filter((t) => t.personId === deleting.$id).length : 0
 
-  const statusLabel = (status: string) => {
-    if (status === 'they-owe') return 'Owes you'
-    if (status === 'you-owe') return 'You owe'
-    return 'Settled'
+  const recency = personRecency(transactions)
+  // balance < 0: they owe you; > 0: you owe them (see usePeople). Display only.
+  const owedToYou = people.filter((p) => p.balance < 0).reduce((s, p) => s - p.balance, 0)
+  const youOwe = people.filter((p) => p.balance > 0).reduce((s, p) => s + p.balance, 0)
+  const open = people.filter((p) => p.balance !== 0).sort((a, b) => Math.abs(b.balance) - Math.abs(a.balance))
+  const settled = people.filter((p) => p.balance === 0).sort((a, b) => a.name.localeCompare(b.name))
+
+  const row = (p: PersonWithBalance) => {
+    const last = recency.get(p.$id)
+    return (
+      <ListRow
+        key={p.$id}
+        href={`/app/people/${p.$id}`}
+        leading={<Avatar person={p} />}
+        title={p.name}
+        subtitle={p.note || (last ? `Last activity ${formatDate(new Date(last))}` : 'No activity yet')}
+        trailing={
+          p.balance === 0 ? (
+            <span className="text-sm font-medium text-text-tertiary">Settled</span>
+          ) : (
+            <Amount value={Math.abs(p.balance)} currency={defaultCurrency} tone={p.balance < 0 ? 'income' : 'expense'} />
+          )
+        }
+        trailingSub={p.balance < 0 ? 'owes you' : p.balance > 0 ? 'you owe' : undefined}
+      />
+    )
+  }
+
+  function openForm() {
+    setName('')
+    setNote('')
+    setTouched(false)
+    setFormOpen(true)
   }
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-text-primary">People</h1>
-          <p className="text-sm text-text-secondary">{people.length} person{people.length === 1 ? '' : 's'}</p>
-        </div>
-        <Button onClick={() => { setEditing(null); setName(''); setNote(''); setFormOpen(true) }}>
-          <Plus className="size-5" /> Add
-        </Button>
-      </div>
+    <div className="mx-auto max-w-3xl space-y-6">
+      <PageHeader
+        title="People"
+        subtitle={`${people.length} ${people.length === 1 ? 'person' : 'people'}`}
+        actions={
+          <Button size="sm" onClick={openForm}>
+            <Plus className="size-4" /> Add
+          </Button>
+        }
+      />
 
       {loading ? (
-        <div className="space-y-2">
-          <Skeleton className="h-[72px] rounded-[var(--radius-md)]" />
-          <Skeleton className="h-[72px] rounded-[var(--radius-md)]" />
-        </div>
+        <ListSkeleton rows={4} />
       ) : error ? (
         <ErrorState what="your people" error={error} onRetry={refresh} />
       ) : people.length === 0 ? (
         <EmptyState
-          icon={<Users className="size-6" />}
-          title="No people yet"
-          description="Add people you give money to or take money from."
-          action={<Button onClick={() => { setEditing(null); setName(''); setNote(''); setFormOpen(true) }}>Add person</Button>}
+          icon={<Users />}
+          title="Keep track of who owes whom"
+          description="Add a friend, family member or colleague, then record money you give or get."
+          action={<Button onClick={openForm}>Add a person</Button>}
         />
       ) : (
-        <div className="space-y-2">
-          {people.map((person) => (
-            <div key={person.$id} className="relative"> 
-              <button
-                onClick={() => router.push(`/app/people/${person.$id}`)}
-                className="flex w-full items-center gap-3 rounded-[var(--radius-md)] border border-border bg-surface px-3.5 py-3 pr-16 text-left shadow-[var(--shadow-sm)] transition-colors hover:bg-surface-hover"
-              >
-                <span className={cn(
-                  'flex size-10 shrink-0 items-center justify-center rounded-full',
-                  person.status === 'they-owe' ? 'bg-income-soft text-income' : person.status === 'you-owe' ? 'bg-expense-soft text-expense' : 'bg-surface-hover text-text-tertiary'
-                )}>
-                  {person.status === 'they-owe' ? <ArrowUpRight className="size-5" /> : person.status === 'you-owe' ? <ArrowDownRight className="size-5" /> : <Users className="size-5" />}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[0.9375rem] font-medium text-text-primary">{person.name}</span>
-                  <span className={cn(
-                    'block text-xs font-medium',
-                    person.status === 'they-owe' && 'text-income',
-                    person.status === 'you-owe' && 'text-expense',
-                    person.status === 'settled' && 'text-text-tertiary'
-                  )}>
-                    {statusLabel(person.status)}
-                  </span>
-                </span>
-                <span className={cn(
-                  'shrink-0 text-right text-sm font-semibold tabular-nums',
-                  person.balance > 0 && 'text-expense',
-                  person.balance < 0 && 'text-income',
-                  person.balance === 0 && 'text-text-tertiary'
-                )}>
-                  {person.balance === 0 ? formatMoney(0, defaultCurrency) : formatMoney(person.balance, defaultCurrency)}
-                </span>
-              </button>
-              <button
-                onClick={(e) => { e.stopPropagation(); setEditing(person); setName(person.name); setNote(person.note); setFormOpen(true) }}
-                aria-label={`Edit ${person.name}`}
-                className="absolute right-9 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full text-text-tertiary hover:text-accent"
-              >
-                <Pencil className="size-4" />
-              </button>
-              <button
-                onClick={(e) => { e.stopPropagation(); setDeleting(person) }}
-                aria-label={`Delete ${person.name}`}
-                className="absolute right-3 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full text-text-tertiary hover:text-expense"
-              >
-                <Trash2 className="size-4" />
-              </button>
+        <>
+          {(owedToYou > 0 || youOwe > 0) && (
+            <div className="grid grid-cols-2 divide-x divide-border rounded-[var(--radius-lg)] bg-surface py-4 text-center shadow-[var(--shadow-sm)] ring-1 ring-border">
+              <div>
+                <p className="text-xs font-medium text-text-tertiary">Owed to you</p>
+                <Amount value={owedToYou} currency={defaultCurrency} tone={owedToYou ? 'income' : 'muted'} className="mt-0.5 text-lg font-semibold" />
+              </div>
+              <div>
+                <p className="text-xs font-medium text-text-tertiary">You owe</p>
+                <Amount value={youOwe} currency={defaultCurrency} tone={youOwe ? 'expense' : 'muted'} className="mt-0.5 text-lg font-semibold" />
+              </div>
             </div>
-          ))}
-        </div>
+          )}
+          {open.length > 0 && (
+            <section aria-label="Open balances">
+              <SectionHeader title="Open balances" />
+              <ListGroup>{open.map(row)}</ListGroup>
+            </section>
+          )}
+          {settled.length > 0 && (
+            <section aria-label="Settled">
+              <SectionHeader title="Settled" />
+              <ListGroup>{settled.map(row)}</ListGroup>
+            </section>
+          )}
+        </>
       )}
 
-      <Sheet open={formOpen} onClose={() => setFormOpen(false)} title={editing ? 'Edit person' : 'Add person'}>
-        <form className="space-y-4" noValidate onSubmit={async (e) => {
-          e.preventDefault()
-          if (!name.trim()) return
-          setBusy(true)
-          try {
-            if (editing) {
-              await update(editing.$id, { name: name.trim(), note: note.trim() })
-              toast('Person updated', 'success')
-            } else {
+      <Sheet open={formOpen} onClose={() => setFormOpen(false)} title="Add person">
+        <form
+          className="space-y-4"
+          noValidate
+          onSubmit={async (e) => {
+            e.preventDefault()
+            setTouched(true)
+            if (!name.trim()) return
+            setBusy(true)
+            try {
               await add({ name: name.trim(), note: note.trim() })
-              toast('Person added', 'success')
+              toast(`${name.trim()} added`, 'success')
+              setFormOpen(false)
+            } catch {
+              toast("Couldn't add this person. Please try again.", 'error')
+            } finally {
+              setBusy(false)
             }
-            setFormOpen(false)
-          } catch {
-            toast('Failed to save person. Please try again.', 'error')
-          } finally {
-            setBusy(false)
-          }
-        }}>
+          }}
+        >
           <Input
             name="personName"
             label="Name"
             placeholder="e.g. Rahim"
+            autoFocus
             value={name}
             onChange={(e) => setName(e.target.value)}
+            error={touched && !name.trim() ? 'Enter a name' : undefined}
           />
-          <Input
-            name="personNote"
-            label="Note (optional)"
-            placeholder="e.g. Friend, landlord"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-          />
-          <div className="flex gap-3 pt-1">
-            <Button type="button" variant="secondary" fullWidth onClick={() => setFormOpen(false)}>Cancel</Button>
-            <Button type="submit" fullWidth loading={busy}>{editing ? 'Save changes' : 'Add person'}</Button>
+          <Input name="personNote" label="Note (optional)" placeholder="e.g. friend, landlord" value={note} onChange={(e) => setNote(e.target.value)} />
+          <div className="flex gap-2 pt-1">
+            <Button variant="secondary" fullWidth onClick={() => setFormOpen(false)}>Cancel</Button>
+            <Button type="submit" fullWidth loading={busy}>Add person</Button>
           </div>
         </form>
-      </Sheet>
-
-      <Sheet open={!!deleting} onClose={() => setDeleting(null)} title={`Delete ${deleting?.name ?? 'person'}?`}>
-        {deletingHistory > 0 ? (
-          <>
-            <p className="mb-4 text-sm text-text-secondary">
-              {deleting?.name} has {deletingHistory} transaction{deletingHistory === 1 ? '' : 's'}. People with history
-              can&apos;t be deleted, so your lend and borrow records stay complete. Delete or reassign those
-              transactions first.
-            </p>
-            <Button variant="secondary" fullWidth onClick={() => setDeleting(null)}>Got it</Button>
-          </>
-        ) : (
-          <>
-            <p className="mb-4 text-sm text-text-secondary">
-              {deleting?.name} has no transactions. Any share link for them stops working.
-            </p>
-            <div className="flex gap-3">
-              <Button variant="secondary" fullWidth onClick={() => setDeleting(null)}>Cancel</Button>
-              <Button
-                variant="danger"
-                fullWidth
-                loading={busy}
-                onClick={async () => {
-                  if (!deleting) return
-                  setBusy(true)
-                  try {
-                    await remove(deleting.$id)
-                    toast('Person deleted', 'success')
-                    setDeleting(null)
-                  } catch {
-                    toast("Couldn't delete this person. Please try again.", 'error')
-                  } finally {
-                    setBusy(false)
-                  }
-                }}
-              >
-                Delete
-              </Button>
-            </div>
-          </>
-        )}
       </Sheet>
     </div>
   )

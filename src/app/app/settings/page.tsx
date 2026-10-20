@@ -2,41 +2,50 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Moon, Sun, Monitor, Languages, Trash2, AlertTriangle } from 'lucide-react'
+import { AlertTriangle, Download, Info, Link2, LogOut, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Sheet } from '@/components/ui/sheet'
-import { useTheme } from '@/providers/theme-provider'
+import { Switch } from '@/components/ui/switch'
+import { PageHeader } from '@/components/ui/page-header'
+import { SegmentedControl } from '@/components/ui/segmented-control'
+import { IconTile, ListGroup, ListRow, SectionHeader } from '@/components/ui/list'
+import { initials } from '@/components/nav/nav-config'
+import { useTheme, type Theme } from '@/providers/theme-provider'
 import { useSettings } from '@/providers/settings-provider'
 import { useAuth } from '@/providers/auth-provider'
 import { useToast } from '@/providers/toast-provider'
 import { useAllTransactions } from '@/providers/all-transactions-provider'
+import { useBalanceVisibility } from '@/providers/balance-visibility-provider'
+import { useAccounts } from '@/hooks/use-accounts'
+import { useCategories } from '@/hooks/use-categories'
+import { usePeople } from '@/hooks/use-people'
 import { deleteUserData } from '@/lib/supabase/data'
 import { supabase } from '@/lib/supabase/client'
 import { CURRENCIES } from '@/lib/currency/currencies'
-import { cn } from '@/lib/utils'
-import type { Theme } from '@/providers/theme-provider'
-
-const THEME_OPTIONS: { value: Theme; label: string; Icon: typeof Sun }[] = [
-  { value: 'light', label: 'Light', Icon: Sun },
-  { value: 'dark', label: 'Dark', Icon: Moon },
-  { value: 'system', label: 'System', Icon: Monitor },
-]
+import { sortNewestFirst } from '@/lib/activity'
+import { transactionsToCsv } from '@/lib/export'
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme()
   const { defaultCurrency, setDefaultCurrency } = useSettings()
   const { user, refresh, signOut } = useAuth()
-  const { refresh: refreshAll } = useAllTransactions()
-  const [deleteText, setDeleteText] = useState('')
+  const { transactions, refresh: refreshAll } = useAllTransactions()
+  const { hideOnOpen, setHideOnOpen } = useBalanceVisibility()
+  const { accounts } = useAccounts()
+  const { categories } = useCategories()
+  const { people } = usePeople()
   const { toast } = useToast()
   const router = useRouter()
   const [savingCurrency, setSavingCurrency] = useState(false)
   const [deletingAccount, setDeletingAccount] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState(false)
+  const [deleteText, setDeleteText] = useState('')
   const [name, setName] = useState(user?.name ?? '')
   const [savingName, setSavingName] = useState(false)
+
+  const sharedCount = people.filter((p) => p.shareToken).length
 
   async function handleDeleteAccount() {
     if (!user || deleteText.trim().toUpperCase() !== 'DELETE') return
@@ -60,7 +69,7 @@ export default function SettingsPage() {
     setSavingCurrency(true)
     try {
       await setDefaultCurrency(code as Parameters<typeof setDefaultCurrency>[0])
-      toast('Default currency updated', 'success')
+      toast(`Totals now shown in ${code}`, 'success')
     } catch {
       toast("Couldn't change the currency. Please try again.", 'error')
     } finally {
@@ -69,114 +78,166 @@ export default function SettingsPage() {
   }
 
   async function handleUpdateName() {
-    if (!name.trim() || name.trim() === user?.name) return
+    if (!user || !name.trim() || name.trim() === user.name) return
     setSavingName(true)
     try {
-      if (!user) return
       const { error } = await supabase.from('profiles').update({ name: name.trim() }).eq('id', user.$id)
       if (error) throw error
       await refresh()
       toast('Name updated', 'success')
     } catch {
-      toast('Failed to update name. Please try again.', 'error')
+      toast("Couldn't update your name. Please try again.", 'error')
     } finally {
       setSavingName(false)
     }
   }
 
+  function exportCsv() {
+    const accountMap = new Map(accounts.map((a) => [a.$id, a.name]))
+    const categoryMap = new Map(categories.map((c) => [c.$id, c.name]))
+    const personMap = new Map(people.map((p) => [p.$id, p.name]))
+    const csv = transactionsToCsv(sortNewestFirst(transactions), {
+      accountName: (id) => (id ? accountMap.get(id) ?? '' : ''),
+      categoryName: (id) => categoryMap.get(id) ?? 'Uncategorized',
+      personName: (id) => (id ? personMap.get(id) ?? '' : ''),
+    })
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `cashly-transactions-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+    toast(`Exported ${transactions.length} transactions`, 'success')
+  }
+
+  const nameChanged = name.trim() !== '' && name.trim() !== (user?.name ?? '')
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-bold tracking-tight text-text-primary">Settings</h1>
-        <p className="text-sm text-text-secondary">Appearance, currency and account</p>
-      </div>
+    <div className="mx-auto max-w-2xl space-y-7">
+      <PageHeader title="Settings" />
 
-      <section className="space-y-4 rounded-[var(--radius-lg)] border border-border bg-surface p-5 shadow-[var(--shadow-sm)]">
-        <div className="flex items-center gap-2 text-sm font-semibold text-text-primary">
-          <Sun className="size-4" /> Appearance
-        </div>
-        <div className="grid grid-cols-3 gap-2">
-          {THEME_OPTIONS.map(({ value, label, Icon }) => (
-            <button
-              key={value}
-              onClick={() => setTheme(value)}
-              aria-pressed={theme === value}
-              className={cn(
-                'flex flex-col items-center gap-1.5 rounded-[var(--radius-md)] border px-2 py-3 text-xs font-medium transition-colors',
-                theme === value
-                  ? 'border-accent bg-accent-soft text-accent'
-                  : 'border-border bg-surface text-text-secondary hover:bg-surface-hover'
-              )}
-            >
-              <Icon className="size-4" />
-              {label}
-            </button>
-          ))}
+      <section aria-label="Profile" className="flex items-center gap-4 rounded-[var(--radius-lg)] bg-surface p-4 shadow-[var(--shadow-sm)] ring-1 ring-border">
+        <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-primary text-lg font-semibold text-on-primary gold-hairline">
+          {initials(user?.name, user?.email)}
+        </span>
+        <div className="min-w-0 flex-1">
+          <form
+            className="flex items-end gap-2"
+            onSubmit={(e) => {
+              e.preventDefault()
+              void handleUpdateName()
+            }}
+          >
+            <Input name="name" label="Display name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" />
+            {nameChanged && (
+              <Button type="submit" loading={savingName} className="shrink-0">
+                Save
+              </Button>
+            )}
+          </form>
+          <p className="mt-1.5 truncate text-sm text-text-tertiary">{user?.email}</p>
         </div>
       </section>
 
-      <section className="space-y-4 rounded-[var(--radius-lg)] border border-border bg-surface p-5 shadow-[var(--shadow-sm)]">
-        <div className="flex items-center gap-2 text-sm font-semibold text-text-primary">
-          <Languages className="size-4" /> Default currency
+      <section aria-label="Preferences" className="space-y-3">
+        <SectionHeader title="Preferences" />
+        <div className="space-y-4 rounded-[var(--radius-lg)] bg-surface p-4 shadow-[var(--shadow-sm)] ring-1 ring-border">
+          <div>
+            <p className="mb-2 text-sm font-medium text-text-secondary">Appearance</p>
+            <SegmentedControl<Theme>
+              label="Appearance"
+              value={theme}
+              onChange={setTheme}
+              options={[
+                { value: 'light', label: 'Light' },
+                { value: 'dark', label: 'Dark' },
+                { value: 'system', label: 'Match device' },
+              ]}
+            />
+          </div>
+          <Select
+            name="currency"
+            label="Show totals in"
+            hint="Balances in other currencies are converted at live rates."
+            value={defaultCurrency}
+            disabled={savingCurrency}
+            onChange={(e) => handleCurrency(e.target.value)}
+          >
+            {CURRENCIES.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.code} — {c.name}
+              </option>
+            ))}
+          </Select>
         </div>
-        <Select
-          name="currency"
-          label="Used for balances and reports"
-          value={defaultCurrency}
-          disabled={savingCurrency}
-          onChange={(e) => handleCurrency(e.target.value)}
-        >
-          {CURRENCIES.map((c) => (
-            <option key={c.code} value={c.code}>{c.code} — {c.name}</option>
-          ))}
-        </Select>
+        <ListGroup>
+          <Switch
+            checked={hideOnOpen}
+            onChange={setHideOnOpen}
+            label="Hide balances when Cashly opens"
+            description="Tap the eye on Home to show them for the visit."
+          />
+        </ListGroup>
       </section>
 
-      <section className="space-y-3 rounded-[var(--radius-lg)] border border-border bg-surface p-5 shadow-[var(--shadow-sm)]">
-        <p className="text-sm font-semibold text-text-primary">Profile</p>
-        <Input
-          name="name"
-          label="Display name"
-          placeholder="Your name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        <Button fullWidth loading={savingName} onClick={handleUpdateName} disabled={!name.trim() || name.trim() === (user?.name ?? '')}>
-          Save name
-        </Button>
-        <p className="text-xs text-text-tertiary">{user?.email}</p>
+      <section aria-label="Your data">
+        <SectionHeader title="Your data" />
+        <ListGroup>
+          <ListRow
+            onClick={exportCsv}
+            leading={<IconTile><Download /></IconTile>}
+            title="Export transactions"
+            subtitle={`${transactions.length} transactions as a CSV file`}
+          />
+          <ListRow
+            href="/app/people"
+            leading={<IconTile><Link2 /></IconTile>}
+            title="Share links"
+            subtitle={sharedCount ? `${sharedCount} active — manage them on each person` : 'None active'}
+          />
+        </ListGroup>
       </section>
 
-      <section className="rounded-[var(--radius-lg)] border border-expense/20 bg-surface p-5 shadow-[var(--shadow-sm)]">
+      <section aria-label="Account">
+        <SectionHeader title="Account" />
+        <ListGroup>
+          <ListRow
+            onClick={async () => {
+              await signOut()
+              router.replace('/auth/login')
+            }}
+            leading={<IconTile><LogOut /></IconTile>}
+            title="Sign out"
+          />
+          <ListRow
+            leading={<IconTile><Info /></IconTile>}
+            title="Cashly"
+            trailing={<span className="text-sm font-normal text-text-tertiary">Version {process.env.NEXT_PUBLIC_APP_VERSION}</span>}
+          />
+        </ListGroup>
+      </section>
+
+      <section aria-label="Danger zone" className="rounded-[var(--radius-lg)] bg-surface p-5 ring-1 ring-expense/25">
         <div className="flex items-center gap-2 text-sm font-semibold text-expense">
-          <AlertTriangle className="size-4" /> Danger zone
+          <AlertTriangle className="size-4" aria-hidden /> Danger zone
         </div>
-        <p className="mt-1 text-xs text-text-secondary">
-          Permanently delete all your transactions, accounts, and categories. This action cannot be undone.
+        <p className="mt-1.5 text-sm text-text-secondary">
+          Permanently delete your transactions, accounts, categories, people and share links. Your login stays.
         </p>
-        <Button
-          variant="danger"
-          fullWidth
-          className="mt-3"
-          onClick={() => setDeleteConfirm(true)}
-        >
+        <Button variant="danger" fullWidth className="mt-4" onClick={() => setDeleteConfirm(true)}>
           <Trash2 className="size-4" /> Delete all my data
         </Button>
       </section>
 
-      <Sheet
-        open={deleteConfirm}
-        onClose={() => { setDeleteConfirm(false); setDeleteText('') }}
-        title="Delete all your data?"
-      >
+      <Sheet open={deleteConfirm} onClose={() => { setDeleteConfirm(false); setDeleteText('') }} title="Delete all your data?">
         <p className="mb-2 text-sm text-text-secondary">This permanently deletes:</p>
         <ul className="mb-4 list-disc space-y-0.5 pl-5 text-sm text-text-secondary">
-          <li>all your transactions</li>
+          <li>all {transactions.length} of your transactions</li>
           <li>your accounts and custom categories</li>
           <li>your people and their share links</li>
         </ul>
         <p className="mb-4 text-sm text-text-secondary">
-          It can&apos;t be undone. Your login stays, and you&apos;ll be signed out afterwards.
+          It can&apos;t be undone. Consider exporting first. You&apos;ll be signed out afterwards.
         </p>
         <Input
           name="confirmDelete"
@@ -186,7 +247,7 @@ export default function SettingsPage() {
           value={deleteText}
           onChange={(e) => setDeleteText(e.target.value)}
         />
-        <div className="mt-4 flex gap-3">
+        <div className="mt-4 flex gap-2">
           <Button variant="secondary" fullWidth onClick={() => { setDeleteConfirm(false); setDeleteText('') }}>
             Cancel
           </Button>
@@ -201,8 +262,6 @@ export default function SettingsPage() {
           </Button>
         </div>
       </Sheet>
-
-      <p className="text-center text-xs text-text-tertiary">Cashly v1.0.0</p>
     </div>
   )
 }
