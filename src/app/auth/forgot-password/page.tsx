@@ -19,14 +19,14 @@ function ContactForReset({ email }: { email: string }) {
       <h1 className="text-2xl font-semibold tracking-tight text-text-primary">Reset your password</h1>
       <p className="mt-2 text-sm text-text-secondary">
         Password reset by email is not available right now. Email{' '}
-        <a href={`mailto:${email}?subject=Cashly%20password%20reset`} className="font-medium text-accent hover:underline">
+        <a href={`mailto:${email}?subject=Cashly%20password%20reset`} className="inline-flex min-h-11 items-center font-medium text-accent hover:underline">
           {email}
         </a>{' '}
         from the address you use for Cashly and we&apos;ll reset it for you.
       </p>
       <p className="mt-4 text-center text-sm">
         <span className="text-text-secondary">Remembered it? </span>
-        <Link href="/auth/login" className="font-medium text-accent hover:underline">Log in</Link>
+        <Link href="/auth/login" className="inline-flex min-h-11 items-center px-1 font-semibold text-accent hover:underline">Log in</Link>
       </p>
     </div>
   )
@@ -87,7 +87,7 @@ function ResetByEmail() {
       )}
       <p className="mt-4 text-center text-sm">
         <span className="text-text-secondary">Remembered it? </span>
-        <Link href="/auth/login" className="font-medium text-accent hover:underline">Log in</Link>
+        <Link href="/auth/login" className="inline-flex min-h-11 items-center px-1 font-semibold text-accent hover:underline">Log in</Link>
       </p>
     </div>
   )

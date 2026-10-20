@@ -83,7 +83,7 @@ function Hero({ data, currency, periodLabel, compareLabel }: { data: SummaryData
             </svg>
             <span className="absolute inset-0 flex flex-col items-center justify-center text-sm font-semibold leading-none">
               {Math.round(Math.max(-99, Math.min(100, rate * 100)))}%
-              <span className="mt-0.5 text-[0.625rem] font-medium text-hero-muted">saved</span>
+              <span className="mt-0.5 text-xs font-medium text-hero-muted">saved</span>
             </span>
           </div>
         )}
@@ -140,7 +140,7 @@ function CashFlowChart({ months, currency }: { months: MonthlyBar[]; currency: s
           <div className="pointer-events-none absolute inset-x-0 top-0" style={{ height }}>
             {ticks.map((t, i) => (
               <div key={i} className="absolute inset-x-0 flex items-center gap-2" style={{ top: `${i * 50}%` }}>
-                <span className="w-9 shrink-0 text-right text-[0.6875rem] tabular-nums text-text-tertiary">{formatCompact(t)}</span>
+                <span className="w-9 shrink-0 text-right text-xs tabular-nums text-text-tertiary">{formatCompact(t)}</span>
                 <span className="h-px flex-1 border-t border-dashed border-border" />
               </div>
             ))}
@@ -152,6 +152,7 @@ function CashFlowChart({ months, currency }: { months: MonthlyBar[]; currency: s
                 key={m.month}
                 type="button"
                 tabIndex={-1}
+                aria-label={`${m.label}: show income and spending`}
                 onClick={() => setSelected(selected === i ? null : i)}
                 className={cn(
                   'flex h-full flex-1 cursor-pointer items-end justify-center gap-[2px] rounded-t-[6px] transition-colors',
@@ -165,7 +166,7 @@ function CashFlowChart({ months, currency }: { months: MonthlyBar[]; currency: s
           </div>
           <div className="ml-11 mt-2 flex gap-1">
             {months.map((m, i) => (
-              <span key={m.month} className={cn('flex-1 text-center text-[0.6875rem]', selected === i ? 'font-semibold text-text-primary' : 'text-text-tertiary')}>
+              <span key={m.month} className={cn('flex-1 text-center text-xs', selected === i ? 'font-semibold text-text-primary' : 'text-text-tertiary')}>
                 {m.label.slice(0, 1)}
                 <span className="hidden sm:inline">{m.label.slice(1, 3)}</span>
               </span>

@@ -47,7 +47,7 @@ export function Amount({
   const parts = moneyParts(value, currency, { decimals })
   const sign = parts.sign || (showPlus && value > 0 ? '+' : '')
   const marker = (
-    <span className={cn('text-[0.72em] font-medium opacity-75', currencyClassName)}>{parts.currency}</span>
+    <span className={cn('text-[max(0.72em,0.75rem)] font-medium opacity-75', currencyClassName)}>{parts.currency}</span>
   )
   const spoken = `${sign === MINUS ? 'minus ' : sign === '+' ? 'plus ' : ''}${parts.number} ${currency}`
 

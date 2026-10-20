@@ -29,17 +29,17 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
   const router = useRouter()
   const pathname = usePathname()
   const { status } = useAuth()
-  // A password reset link signs the user in so they can set a new password;
-  // sending them on to /app would skip the form.
-  const isPasswordReset = pathname === '/auth/reset-password'
+  // Pages that navigate themselves once signed in: a reset link signs the user
+  // in so they can set a new password, and a new sign-up goes to onboarding.
+  const handlesOwnRedirect = pathname === '/auth/reset-password' || pathname === '/auth/register'
 
   useEffect(() => {
-    if (status === 'authenticated' && !isPasswordReset) router.replace('/app')
-  }, [router, status, isPasswordReset])
+    if (status === 'authenticated' && !handlesOwnRedirect) router.replace('/app')
+  }, [router, status, handlesOwnRedirect])
 
   return (
     <AuthBackdrop>
-      <Link href="/" className="mb-8 flex justify-center text-white" aria-label="Cashly home">
+      <Link href="/" className="mx-auto mb-8 flex min-h-11 w-fit items-center justify-center text-white" aria-label="Cashly home">
         <Logo markClassName="size-10" className="[&>span:last-child]:text-2xl" />
       </Link>
       {status === 'loading' ? (

@@ -51,7 +51,7 @@ export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
       )}
     >
       <div className={cn('flex h-16 items-center', collapsed ? 'justify-center' : 'px-5')}>
-        <Link href="/app" aria-label="Cashly home" className="text-text-primary">
+        <Link href="/app" aria-label="Cashly home" className="flex min-h-11 items-center text-text-primary">
           {collapsed ? <LogoMark className="size-8" /> : <Logo />}
         </Link>
       </div>
@@ -119,7 +119,7 @@ export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
           onClick={onToggleCollapse}
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           className={cn(
-            'pressable mt-2 flex min-h-10 items-center justify-center gap-2 rounded-[var(--radius-md)] text-xs font-medium text-text-tertiary hover:bg-surface-hover hover:text-text-primary',
+            'pressable mt-2 flex min-h-11 items-center justify-center gap-2 rounded-[var(--radius-md)] text-xs font-medium text-text-tertiary hover:bg-surface-hover hover:text-text-primary',
             collapsed ? 'size-11' : 'w-full'
           )}
         >

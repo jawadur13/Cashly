@@ -92,7 +92,7 @@ export function BalanceCard({ balance, loading, month }: BalanceCardProps) {
             <div className="flex shrink-0 flex-col items-center gap-1 border-l border-white/10 pl-4">
               <div className="relative">
                 <SavingsRing rate={month.rate} />
-                <span className="absolute inset-0 flex items-center justify-center text-[0.6875rem] font-semibold">
+                <span className="absolute inset-0 flex items-center justify-center text-xs font-semibold">
                   {Math.round(Math.max(-99, Math.min(100, month.rate * 100)))}%
                 </span>
               </div>

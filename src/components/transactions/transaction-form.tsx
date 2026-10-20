@@ -83,7 +83,7 @@ function AccountChips({
   exclude?: string
 }) {
   return (
-    <fieldset>
+    <fieldset className="min-w-0">
       <legend className="mb-2 text-sm font-medium text-text-secondary">{label}</legend>
       {accounts.length === 0 ? (
         <p className="text-sm text-text-tertiary">No accounts in this currency yet.</p>
@@ -442,7 +442,7 @@ export function TransactionForm({ initial, preset, onSaved, onDeleted, onCancel,
           />
 
           {isPerson ? (
-            <fieldset>
+            <fieldset className="min-w-0">
               <legend className="mb-2 text-sm font-medium text-text-secondary">
                 {type === 'give' ? 'Gave to' : 'Got from'}
               </legend>
@@ -459,7 +459,7 @@ export function TransactionForm({ initial, preset, onSaved, onDeleted, onCancel,
               {errors.personId && <p className="mt-2 text-sm font-medium text-expense">{errors.personId}</p>}
             </fieldset>
           ) : (
-            <fieldset>
+            <fieldset className="min-w-0">
               <legend className="mb-2 text-sm font-medium text-text-secondary">Category</legend>
               <div className="flex flex-wrap gap-2" data-error={errors.categoryId ? true : undefined}>
                 {visibleCategories.map((c) => (
@@ -515,7 +515,7 @@ export function TransactionForm({ initial, preset, onSaved, onDeleted, onCancel,
         />
       </div>
 
-      <fieldset>
+      <fieldset className="min-w-0">
         <legend className="mb-2 text-sm font-medium text-text-secondary">When</legend>
         <div className="flex flex-wrap items-center gap-2">
           <Chip selected={isToday && !pickDate} onClick={() => { setDate(localDate(new Date())); setPickDate(false) }}>

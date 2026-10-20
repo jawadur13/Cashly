@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -8,8 +8,15 @@ import { Input } from '@/components/ui/input'
 import { useAuth } from '@/providers/auth-provider'
 
 export default function RegisterPage() {
-  const { signUp } = useAuth()
+  const { signUp, status } = useAuth()
   const router = useRouter()
+  // Set while this page is creating the account, so the redirect below
+  // doesn't race the one to onboarding.
+  const signingUp = useRef(false)
+
+  useEffect(() => {
+    if (status === 'authenticated' && !signingUp.current) router.replace('/app')
+  }, [status, router])
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -31,10 +38,12 @@ export default function RegisterPage() {
     e.preventDefault()
     if (!validate()) return
     setLoading(true)
+    signingUp.current = true
     try {
       await signUp(name, email, password)
       router.replace('/app/welcome')
     } catch (err) {
+      signingUp.current = false
       setErrors({ form: err instanceof Error ? err.message : 'Registration failed' })
     } finally {
       setLoading(false)
