@@ -23,7 +23,7 @@ Every command runs from the repo root and reads only `.env.appwrite.local` /
       constant to null to bring the form back.
 - [ ] Supabase → Organization → Billing: **Pro plan** (daily backups; Free pauses
       after a week idle)
-- [ ] Vercel → Project → Settings → Environment Variables (Production and
+- [x] Vercel → Project → Settings → Environment Variables (Production and
       Preview): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`,
       `SUPABASE_SECRET_KEY`. Leave the Appwrite variables in place until the
       cleanup step.
