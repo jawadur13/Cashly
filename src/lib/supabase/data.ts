@@ -185,7 +185,13 @@ export async function updatePerson(
   return rowToPerson(row)
 }
 
+/**
+ * Removes a person and their share links. The database refuses while any
+ * transaction still names them — their give/take history would lose its
+ * counterparty — so callers check for history first.
+ */
 export async function deletePerson(personId: string): Promise<void> {
+  unwrap(await supabase.from('shares').delete().eq('person_id', personId))
   unwrap(await supabase.from('people').delete().eq('id', personId))
 }
 

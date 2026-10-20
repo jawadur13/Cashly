@@ -8,17 +8,19 @@ import { Input } from '@/components/ui/input'
 import { Sheet } from '@/components/ui/sheet'
 import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/ui/empty-state'
+import { ErrorState } from '@/components/ui/error-state'
 import { formatMoney } from '@/lib/currency/format'
 import { useSettings } from '@/providers/settings-provider'
 import { usePeople } from '@/hooks/use-people'
 import { useToast } from '@/providers/toast-provider'
+import { useAllTransactions } from '@/providers/all-transactions-provider'
 import { cn } from '@/lib/utils'
 import type { PersonWithBalance } from '@/hooks/use-people'
 
 export default function PeoplePage() {
   const router = useRouter()
   const { defaultCurrency } = useSettings()
-  const { people, loading, add, update, remove } = usePeople()
+  const { people, loading, error, refresh, add, update, remove } = usePeople()
   const { toast } = useToast()
   const [formOpen, setFormOpen] = useState(false)
   const [editing, setEditing] = useState<PersonWithBalance | null>(null)
@@ -26,6 +28,8 @@ export default function PeoplePage() {
   const [name, setName] = useState('')
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
+  const { transactions } = useAllTransactions()
+  const deletingHistory = deleting ? transactions.filter((t) => t.personId === deleting.$id).length : 0
 
   const statusLabel = (status: string) => {
     if (status === 'they-owe') return 'Owes you'
@@ -50,6 +54,8 @@ export default function PeoplePage() {
           <Skeleton className="h-[72px] rounded-[var(--radius-md)]" />
           <Skeleton className="h-[72px] rounded-[var(--radius-md)]" />
         </div>
+      ) : error ? (
+        <ErrorState what="your people" error={error} onRetry={refresh} />
       ) : people.length === 0 ? (
         <EmptyState
           icon={<Users className="size-6" />}
@@ -151,32 +157,46 @@ export default function PeoplePage() {
         </form>
       </Sheet>
 
-      <Sheet open={!!deleting} onClose={() => setDeleting(null)} title="Delete person">
-        <p className="mb-4 text-sm text-text-secondary">
-          Delete <span className="font-medium text-text-primary">{deleting?.name}</span>? Existing transactions keep
-          their person reference but the name will show as Unknown.
-        </p>
-        <div className="flex gap-3">
-          <Button variant="secondary" fullWidth onClick={() => setDeleting(null)}>Cancel</Button>
-          <Button
-            variant="danger"
-            fullWidth
-            loading={busy}
-            onClick={async () => {
-              if (!deleting) return
-              setBusy(true)
-              try {
-                await remove(deleting.$id)
-                toast('Person deleted', 'success')
-                setDeleting(null)
-              } finally {
-                setBusy(false)
-              }
-            }}
-          >
-            Delete
-          </Button>
-        </div>
+      <Sheet open={!!deleting} onClose={() => setDeleting(null)} title={`Delete ${deleting?.name ?? 'person'}?`}>
+        {deletingHistory > 0 ? (
+          <>
+            <p className="mb-4 text-sm text-text-secondary">
+              {deleting?.name} has {deletingHistory} transaction{deletingHistory === 1 ? '' : 's'}. People with history
+              can&apos;t be deleted, so your lend and borrow records stay complete. Delete or reassign those
+              transactions first.
+            </p>
+            <Button variant="secondary" fullWidth onClick={() => setDeleting(null)}>Got it</Button>
+          </>
+        ) : (
+          <>
+            <p className="mb-4 text-sm text-text-secondary">
+              {deleting?.name} has no transactions. Any share link for them stops working.
+            </p>
+            <div className="flex gap-3">
+              <Button variant="secondary" fullWidth onClick={() => setDeleting(null)}>Cancel</Button>
+              <Button
+                variant="danger"
+                fullWidth
+                loading={busy}
+                onClick={async () => {
+                  if (!deleting) return
+                  setBusy(true)
+                  try {
+                    await remove(deleting.$id)
+                    toast('Person deleted', 'success')
+                    setDeleting(null)
+                  } catch {
+                    toast("Couldn't delete this person. Please try again.", 'error')
+                  } finally {
+                    setBusy(false)
+                  }
+                }}
+              >
+                Delete
+              </Button>
+            </div>
+          </>
+        )}
       </Sheet>
     </div>
   )

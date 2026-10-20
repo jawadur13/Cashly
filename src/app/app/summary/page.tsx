@@ -8,6 +8,7 @@ import {
 import { FAB } from '@/components/nav/fab'
 import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/ui/empty-state'
+import { ErrorState } from '@/components/ui/error-state'
 import { CategoryIcon } from '@/components/ui/category-icon'
 import { Select } from '@/components/ui/select'
 import { SegmentedControl } from '@/components/ui/segmented-control'
@@ -77,7 +78,7 @@ export default function SummaryPage() {
     }
   }, [scope, monthKey, year, monthOptions])
 
-  const { data, loading } = useSummary(range)
+  const { data, loading, error, refresh } = useSummary(range)
 
   const categoryName = useMemo(() => {
     const map = new Map(categories.map((c) => [c.$id, c]))
@@ -106,12 +107,12 @@ export default function SummaryPage() {
       <div className="space-y-3">
         <SegmentedControl value={scope} onChange={(s) => setScope(s)} options={SCOPE_OPTIONS} />
         {scope === 'month' && (
-          <Select name="month" value={monthKey} onChange={(e) => setMonthKey(e.target.value)}>
+          <Select name="month" aria-label="Month" value={monthKey} onChange={(e) => setMonthKey(e.target.value)}>
             {monthOptions.map((m) => (<option key={m.key} value={m.key}>{m.label}</option>))}
           </Select>
         )}
         {scope === 'year' && (
-          <Select name="year" value={year} onChange={(e) => setYear(Number(e.target.value))}>
+          <Select name="year" aria-label="Year" value={year} onChange={(e) => setYear(Number(e.target.value))}>
             {yearOptions.map((y) => (<option key={y} value={y}>{y}</option>))}
           </Select>
         )}
@@ -127,6 +128,8 @@ export default function SummaryPage() {
             <Skeleton className="h-16 rounded-[var(--radius-md)]" />
           </div>
         </div>
+      ) : error ? (
+        <ErrorState what="your summary" error={error} onRetry={refresh} />
       ) : (
         <>
           <IncomeExpenseSavings data={data} fmt={fmt} />

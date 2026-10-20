@@ -28,14 +28,23 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
-const SUPABASE_CONNECTION_HINT =
-  'Cashly could not reach Supabase. Check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY for this deployment.'
+/** Supabase's messages, in words a user can act on. Unknown ones pass through. */
+const FRIENDLY_AUTH_ERRORS: [RegExp, string][] = [
+  [/failed to fetch|networkerror|cors|load failed/i, "Can't reach Cashly right now. Check your connection and try again."],
+  [/invalid login credentials/i, 'That email and password don’t match. Check them and try again.'],
+  [/user already registered|already been registered/i, 'An account with this email already exists. Try logging in instead.'],
+  [/email.*invalid|invalid.*email/i, 'That email address doesn’t look right.'],
+  [/rate limit|too many requests/i, 'Too many attempts. Wait a minute and try again.'],
+  [/password should be at least/i, 'Use a password with at least 8 characters.'],
+]
 
 function normalizeAuthError(error: unknown, fallbackMessage: string): Error {
   if (error instanceof Error) {
     const message = error.message.trim()
-    if (/failed to fetch|networkerror|cors|fetch/i.test(message)) {
-      return new Error(`${fallbackMessage} ${SUPABASE_CONNECTION_HINT}`)
+    const friendly = FRIENDLY_AUTH_ERRORS.find(([pattern]) => pattern.test(message))
+    if (friendly) {
+      if (/fetch|network|cors|load failed/i.test(message)) console.error('Auth request failed:', message)
+      return new Error(friendly[1])
     }
     return error
   }
@@ -120,7 +129,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // No session means the project asks new users to confirm their email
       // first, which Cashly is not set up for.
       if (!data.session || !data.user) {
-        throw new Error('Account created, but email confirmation is required before logging in.')
+        throw new Error('Your account was created. Check your email to confirm it, then log in.')
       }
       await seedNewUser(data.user.id)
       await refresh()

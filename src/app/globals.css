@@ -1,114 +1,132 @@
 @import "tailwindcss";
 
-:root {
-  /* ——— Primitive layer (raw values) ——— */
-  --blue-950: #0f172a;
-  --blue-900: #1e3a8a;
-  --blue-700: #1e40af;
-  --blue-600: #2563eb;
-  --blue-500: #3b82f6;
-  --green-700: #059669;
-  --green-600: #16a34a;
-  --green-500: #22c55e;
-  --red-600: #dc2626;
-  --red-500: #ef4444;
-  --slate-50: #f8fafc;
-  --slate-100: #e8ecf1;
-  --slate-200: #e2e8f0;
-  --slate-500: #475569;
-  --slate-400: #94a3b8;
+/*
+ * Cashly design tokens. Three layers: primitives (raw values) → semantic
+ * (purpose) → Tailwind theme. Components use only the semantic names.
+ * Contrast: text-secondary/tertiary, income and expense all reach 4.5:1 on
+ * their surfaces in both themes. See UI-UX-PREMIUM-PLAN.md §3.
+ */
 
-  /* ——— Semantic layer (purpose aliases) ——— */
+:root {
+  /* ——— Primitive layer ——— */
+  --navy-950: #0b1220;
+  --navy-900: #0f172a;
+  --navy-800: #1e293b;
+  --navy-700: #1e3a8a;
+  --navy-600: #1d4ed8;
+  --gold-500: #b08d57;
+  --gold-300: #d4b483;
+  --green-700: #15803d;
+  --green-400: #4ade80;
+  --red-600: #dc2626;
+  --red-400: #f87171;
+  --indigo-600: #4f46e5;
+  --indigo-300: #a5b4fc;
+  --slate-50: #f7f8fa;
+  --slate-100: #eef1f5;
+  --slate-200: #e2e8f0;
+  --slate-500: #64748b;
+  --slate-600: #475569;
+
+  /* ——— Semantic layer ——— */
   --bg: var(--slate-50);
   --surface: #ffffff;
-  --surface-hover: #f1f5f9;
+  --surface-hover: #f3f5f8;
+  --surface-sunken: var(--slate-100);
+  --surface-raised: #ffffff;
   --border: var(--slate-200);
-  --text-primary: #020617;
-  --text-secondary: var(--slate-500);
-  --text-tertiary: #9b9ba1;
-  --accent: var(--blue-600);
-  --accent-soft: #eaf1fe;
-  --primary: var(--blue-950);
+  --border-strong: #cbd5e1;
+  --text-primary: var(--navy-950);
+  --text-secondary: var(--slate-600);
+  --text-tertiary: var(--slate-500);
+  --accent: var(--navy-700);
+  --accent-soft: #e8eefb;
+  --primary: var(--navy-900);
   --primary-soft: var(--slate-100);
   --on-primary: #ffffff;
-  --cta: var(--green-700);
-  --cta-soft: #e6f6ee;
+  /* The add action is navy: green means "money in", so it is not a button colour. */
+  --cta: var(--navy-900);
+  --cta-soft: var(--slate-100);
   --on-cta: #ffffff;
-  --income: var(--green-600);
-  --income-soft: #eaf7ef;
+  --gold: var(--gold-500);
+  --gold-soft: #f6f0e6;
+  --income: var(--green-700);
+  --income-soft: #e9f6ee;
   --expense: var(--red-600);
-  --expense-soft: #fdecec;
-  --exchange: var(--blue-600);
-  --exchange-soft: #dbeafe;
+  --expense-soft: #fdeded;
+  --exchange: var(--indigo-600);
+  --exchange-soft: #eef0ff;
   --danger: var(--red-600);
-  --ring: var(--blue-950);
+  --on-danger: #ffffff;
+  --ring: var(--navy-700);
+  --hero-from: var(--navy-900);
+  --hero-to: var(--navy-700);
+  --hero-text: #ffffff;
+  --hero-muted: rgba(255, 255, 255, 0.72);
+  --overlay: rgba(11, 18, 32, 0.45);
 
-  /* ——— Component layer ——— */
-  --button-primary-bg: var(--primary);
-  --button-primary-fg: #ffffff;
-  --button-cta-bg: var(--cta);
-  --button-cta-fg: #ffffff;
-  --card-bg: var(--surface);
-  --card-border: var(--border);
-  --input-bg: var(--surface);
-  --input-border: var(--border);
-  --nav-active-bg: var(--primary-soft);
-  --nav-active-fg: var(--primary);
-
-  --shadow-sm: 0 1px 2px rgba(2, 6, 23, 0.06);
-  --shadow-md: 0 4px 12px rgba(2, 6, 23, 0.08);
-  --shadow-lg: 0 12px 32px rgba(2, 6, 23, 0.14);
+  --shadow-sm: 0 1px 2px rgba(11, 18, 32, 0.05), 0 1px 1px rgba(11, 18, 32, 0.03);
+  --shadow-md: 0 6px 16px -4px rgba(11, 18, 32, 0.1), 0 2px 4px rgba(11, 18, 32, 0.04);
+  --shadow-lg: 0 24px 48px -12px rgba(11, 18, 32, 0.22);
   --radius-sm: 10px;
   --radius-md: 14px;
   --radius-lg: 20px;
-  --radius-xl: 24px;
+  --radius-xl: 28px;
   --radius-full: 999px;
+
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-slow: 280ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
 }
 
 [data-theme="dark"] {
-  --bg: var(--blue-950);
-  --surface: #192134;
-  --surface-hover: #232f4d;
-  --border: rgba(255, 255, 255, 0.08);
-  --text-primary: #ffffff;
-  --text-secondary: var(--slate-400);
-  --text-tertiary: #71717a;
-  --accent: var(--blue-500);
-  --accent-soft: #1e2a4a;
-  --primary: #dbeafe;
-  --primary-soft: #101a34;
-  --on-primary: #0f172a;
-  --cta: var(--green-500);
-  --cta-soft: #12261a;
-  --on-cta: #0f172a;
-  --income: #22c55e;
-  --income-soft: #12261a;
-  --expense: #ef4444;
-  --expense-soft: #2b1416;
-  --exchange: #3b82f6;
-  --exchange-soft: #1e2a4a;
-  --danger: #ef4444;
-  --ring: #ffffff;
-  --button-primary-bg: #dbeafe;
-  --button-primary-fg: #0f172a;
-  --button-cta-bg: var(--green-500);
-  --button-cta-fg: #0f172a;
-  --card-bg: #192134;
-  --card-border: rgba(255, 255, 255, 0.08);
-  --input-bg: #101a34;
-  --input-border: rgba(255, 255, 255, 0.1);
-  --nav-active-bg: #101a34;
-  --nav-active-fg: #dbeafe;
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.5);
+  --bg: #0b1120;
+  --surface: #131b2e;
+  --surface-hover: #1a2338;
+  --surface-sunken: #0f1626;
+  --surface-raised: #1a2338;
+  --border: rgba(255, 255, 255, 0.07);
+  --border-strong: rgba(255, 255, 255, 0.14);
+  --text-primary: #f1f5f9;
+  --text-secondary: #a3aec2;
+  --text-tertiary: #8391a7;
+  --accent: #93c5fd;
+  --accent-soft: #1b2a4a;
+  --primary: #e2e8f0;
+  --primary-soft: #1a2338;
+  --on-primary: #0b1220;
+  --cta: #e2e8f0;
+  --cta-soft: #1a2338;
+  --on-cta: #0b1220;
+  --gold: var(--gold-300);
+  --gold-soft: #2a2418;
+  --income: var(--green-400);
+  --income-soft: #10261a;
+  --expense: var(--red-400);
+  --expense-soft: #2c1517;
+  --exchange: var(--indigo-300);
+  --exchange-soft: #1c1f3d;
+  --danger: #dc2626;
+  --on-danger: #ffffff;
+  --ring: #93c5fd;
+  --hero-from: #1e293b;
+  --hero-to: #1e3a8a;
+  --overlay: rgba(0, 0, 0, 0.6);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 6px 16px -4px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 24px 48px -12px rgba(0, 0, 0, 0.7);
 }
 
 @theme inline {
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-surface-hover: var(--surface-hover);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-surface-raised: var(--surface-raised);
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-text-primary: var(--text-primary);
   --color-text-secondary: var(--text-secondary);
   --color-text-tertiary: var(--text-tertiary);
@@ -120,6 +138,8 @@
   --color-cta: var(--cta);
   --color-cta-soft: var(--cta-soft);
   --color-on-cta: var(--on-cta);
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
   --color-income: var(--income);
   --color-income-soft: var(--income-soft);
   --color-expense: var(--expense);
@@ -127,7 +147,10 @@
   --color-exchange: var(--exchange);
   --color-exchange-soft: var(--exchange-soft);
   --color-danger: var(--danger);
+  --color-on-danger: var(--on-danger);
   --color-ring: var(--ring);
+  --color-hero-text: var(--hero-text);
+  --color-hero-muted: var(--hero-muted);
   --font-sans: var(--font-plex), ui-sans-serif, system-ui, -apple-system,
     "Segoe UI", Roboto, sans-serif;
 }
@@ -136,11 +159,19 @@
   * {
     border-color: var(--border);
   }
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
   body {
     background-color: var(--bg);
     color: var(--text-primary);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
   }
 }
 
@@ -148,38 +179,89 @@
   0%, 100% { transform: scale(1); opacity: 1; }
   50% { transform: scale(1.12); opacity: 0.8; }
 }
-
 @keyframes shimmer {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: none; }
+}
+@keyframes dialog-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes page-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
 }
 
 @layer utilities {
   .tabular-nums {
     font-variant-numeric: tabular-nums;
   }
+  /* Only on cards that do something when pressed. */
   .card-lift {
-    transition: transform 200ms ease, box-shadow 200ms ease, background-color 200ms ease;
+    transition: transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out),
+      background-color var(--dur-base) ease;
   }
   .card-lift:hover {
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--shadow-md);
   }
   .card-lift:active {
-    transform: scale(0.99);
+    transform: scale(0.985);
+  }
+  .pressable {
+    transition: transform var(--dur-fast) var(--ease-out), background-color var(--dur-base) ease,
+      opacity var(--dur-base) ease;
+  }
+  .pressable:active {
+    transform: scale(0.97);
   }
   .hero-panel {
-    background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 60%, #1e40af 100%);
+    background:
+      radial-gradient(120% 140% at 100% 0%, rgba(176, 141, 87, 0.18) 0%, transparent 45%),
+      linear-gradient(135deg, var(--hero-from) 0%, var(--hero-to) 100%);
+    color: var(--hero-text);
   }
   [data-theme="dark"] .hero-panel {
-    background: linear-gradient(135deg, #192134 0%, #101a34 100%);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  }
+  /* A hairline of gold along the top edge of premium surfaces. */
+  .gold-hairline {
+    box-shadow: inset 0 1px 0 0 rgba(212, 180, 131, 0.55);
+  }
+  .skeleton-shimmer {
+    background: linear-gradient(90deg, var(--surface-sunken) 25%, var(--surface-hover) 50%, var(--surface-sunken) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s linear infinite;
+  }
+  .animate-page-in {
+    animation: page-in var(--dur-base) var(--ease-out) both;
+  }
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  * {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

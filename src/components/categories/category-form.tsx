@@ -66,6 +66,7 @@ export function CategoryForm({ initial, onSubmit, onCancel, submitLabel }: Categ
               type="button"
               onClick={() => setIcon(key)}
               aria-pressed={icon === key}
+              aria-label={key.replace(/-/g, ' ')}
               className={cn(
                 'flex aspect-square w-full items-center justify-center rounded-full border transition-colors',
                 icon === key

@@ -7,6 +7,7 @@ import { Sheet } from '@/components/ui/sheet'
 import { Select } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/ui/empty-state'
+import { ErrorState } from '@/components/ui/error-state'
 import { AccountCard } from '@/components/accounts/account-card'
 import { AccountForm } from '@/components/accounts/account-form'
 import { useAccounts } from '@/hooks/use-accounts'
@@ -18,7 +19,7 @@ import type { Account } from '@/lib/types'
 
 export default function AccountsPage() {
   const { defaultCurrency } = useSettings()
-  const { accounts, loading, add, update, removeAndReassign } = useAccounts()
+  const { accounts, loading, error, refresh, add, update, removeAndReassign } = useAccounts()
   const { balances, loading: balancesLoading } = useAccountBalances(defaultCurrency)
   const { transactions } = useAllTransactions()
   const { toast } = useToast()
@@ -68,6 +69,8 @@ export default function AccountsPage() {
           <Skeleton className="h-[72px] rounded-[var(--radius-md)]" />
           <Skeleton className="h-[72px] rounded-[var(--radius-md)]" />
         </div>
+      ) : error ? (
+        <ErrorState what="your accounts" error={error} onRetry={refresh} />
       ) : accounts.length === 0 ? (
         <EmptyState
           icon={<Landmark className="size-6" />}

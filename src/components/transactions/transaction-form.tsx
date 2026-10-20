@@ -93,6 +93,8 @@ export function TransactionForm({
   const [toAccountId, setToAccountId] = useState(initial?.toAccountId ?? '')
   const [fromAmount, setFromAmount] = useState(initial ? minorToInputValue(readFromAmountMinor(initial)) : '')
   const [toAmount, setToAmount] = useState(initial ? minorToInputValue(readToAmountMinor(initial)) : '')
+  // An existing transfer's To amount is the user's own, so it is never overwritten.
+  const [toTouched, setToTouched] = useState(Boolean(initial))
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -219,8 +221,8 @@ export function TransactionForm({
         <>
           <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
             <div>
-              <span className="mb-2 block text-xs font-medium text-text-secondary">From Account</span>
               <Select
+                label="From account"
                 name="fromAccount"
                 value={fromAccountId}
                 onChange={(e) => { setFromAccountId(e.target.value); if (toAccountId && e.target.value === toAccountId) setToAccountId('') }}
@@ -233,8 +235,8 @@ export function TransactionForm({
               {errors.fromAccountId && <p className="mt-1 text-xs text-expense">{errors.fromAccountId}</p>}
             </div>
             <div>
-              <span className="mb-2 block text-xs font-medium text-text-secondary">To Account</span>
               <Select
+                label="To account"
                 name="toAccount"
                 value={toAccountId}
                 onChange={(e) => setToAccountId(e.target.value)}
@@ -258,7 +260,13 @@ export function TransactionForm({
               min="0"
               placeholder="0.00"
               value={fromAmount}
-              onChange={(e) => { setFromAmount(e.target.value); if (!toAmount) setToAmount(e.target.value) }}
+              onChange={(e) => {
+                setFromAmount(e.target.value)
+                // Mirror until the user types a To amount of their own. Mirroring
+                // only while To was empty froze it after the first keystroke, so
+                // typing 1500 saved To = 1 and a phantom 1,499 fee.
+                if (!toTouched) setToAmount(e.target.value)
+              }}
               error={errors.fromAmount}
             />
             <Input
@@ -270,7 +278,7 @@ export function TransactionForm({
               min="0"
               placeholder="0.00"
               value={toAmount}
-              onChange={(e) => setToAmount(e.target.value)}
+              onChange={(e) => { setToAmount(e.target.value); setToTouched(true) }}
               error={errors.toAmount}
             />
           </div>

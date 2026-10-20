@@ -6,9 +6,11 @@ import { Button } from '@/components/ui/button'
 import { Sheet } from '@/components/ui/sheet'
 import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/ui/empty-state'
+import { ErrorState } from '@/components/ui/error-state'
 import { CategoryForm } from '@/components/categories/category-form'
 import { useCategories } from '@/hooks/use-categories'
 import { useToast } from '@/providers/toast-provider'
+import { useAllTransactions } from '@/providers/all-transactions-provider'
 import { CategoryIcon } from '@/components/ui/category-icon'
 import { cn } from '@/lib/utils'
 import type { Category, TransactionType } from '@/lib/types'
@@ -49,11 +51,13 @@ function CategoryRow({
 }
 
 export default function CategoriesPage() {
-  const { categories, loading, add, remove } = useCategories()
+  const { categories, loading, error, refresh, add, remove } = useCategories()
   const { toast } = useToast()
   const [formOpen, setFormOpen] = useState(false)
   const [deleting, setDeleting] = useState<Category | null>(null)
   const [busy, setBusy] = useState(false)
+  const { transactions } = useAllTransactions()
+  const deletingUses = deleting ? transactions.filter((t) => t.categoryId === deleting.$id).length : 0
 
   const grouped: Record<string, Category[]> = {
     income: categories.filter((c) => c.type === 'income'),
@@ -77,6 +81,8 @@ export default function CategoriesPage() {
           <Skeleton className="h-11 rounded-[var(--radius-md)]" />
           <Skeleton className="h-11 rounded-[var(--radius-md)]" />
         </div>
+      ) : error ? (
+        <ErrorState what="your categories" error={error} onRetry={refresh} />
       ) : (
         <>
           {(['expense', 'income'] as TransactionType[]).map((type) => (
@@ -122,10 +128,11 @@ export default function CategoriesPage() {
         />
       </Sheet>
 
-      <Sheet open={!!deleting} onClose={() => setDeleting(null)} title="Delete category">
+      <Sheet open={!!deleting} onClose={() => setDeleting(null)} title={`Delete ${deleting?.name ?? 'category'}?`}>
         <p className="mb-4 text-sm text-text-secondary">
-          Delete <span className="font-medium text-text-primary">{deleting?.name}</span>? Existing transactions keep
-          their category.
+          {deletingUses > 0
+            ? `${deletingUses} transaction${deletingUses === 1 ? ' uses' : 's use'} this category. They'll stay, and show as Uncategorized.`
+            : 'No transactions use this category.'}
         </p>
         <div className="flex gap-3">
           <Button variant="secondary" fullWidth onClick={() => setDeleting(null)}>Cancel</Button>
@@ -140,6 +147,8 @@ export default function CategoriesPage() {
                 await remove(deleting.$id)
                 toast('Category deleted', 'success')
                 setDeleting(null)
+              } catch {
+                toast("Couldn't delete this category. Please try again.", 'error')
               } finally {
                 setBusy(false)
               }

@@ -11,6 +11,7 @@ import { useTheme } from '@/providers/theme-provider'
 import { useSettings } from '@/providers/settings-provider'
 import { useAuth } from '@/providers/auth-provider'
 import { useToast } from '@/providers/toast-provider'
+import { useAllTransactions } from '@/providers/all-transactions-provider'
 import { deleteUserData } from '@/lib/supabase/data'
 import { supabase } from '@/lib/supabase/client'
 import { CURRENCIES } from '@/lib/currency/currencies'
@@ -26,7 +27,9 @@ const THEME_OPTIONS: { value: Theme; label: string; Icon: typeof Sun }[] = [
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme()
   const { defaultCurrency, setDefaultCurrency } = useSettings()
-  const { user, refresh } = useAuth()
+  const { user, refresh, signOut } = useAuth()
+  const { refresh: refreshAll } = useAllTransactions()
+  const [deleteText, setDeleteText] = useState('')
   const { toast } = useToast()
   const router = useRouter()
   const [savingCurrency, setSavingCurrency] = useState(false)
@@ -36,15 +39,18 @@ export default function SettingsPage() {
   const [savingName, setSavingName] = useState(false)
 
   async function handleDeleteAccount() {
-    if (!user) return
+    if (!user || deleteText.trim().toUpperCase() !== 'DELETE') return
     setDeletingAccount(true)
     try {
       await deleteUserData(user.$id)
-      toast('All your data has been deleted', 'success')
+      // The shared history would otherwise keep showing what was just deleted.
+      await refreshAll()
       setDeleteConfirm(false)
+      toast('All your data has been deleted', 'success')
+      await signOut()
       router.replace('/auth/login')
     } catch {
-      toast('Failed to delete account data. Please try again.', 'error')
+      toast("Couldn't delete your data. Nothing was signed out — please try again.", 'error')
     } finally {
       setDeletingAccount(false)
     }
@@ -55,6 +61,8 @@ export default function SettingsPage() {
     try {
       await setDefaultCurrency(code as Parameters<typeof setDefaultCurrency>[0])
       toast('Default currency updated', 'success')
+    } catch {
+      toast("Couldn't change the currency. Please try again.", 'error')
     } finally {
       setSavingCurrency(false)
     }
@@ -156,19 +164,39 @@ export default function SettingsPage() {
         </Button>
       </section>
 
-      <Sheet open={deleteConfirm} onClose={() => setDeleteConfirm(false)} title="Delete all data">
-        <p className="mb-1 text-sm text-text-secondary">
-          This will permanently delete <span className="font-semibold text-text-primary">all</span> your transactions,
-          accounts, and categories.
-        </p>
+      <Sheet
+        open={deleteConfirm}
+        onClose={() => { setDeleteConfirm(false); setDeleteText('') }}
+        title="Delete all your data?"
+      >
+        <p className="mb-2 text-sm text-text-secondary">This permanently deletes:</p>
+        <ul className="mb-4 list-disc space-y-0.5 pl-5 text-sm text-text-secondary">
+          <li>all your transactions</li>
+          <li>your accounts and custom categories</li>
+          <li>your people and their share links</li>
+        </ul>
         <p className="mb-4 text-sm text-text-secondary">
-          This action cannot be undone. You will be signed out afterwards.
+          It can&apos;t be undone. Your login stays, and you&apos;ll be signed out afterwards.
         </p>
-        <div className="flex gap-3">
-          <Button variant="secondary" fullWidth onClick={() => setDeleteConfirm(false)}>
+        <Input
+          name="confirmDelete"
+          label="Type DELETE to confirm"
+          autoComplete="off"
+          autoCapitalize="characters"
+          value={deleteText}
+          onChange={(e) => setDeleteText(e.target.value)}
+        />
+        <div className="mt-4 flex gap-3">
+          <Button variant="secondary" fullWidth onClick={() => { setDeleteConfirm(false); setDeleteText('') }}>
             Cancel
           </Button>
-          <Button variant="danger" fullWidth loading={deletingAccount} onClick={handleDeleteAccount}>
+          <Button
+            variant="danger"
+            fullWidth
+            loading={deletingAccount}
+            disabled={deleteText.trim().toUpperCase() !== 'DELETE'}
+            onClick={handleDeleteAccount}
+          >
             Delete everything
           </Button>
         </div>

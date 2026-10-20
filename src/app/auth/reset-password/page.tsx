@@ -72,9 +72,12 @@ function ResetPasswordForm() {
 
   if (link === 'invalid' && !done) {
     return (
-      <p className="rounded-[var(--radius-md)] border border-expense/30 bg-expense-soft px-3.5 py-2.5 text-sm font-medium text-expense">
-        Invalid or expired reset link. Request a new one from the forgot password page.
-      </p>
+      <div className="space-y-4">
+        <p role="alert" className="rounded-[var(--radius-md)] border border-expense/30 bg-expense-soft px-3.5 py-2.5 text-sm font-medium text-expense">
+          This reset link is invalid or has expired.
+        </p>
+        <Button fullWidth onClick={() => router.replace('/auth/forgot-password')}>Get a new link</Button>
+      </div>
     )
   }
 

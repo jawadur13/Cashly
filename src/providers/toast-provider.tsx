@@ -1,10 +1,17 @@
 'use client'
 
 import { createContext, useCallback, useContext, useRef, useState } from 'react'
-import { ToastStack, type ToastItem, type ToastKind } from '@/components/ui/toast'
+import { ToastStack, type ToastAction, type ToastItem, type ToastKind } from '@/components/ui/toast'
+
+interface ToastOptions {
+  /** A button on the toast, e.g. Undo. */
+  action?: ToastAction
+  /** Milliseconds. Defaults: 3.5s, 6s for errors and toasts with an action. */
+  duration?: number
+}
 
 interface ToastContextValue {
-  toast: (message: string, kind?: ToastKind) => void
+  toast: (message: string, kind?: ToastKind, options?: ToastOptions) => void
 }
 
 const ToastContext = createContext<ToastContextValue | undefined>(undefined)
@@ -23,22 +30,26 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  const toast = useCallback((message: string, kind: ToastKind = 'success') => {
-    const id = ++counter.current
-    setToasts((prev) => {
-      const next = [...prev.slice(-2), { id, kind, message }]
-      for (const removed of prev.slice(0, prev.length - 2)) {
-        const tid = timers.current.get(removed.id)
-        if (tid != null) {
-          window.clearTimeout(tid)
-          timers.current.delete(removed.id)
+  const toast = useCallback(
+    (message: string, kind: ToastKind = 'success', options: ToastOptions = {}) => {
+      const id = ++counter.current
+      setToasts((prev) => {
+        const next = [...prev.slice(-2), { id, kind, message, action: options.action }]
+        for (const removed of prev.slice(0, prev.length - 2)) {
+          const tid = timers.current.get(removed.id)
+          if (tid != null) {
+            window.clearTimeout(tid)
+            timers.current.delete(removed.id)
+          }
         }
-      }
-      return next
-    })
-    const timerId = window.setTimeout(() => dismiss(id), 3000)
-    timers.current.set(id, timerId)
-  }, [dismiss])
+        return next
+      })
+      const duration = options.duration ?? (kind === 'error' || options.action ? 6000 : 3500)
+      const timerId = window.setTimeout(() => dismiss(id), duration)
+      timers.current.set(id, timerId)
+    },
+    [dismiss]
+  )
 
   return (
     <ToastContext.Provider value={{ toast }}>
