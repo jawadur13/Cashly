@@ -1,5 +1,42 @@
 # Cashly — Premium UI/UX Plan
 
+> ## Status — 2026-10-20: implemented on `ui-ux-overhaul-plan`
+>
+> **P0 (bug fixes) is live on `main`.** P1–P7 are on this branch, pushed for a
+> Vercel preview, and not merged to `main`, so the owner can review the
+> redesign first.
+>
+> | Phase | Status |
+> |---|---|
+> | P0 Correctness and trust | Done, live. C1–C6 fixed with browser regression checks |
+> | P1 Foundations | Done. Tokens, `<Amount>`, number convention (tested), list groups, dialog Sheet, vector logo and icons |
+> | P2 Navigation and speed | Done. Four tabs + add, Me sheet, grouped sidebar, shared providers, `next/link` |
+> | P3 Record and review | Done. Quick-add sheet, smart form, Activity with URL filters, day groups, undo |
+> | P4 Home and Insights | Done. Dashboard Home (two columns on desktop), Insights with stepper and interactive chart |
+> | P5 People, Accounts, Categories, Settings | Done. CSV export included |
+> | P6 First-run and public | Done. Landing page, onboarding, auth and share redesign |
+> | P7 Polish | Done. Zero sideways scroll, 12px minimum text, 44px targets; light, dark, 375/768/1280 reviewed |
+>
+> **Decisions taken (§10):**
+> - **D1:** navy actions with a champagne-gold detail.
+> - **D2:** Activity / Insights (routes unchanged).
+> - **D4:** Me sheet.
+> - **D5:** delete + Undo (typed confirmation kept for delete-all).
+> - **D6:** onboarding asks for currency and accounts first.
+> - **D7:** landing page built.
+> - **D8:** opening balance deferred.
+> - **D3 (changed):** "Give / Get", not "Lend / Borrow". Paying back a debt is also a "give", so Lend would mislabel repayments. Rows read "Gave to Rafi" / "Got from Rafi".
+>
+> **Verified:** 108 unit tests (new tests cover formatting, activity, export); 33 data-layer integration checks; browser regression of every P0 bug, the quick-add / undo / transfer / filter-survives-edit flows, and sign-up → onboarding; lint and build clean.
+>
+> **Deferred (not done):**
+> - **Swipe actions and pull-to-refresh on lists.** Undo-based delete covers the main need.
+> - **Editing a category.** The Supabase schema grants no `update` on `categories`; it needs a reviewed migration adding an update policy.
+> - **Balance count-up animation.**
+> - **Running balance in person history.**
+> - **Per-route browser tab titles.** Pages are client components; needs small server wrappers.
+> - **Self-service password reset.** Needs custom SMTP; the contact page stands in.
+
 Date: 2026-10-20 · Branch: `ui-ux-overhaul-plan` (level with `main`, Supabase build)
 
 The first overhaul (`UI-UX-OVERHAUL-PLAN.md`) gave Cashly a navy/green token system,
