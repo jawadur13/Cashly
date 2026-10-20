@@ -3,6 +3,7 @@ import { IBM_Plex_Sans } from 'next/font/google'
 import './globals.css'
 import { AppProviders } from '@/providers/app-providers'
 import { ToastProvider } from '@/providers/toast-provider'
+import { THEME_INIT_SCRIPT } from '@/providers/theme-provider'
 import { ServiceWorkerRegistration } from '@/components/pwa/service-worker-registration'
 
 const plex = IBM_Plex_Sans({
@@ -12,14 +13,9 @@ const plex = IBM_Plex_Sans({
 })
 
 export const metadata: Metadata = {
-  title: 'Cashly — Personal Finance',
-  description: 'Simple income and expense tracking.',
+  title: { default: 'Cashly — Personal Finance', template: '%s · Cashly' },
+  description: 'Your money, beautifully clear. Track accounts, spending and what people owe you.',
   manifest: '/manifest.webmanifest',
-  icons: {
-    icon: '/cashly-favicon.svg',
-    shortcut: '/cashly-favicon.svg',
-    apple: '/cashly-favicon.svg',
-  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
@@ -28,12 +24,18 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#0f172a',
+  themeColor: '#f7f8fa',
+  // Lets the layout reach the screen edges on notched phones; the header,
+  // bottom bar and sheets pad themselves with env(safe-area-inset-*).
+  viewportFit: 'cover',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={plex.variable} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body className="min-h-dvh bg-bg text-text-primary">
         <AppProviders>
           <ToastProvider>

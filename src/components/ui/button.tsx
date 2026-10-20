@@ -3,10 +3,27 @@
 import { cn } from '@/lib/utils'
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'ghost' | 'danger'
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'gold'
   size?: 'sm' | 'md' | 'lg'
   fullWidth?: boolean
   loading?: boolean
+}
+
+export const BUTTON_BASE =
+  'pressable inline-flex items-center justify-center gap-2 whitespace-nowrap font-semibold rounded-[var(--radius-md)] select-none cursor-pointer disabled:opacity-45 disabled:pointer-events-none'
+
+export const BUTTON_VARIANTS = {
+  primary: 'bg-primary text-on-primary shadow-[var(--shadow-sm)] hover:opacity-92',
+  secondary: 'bg-surface text-text-primary ring-1 ring-inset ring-border-strong hover:bg-surface-hover',
+  ghost: 'bg-transparent text-accent hover:bg-accent-soft',
+  danger: 'bg-danger text-on-danger shadow-[var(--shadow-sm)] hover:opacity-92',
+  gold: 'bg-gold text-[var(--navy-950)] shadow-[var(--shadow-sm)] hover:opacity-92',
+}
+
+export const BUTTON_SIZES = {
+  sm: 'min-h-11 px-3.5 text-sm',
+  md: 'min-h-12 px-5 text-[0.9375rem]',
+  lg: 'min-h-14 px-6 text-base',
 }
 
 export function Button({
@@ -17,24 +34,15 @@ export function Button({
   className,
   children,
   disabled,
+  type = 'button',
   ...props
 }: ButtonProps) {
-  const base = 'inline-flex items-center justify-center gap-2 font-semibold rounded-[var(--radius-md)] transition-all duration-200 hover:-translate-y-px active:translate-y-0 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-50 disabled:pointer-events-none disabled:transform-none select-none cursor-pointer'
-  const variants = {
-    primary: 'bg-primary text-on-primary shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)]',
-    secondary: 'bg-surface border border-border text-text-primary shadow-[var(--shadow-sm)] hover:bg-surface-hover hover:shadow-[var(--shadow-md)]',
-    ghost: 'bg-transparent text-accent hover:bg-accent-soft',
-    danger: 'bg-expense text-white shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)]',
-  }
-  const sizes = {
-    sm: 'h-11 px-3 text-sm',
-    md: 'h-12 px-4 text-[0.9375rem]',
-    lg: 'h-14 px-6 text-base',
-  }
   return (
     <button
-      className={cn(base, variants[variant], sizes[size], fullWidth && 'w-full', className)}
+      type={type}
+      className={cn(BUTTON_BASE, BUTTON_VARIANTS[variant], BUTTON_SIZES[size], fullWidth && 'w-full', className)}
       disabled={disabled || loading}
+      aria-busy={loading || undefined}
       {...props}
     >
       {loading && <Spinner />}
@@ -46,10 +54,7 @@ export function Button({
 export function Spinner({ className }: { className?: string }) {
   return (
     <span
-      className={cn(
-        'inline-block size-4 animate-spin rounded-full border-2 border-current border-t-transparent',
-        className
-      )}
+      className={cn('inline-block size-4 animate-spin rounded-full border-2 border-current border-t-transparent', className)}
       aria-hidden
     />
   )

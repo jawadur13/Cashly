@@ -12,13 +12,18 @@ interface EmptyStateProps {
 
 export function EmptyState({ icon, title, description, action, className }: EmptyStateProps) {
   return (
-    <div className={cn('flex flex-col items-center gap-3 rounded-[var(--radius-lg)] border border-dashed border-border bg-surface px-6 py-14 text-center shadow-[var(--shadow-sm)]', className)}>
-      <div className="flex size-20 items-center justify-center rounded-[var(--radius-lg)] bg-primary-soft text-primary">
+    <div
+      className={cn(
+        'flex flex-col items-center gap-3 rounded-[var(--radius-lg)] bg-surface px-6 py-12 text-center ring-1 ring-border',
+        className
+      )}
+    >
+      <div className="mb-1 flex size-16 items-center justify-center rounded-full bg-gold-soft text-gold [&_svg]:size-7" aria-hidden>
         {icon}
       </div>
-      <h3 className="text-lg font-semibold text-text-primary">{title}</h3>
+      <h2 className="text-base font-semibold text-text-primary">{title}</h2>
       {description && <p className="max-w-xs text-sm text-text-secondary">{description}</p>}
-      {action}
+      {action && <div className="mt-2">{action}</div>}
     </div>
   )
 }

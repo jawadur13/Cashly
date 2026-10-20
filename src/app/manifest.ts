@@ -4,27 +4,15 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'Cashly — Personal Finance',
     short_name: 'Cashly',
-    description: 'Simple income and expense tracking for personal finance.',
+    description: 'Your money, beautifully clear.',
     start_url: '/app',
     display: 'standalone',
-    background_color: '#FAFAFA',
-    theme_color: '#0E0E11',
+    background_color: '#0F172A',
+    theme_color: '#0F172A',
     icons: [
-      {
-        src: '/cashly-favicon.svg',
-        sizes: 'any',
-        type: 'image/svg+xml',
-      },
-      {
-        src: '/cashly-favicon.svg',
-        sizes: 'any',
-        type: 'image/svg+xml',
-      },
-      {
-        src: '/cashly-favicon.svg',
-        sizes: 'any',
-        type: 'image/svg+xml',
-      },
+      { src: '/icons/192.png', sizes: '192x192', type: 'image/png' },
+      { src: '/icons/512.png', sizes: '512x512', type: 'image/png' },
+      { src: '/icons/maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
     ],
   }
 }
