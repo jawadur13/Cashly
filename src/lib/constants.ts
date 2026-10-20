@@ -20,3 +20,11 @@ export const TRANSACTION_TYPE_LABELS: Record<TransactionType, string> = {
   give: 'Give',
   take: 'Take',
 }
+
+/**
+ * Where users go for a password reset while Supabase has no custom SMTP: its
+ * built-in mailer only reaches project team members, so reset emails would
+ * never arrive. Set to null once SMTP is configured to bring back the
+ * self-service form on /auth/forgot-password.
+ */
+export const PASSWORD_RESET_CONTACT: string | null = 'contact@jawadurrafid.com'

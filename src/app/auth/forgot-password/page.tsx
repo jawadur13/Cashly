@@ -6,8 +6,33 @@ import { CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useAuth } from '@/providers/auth-provider'
+import { PASSWORD_RESET_CONTACT } from '@/lib/constants'
 
 export default function ForgotPasswordPage() {
+  if (PASSWORD_RESET_CONTACT) return <ContactForReset email={PASSWORD_RESET_CONTACT} />
+  return <ResetByEmail />
+}
+
+function ContactForReset({ email }: { email: string }) {
+  return (
+    <div className="rounded-[var(--radius-lg)] border border-border bg-surface p-6 shadow-[var(--shadow-lg)] md:p-8">
+      <h1 className="mb-1 text-xl font-bold text-text-primary">Reset your password</h1>
+      <p className="text-sm text-text-secondary">
+        Password reset by email is not available right now. Email{' '}
+        <a href={`mailto:${email}?subject=Cashly%20password%20reset`} className="font-medium text-accent hover:underline">
+          {email}
+        </a>{' '}
+        from the address you use for Cashly and we&apos;ll reset it for you.
+      </p>
+      <p className="mt-4 text-center text-sm">
+        <span className="text-text-secondary">Remembered it? </span>
+        <Link href="/auth/login" className="font-medium text-accent hover:underline">Log in</Link>
+      </p>
+    </div>
+  )
+}
+
+function ResetByEmail() {
   const { resetPassword } = useAuth()
   const [email, setEmail] = useState('')
   const [sent, setSent] = useState(false)

@@ -9,14 +9,18 @@ Every command runs from the repo root and reads only `.env.appwrite.local` /
 
 ## Before the day (dashboard settings)
 
-- [ ] Supabase → Authentication → Sign In / Providers → Email: **Confirm email off**
-- [ ] Supabase → Authentication → URL Configuration:
+- [x] Supabase → Authentication → Sign In / Providers → Email: **Confirm email off** (verified 2026-10-20)
+- [x] Supabase → Authentication → URL Configuration (https://cashly.mvp.bd):
       Site URL = the production URL; Redirect URLs add
       `https://<production-domain>/auth/reset-password` and
       `http://localhost:3000/auth/reset-password`
-- [ ] Supabase → Authentication → Emails → SMTP settings: custom SMTP
-      (the built-in sender only reaches project team members, so password
-      reset emails would not arrive for users)
+- [x] No custom SMTP for now (owner's decision). Supabase's built-in sender only
+      reaches project team members, so `/auth/forgot-password` shows
+      `PASSWORD_RESET_CONTACT` (src/lib/constants.ts) instead of a form, and
+      resets are done by hand:
+      `node --env-file=.env.supabase.local scripts/set-user-password.mjs <email>`.
+      When SMTP is added (Authentication → Emails → SMTP settings), set the
+      constant to null to bring the form back.
 - [ ] Supabase → Organization → Billing: **Pro plan** (daily backups; Free pauses
       after a week idle)
 - [ ] Vercel → Project → Settings → Environment Variables (Production and
