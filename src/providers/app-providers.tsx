@@ -1,5 +1,8 @@
 'use client'
 
+import { AccountsProvider } from '@/hooks/use-accounts'
+import { CategoriesProvider } from '@/hooks/use-categories'
+import { PeopleProvider } from '@/hooks/use-people'
 import { AllTransactionsProvider } from './all-transactions-provider'
 import { AuthProvider } from './auth-provider'
 import { ExchangeRatesProvider } from './exchange-rates-provider'
@@ -12,7 +15,13 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       <AuthProvider>
         <SettingsProvider>
           <ExchangeRatesProvider>
-            <AllTransactionsProvider>{children}</AllTransactionsProvider>
+            <AllTransactionsProvider>
+              <AccountsProvider>
+                <CategoriesProvider>
+                  <PeopleProvider>{children}</PeopleProvider>
+                </CategoriesProvider>
+              </AccountsProvider>
+            </AllTransactionsProvider>
           </ExchangeRatesProvider>
         </SettingsProvider>
       </AuthProvider>

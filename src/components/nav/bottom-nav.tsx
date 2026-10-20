@@ -1,47 +1,62 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, ArrowLeftRight, FolderKanban, Settings, Landmark, PieChart, Users } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useQuickAdd } from '@/components/transactions/quick-add'
+import { PRIMARY_NAV, isActive, type NavItem } from './nav-config'
 
-const items = [
-  { href: '/app', label: 'Home', icon: Home },
-  { href: '/app/summary', label: 'Summary', icon: PieChart },
-  { href: '/app/transactions', label: 'Transactions', icon: ArrowLeftRight },
-  { href: '/app/accounts', label: 'Accounts', icon: Landmark },
-  { href: '/app/categories', label: 'Categories', icon: FolderKanban },
-  { href: '/app/people', label: 'People', icon: Users },
-  { href: '/app/settings', label: 'Settings', icon: Settings },
-]
+function Tab({ item, active }: { item: NavItem; active: boolean }) {
+  const Icon = item.icon
+  return (
+    <Link
+      href={item.href}
+      aria-current={active ? 'page' : undefined}
+      className={cn(
+        'relative flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-[var(--radius-md)] text-xs font-medium transition-colors duration-[var(--dur-fast)]',
+        active ? 'text-text-primary' : 'text-text-tertiary hover:text-text-secondary'
+      )}
+    >
+      <span
+        aria-hidden
+        className={cn(
+          'absolute top-0 h-[3px] w-6 rounded-b-full bg-gold transition-opacity duration-[var(--dur-base)]',
+          active ? 'opacity-100' : 'opacity-0'
+        )}
+      />
+      <Icon className="size-[1.375rem]" strokeWidth={active ? 2.2 : 1.75} aria-hidden />
+      <span className="max-w-full truncate">{item.label}</span>
+    </Link>
+  )
+}
 
+/** Four labelled tabs with the add action in the middle. Mobile only. */
 export function BottomNav() {
   const pathname = usePathname()
-  const router = useRouter()
+  const { open } = useQuickAdd()
+  const [first, second, third, fourth] = PRIMARY_NAV
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-surface/95 px-2 pb-[env(safe-area-inset-bottom)] backdrop-blur">
-      <div className="mx-auto flex max-w-2xl items-stretch gap-1 py-1.5">
-        {items.map((item) => {
-          const Icon = item.icon
-          const active = pathname === item.href
-          return (
-            <button
-              key={item.href}
-              onClick={() => router.push(item.href)}
-              aria-current={active ? 'page' : undefined}
-              aria-label={item.label}
-              title={item.label}
-              className={cn(
-                'flex min-h-14 min-w-0 flex-1 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-[var(--radius-md)] px-1 py-1.5 transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
-                active ? 'bg-primary-soft text-primary' : 'text-text-tertiary hover:bg-surface-hover hover:text-text-secondary'
-              )}
-            >
-              <Icon className="size-5 shrink-0" strokeWidth={active ? 2.4 : 1.8} />
-              {active && <span className="max-w-full truncate text-[0.625rem] font-semibold">{item.label}</span>}
-            </button>
-          )
-        })}
+    <nav
+      aria-label="Main"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl backdrop-saturate-150"
+    >
+      <div className="mx-auto flex max-w-lg items-stretch gap-1 px-2">
+        <Tab item={first} active={isActive(pathname, first.href)} />
+        <Tab item={second} active={isActive(pathname, second.href)} />
+        <div className="flex flex-1 items-center justify-center">
+          <button
+            type="button"
+            onClick={() => open()}
+            aria-label="Add transaction"
+            className="pressable -mt-5 flex size-14 items-center justify-center rounded-full bg-primary text-on-primary shadow-[var(--shadow-lg)] ring-4 ring-bg gold-hairline"
+          >
+            <Plus className="size-6" strokeWidth={2.4} />
+          </button>
+        </div>
+        <Tab item={third} active={isActive(pathname, third.href)} />
+        <Tab item={fourth} active={isActive(pathname, fourth.href)} />
       </div>
     </nav>
   )

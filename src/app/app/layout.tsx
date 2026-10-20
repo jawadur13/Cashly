@@ -1,31 +1,58 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Menu, LogOut } from 'lucide-react'
+import { ChevronLeft } from 'lucide-react'
 import { useAuth } from '@/providers/auth-provider'
 import { BottomNav } from '@/components/nav/bottom-nav'
-import { Sidebar, sidebarItems } from '@/components/nav/sidebar'
-import { Sheet } from '@/components/ui/sheet'
+import { Sidebar } from '@/components/nav/sidebar'
+import { MeSheet } from '@/components/nav/me-sheet'
+import { detailRoute, initials } from '@/components/nav/nav-config'
+import { QuickAddProvider } from '@/components/transactions/quick-add'
+import { Logo } from '@/components/brand/logo'
 import { Loader } from '@/components/ui/loader'
 import { cn } from '@/lib/utils'
 import { BalanceVisibilityProvider } from '@/providers/balance-visibility-provider'
 
+const COLLAPSE_KEY = 'cashly-sidebar-collapsed'
+
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const { status, signOut } = useAuth()
+  const { status, user } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [meOpen, setMeOpen] = useState(false)
+  const detail = detailRoute(pathname)
 
   useEffect(() => {
     if (status === 'anonymous') router.replace('/auth/login')
   }, [status, router])
 
   useEffect(() => {
+    try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSidebarCollapsed(window.localStorage.getItem(COLLAPSE_KEY) === 'true')
+    } catch {
+      // keep the default
+    }
+  }, [])
+
+  useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMobileMenuOpen(false)
+    setMeOpen(false)
   }, [pathname])
+
+  function toggleCollapsed() {
+    setSidebarCollapsed((value) => {
+      try {
+        window.localStorage.setItem(COLLAPSE_KEY, String(!value))
+      } catch {
+        // session only
+      }
+      return !value
+    })
+  }
 
   if (status !== 'authenticated') {
     return (
@@ -37,76 +64,63 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <BalanceVisibilityProvider>
-      <div className="min-h-dvh bg-bg">
-        <a
-          href="#main-content"
-          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-[var(--radius-md)] focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-on-primary"
-        >
-          Skip to content
-        </a>
-        <Sidebar collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed((value) => !value)} />
-        <header className="fixed left-0 right-0 top-0 z-30 flex items-center justify-between border-b border-border bg-bg/95 px-4 py-3 shadow-[var(--shadow-sm)] backdrop-blur md:hidden">
-          <button
-            type="button"
-            onClick={() => setMobileMenuOpen(true)}
-            aria-label="Open navigation menu"
-            className="inline-flex size-10 items-center justify-center rounded-[var(--radius-md)] border border-border bg-surface text-text-primary"
+      <QuickAddProvider>
+        <div className="min-h-dvh bg-bg">
+          <a
+            href="#main-content"
+            className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[70] focus:rounded-[var(--radius-md)] focus:bg-primary focus:px-4 focus:py-3 focus:text-sm focus:font-semibold focus:text-on-primary"
           >
-            <Menu className="size-5" />
-          </button>
-          <div className="flex items-center gap-2.5">
-            <img src="/cashly-logo.svg" alt="" aria-hidden="true" className="size-8 shrink-0" />
-            <span className="text-base font-bold text-text-primary">Cashly</span>
-          </div>
-          <div className="w-10" />
-        </header>
-        <div className={cn('pb-28 md:pb-12', sidebarCollapsed ? 'md:pl-16' : 'md:pl-60', 'pt-16 md:pt-8')}>
-          <main id="main-content" className="mx-auto w-full max-w-2xl px-4 pt-6 md:max-w-3xl">
-            <div key={pathname}>{children}</div>
-          </main>
-        </div>
-        <div className="md:hidden">
-          <BottomNav />
-        </div>
-        <Sheet open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} title="Cashly navigation">
-          <div className="space-y-2">
-            {sidebarItems.map((item) => {
-              const Icon = item.icon
-              const active = pathname === item.href
-              return (
+            Skip to content
+          </a>
+          <Sidebar collapsed={sidebarCollapsed} onToggleCollapse={toggleCollapsed} />
+
+          <header className="fixed inset-x-0 top-0 z-30 border-b border-border bg-bg/85 pt-[env(safe-area-inset-top)] backdrop-blur-xl backdrop-saturate-150 md:hidden">
+            <div className="flex h-14 items-center justify-between gap-2 px-2">
+              {detail ? (
                 <button
-                  key={item.href}
                   type="button"
-                  onClick={() => {
-                    router.push(item.href)
-                    setMobileMenuOpen(false)
-                  }}
-                  aria-current={active ? 'page' : undefined}
-                  className={cn(
-                    'flex w-full items-center gap-3 rounded-[var(--radius-md)] px-3.5 py-3.5 text-left text-sm font-semibold transition-colors',
-                    active
-                      ? 'bg-primary-soft text-primary'
-                      : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
-                  )}
+                  onClick={() => (window.history.length > 1 ? router.back() : router.push(detail.parent))}
+                  className="pressable flex min-h-11 min-w-0 items-center gap-1 rounded-[var(--radius-md)] pl-1 pr-3 text-[0.9375rem] font-semibold text-text-primary hover:bg-surface-hover"
                 >
-                  <Icon className="size-5" />
-                  {item.label}
+                  <ChevronLeft className="size-6 shrink-0" aria-hidden />
+                  <span className="truncate">{detail.title}</span>
+                  <span className="sr-only">, go back</span>
                 </button>
-              )
-            })}
+              ) : (
+                <Link href="/app" aria-label="Cashly home" className="flex min-h-11 items-center px-2 text-text-primary">
+                  <Logo markClassName="size-7" />
+                </Link>
+              )}
+              <button
+                type="button"
+                onClick={() => setMeOpen(true)}
+                aria-label="Open your menu: accounts, categories, settings"
+                className="pressable flex size-11 items-center justify-center rounded-full"
+              >
+                <span className="flex size-9 items-center justify-center rounded-full bg-primary text-xs font-semibold text-on-primary">
+                  {initials(user?.name, user?.email)}
+                </span>
+              </button>
+            </div>
+          </header>
+
+          <div
+            className={cn(
+              'pb-[calc(7rem+env(safe-area-inset-bottom))] pt-[calc(3.5rem+env(safe-area-inset-top))] md:pb-16 md:pt-0',
+              sidebarCollapsed ? 'md:pl-[4.5rem]' : 'md:pl-64'
+            )}
+          >
+            <main id="main-content" className="mx-auto w-full max-w-6xl px-4 pt-5 md:px-8 md:pt-10">
+              {children}
+            </main>
           </div>
-          <div className="mt-3 border-t border-border pt-2">
-            <button
-              type="button"
-              onClick={() => { signOut(); router.replace('/auth/login') }}
-              className="flex w-full items-center gap-3 rounded-[var(--radius-md)] px-3.5 py-3 text-left text-sm font-medium text-text-secondary hover:bg-surface-hover hover:text-expense transition-colors"
-            >
-              <LogOut className="size-5" />
-              Sign out
-            </button>
+
+          <div className="md:hidden">
+            <BottomNav />
           </div>
-        </Sheet>
-      </div>
+          <MeSheet open={meOpen} onClose={() => setMeOpen(false)} />
+        </div>
+      </QuickAddProvider>
     </BalanceVisibilityProvider>
   )
 }

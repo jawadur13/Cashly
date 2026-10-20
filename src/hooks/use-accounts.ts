@@ -1,12 +1,12 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { createContext, createElement, useCallback, useContext, useEffect, useState } from 'react'
 import { listAccounts, createAccount, updateAccount, reassignAndDeleteAccount } from '@/lib/supabase/data'
 import { useAllTransactions } from '@/providers/all-transactions-provider'
 import { useAuth } from '@/providers/auth-provider'
 import type { Account, AccountType } from '@/lib/types'
 
-export function useAccounts() {
+function useAccountsState() {
   const { user } = useAuth()
   const { refresh: refreshAll } = useAllTransactions()
   const [accounts, setAccounts] = useState<Account[]>([])
@@ -71,4 +71,22 @@ export function useAccounts() {
   )
 
   return { accounts, loading, error, refresh, add, update, removeAndReassign }
+}
+
+type AccountsValue = ReturnType<typeof useAccountsState>
+const AccountsContext = createContext<AccountsValue | null>(null)
+
+/**
+ * One shared copy of the signed-in user's accounts, loaded once for the whole
+ * app. Every screen used to fetch its own on mount, so each tab switch
+ * refetched and flashed skeletons.
+ */
+export function AccountsProvider({ children }: { children: React.ReactNode }) {
+  return createElement(AccountsContext.Provider, { value: useAccountsState() }, children)
+}
+
+export function useAccounts(): AccountsValue {
+  const ctx = useContext(AccountsContext)
+  if (!ctx) throw new Error('useAccounts must be used within AccountsProvider')
+  return ctx
 }

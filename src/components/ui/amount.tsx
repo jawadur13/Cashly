@@ -58,8 +58,14 @@ export function Amount({
       aria-label={masked ? `Hidden amount in ${currency}` : spoken}
     >
       <span aria-hidden className="inline-flex items-baseline gap-[0.25em]">
-        {sign && <span>{sign}</span>}
-        {parts.currencyFirst && marker}
+        {parts.currencyFirst ? (
+          <span className="inline-flex items-baseline">
+            {sign && <span className="mr-[0.08em]">{sign}</span>}
+            {marker}
+          </span>
+        ) : (
+          sign && <span>{sign}</span>
+        )}
         <span className={cn(masked && 'select-none blur-[9px]')}>{masked ? '0,000.00' : parts.number}</span>
         {!parts.currencyFirst && marker}
       </span>

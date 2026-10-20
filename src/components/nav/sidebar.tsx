@@ -1,95 +1,130 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
-import { usePathname } from 'next/navigation'
-import { ChevronLeft, ChevronRight, Home, ArrowLeftRight, FolderKanban, Settings, Landmark, PieChart, LogOut, Users } from 'lucide-react'
+import Link from 'next/link'
+import { usePathname, useRouter } from 'next/navigation'
+import { ChevronsLeft, ChevronsRight, LogOut, Plus } from 'lucide-react'
+import { Logo, LogoMark } from '@/components/brand/logo'
+import { useQuickAdd } from '@/components/transactions/quick-add'
 import { cn } from '@/lib/utils'
-import { useTheme } from '@/providers/theme-provider'
 import { useAuth } from '@/providers/auth-provider'
-
-export const sidebarItems = [
-  { href: '/app', label: 'Home', icon: Home },
-  { href: '/app/summary', label: 'Summary', icon: PieChart },
-  { href: '/app/transactions', label: 'Transactions', icon: ArrowLeftRight },
-  { href: '/app/accounts', label: 'Accounts', icon: Landmark },
-  { href: '/app/categories', label: 'Categories', icon: FolderKanban },
-  { href: '/app/people', label: 'People', icon: Users },
-  { href: '/app/settings', label: 'Settings', icon: Settings },
-]
+import { MANAGE_NAV, PRIMARY_NAV, initials, isActive, type NavItem } from './nav-config'
 
 interface SidebarProps {
   collapsed: boolean
   onToggleCollapse: () => void
 }
 
+function NavLink({ item, active, collapsed }: { item: NavItem; active: boolean; collapsed: boolean }) {
+  const Icon = item.icon
+  return (
+    <Link
+      href={item.href}
+      aria-current={active ? 'page' : undefined}
+      title={collapsed ? item.label : undefined}
+      className={cn(
+        'relative flex min-h-11 items-center rounded-[var(--radius-md)] text-sm font-medium transition-colors duration-[var(--dur-fast)]',
+        collapsed ? 'justify-center px-2' : 'gap-3 px-3',
+        active
+          ? 'bg-primary-soft font-semibold text-text-primary'
+          : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
+      )}
+    >
+      {active && <span aria-hidden className="absolute inset-y-2.5 left-0 w-[3px] rounded-r-full bg-gold" />}
+      <Icon className="size-5 shrink-0" strokeWidth={active ? 2.2 : 1.75} aria-hidden />
+      {!collapsed && item.label}
+    </Link>
+  )
+}
+
+/** Desktop navigation: Overview and Manage groups, the add action, the user. */
 export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
-  const { resolvedTheme } = useTheme()
-  const { signOut } = useAuth()
+  const { user, signOut } = useAuth()
+  const { open } = useQuickAdd()
 
   return (
     <aside
       className={cn(
-        'fixed left-0 top-0 z-40 hidden h-dvh flex-col border-r border-border bg-surface transition-[width] duration-200 md:flex',
-        collapsed ? 'w-16' : 'w-60'
+        'fixed inset-y-0 left-0 z-40 hidden flex-col border-r border-border bg-surface transition-[width] duration-[var(--dur-base)] md:flex',
+        collapsed ? 'w-[4.5rem]' : 'w-64'
       )}
     >
-      <div className={cn('flex items-center px-3 py-5', collapsed ? 'justify-center' : 'gap-2.5 px-5')}>
-        <div className="flex items-center gap-2.5 overflow-hidden">
-          <img src="/cashly-logo.svg" alt="" aria-hidden="true" className="size-9 shrink-0" />
-          {!collapsed && <span className="text-lg font-bold text-text-primary">Cashly</span>}
-        </div>
+      <div className={cn('flex h-16 items-center', collapsed ? 'justify-center' : 'px-5')}>
+        <Link href="/app" aria-label="Cashly home" className="text-text-primary">
+          {collapsed ? <LogoMark className="size-8" /> : <Logo />}
+        </Link>
       </div>
-      <nav className={cn('flex-1 space-y-1 px-3', collapsed && 'px-2')}>
-        {sidebarItems.map((item) => {
-          const Icon = item.icon
-          const active = pathname === item.href
-          return (
-            <button
-              key={item.href}
-              onClick={() => router.push(item.href)}
-              aria-current={active ? 'page' : undefined}
-              title={collapsed ? item.label : undefined}
-              className={cn(
-                'flex w-full items-center rounded-[var(--radius-md)] py-3 text-sm font-semibold transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
-                collapsed ? 'justify-center px-2' : 'gap-3 px-3.5',
-                active
-                  ? 'bg-primary-soft text-primary shadow-[var(--shadow-sm)]'
-                  : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
-              )}
-            >
-              <Icon className="size-5" />
-              {!collapsed && item.label}
-            </button>
-          )
-        })}
-      </nav>
-      <div className={cn('border-t border-border px-3 py-2', collapsed && 'px-2')}>
+
+      <div className={cn('pb-3 pt-1', collapsed ? 'px-3' : 'px-4')}>
         <button
-          onClick={() => { signOut(); router.replace('/auth/login') }}
-          title={collapsed ? 'Sign out' : undefined}
+          type="button"
+          onClick={() => open()}
+          title={collapsed ? 'New transaction' : undefined}
+          aria-label={collapsed ? 'New transaction' : undefined}
           className={cn(
-            'flex w-full items-center rounded-[var(--radius-md)] py-3 text-sm font-medium text-text-secondary transition-colors hover:bg-surface-hover hover:text-expense focus-visible:outline-2 focus-visible:outline-accent',
-            collapsed ? 'justify-center px-2' : 'gap-3 px-3.5'
+            'pressable flex min-h-11 w-full items-center justify-center gap-2 rounded-[var(--radius-md)] bg-primary text-sm font-semibold text-on-primary shadow-[var(--shadow-sm)] gold-hairline hover:opacity-92',
+            collapsed && 'px-0'
           )}
         >
-          <LogOut className="size-5" />
-          {!collapsed && 'Sign out'}
+          <Plus className="size-4" strokeWidth={2.4} aria-hidden />
+          {!collapsed && 'New transaction'}
         </button>
       </div>
-      <div className={cn('border-t border-border px-3 py-3', collapsed && 'px-2')}>
-        <div className={cn('flex items-center gap-2', collapsed ? 'justify-center' : 'justify-between')}>
-          {!collapsed && <span className="text-xs text-text-tertiary">{resolvedTheme === 'dark' ? 'Dark mode' : 'Light mode'}</span>}
+
+      <nav aria-label="Main" className={cn('flex-1 space-y-6 overflow-y-auto py-2', collapsed ? 'px-3' : 'px-4')}>
+        <div className="space-y-1">
+          {!collapsed && <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-[0.06em] text-text-tertiary">Overview</p>}
+          {PRIMARY_NAV.map((item) => (
+            <NavLink key={item.href} item={item} active={isActive(pathname, item.href)} collapsed={collapsed} />
+          ))}
+        </div>
+        <div className="space-y-1">
+          {!collapsed && <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-[0.06em] text-text-tertiary">Manage</p>}
+          {MANAGE_NAV.map((item) => (
+            <NavLink key={item.href} item={item} active={isActive(pathname, item.href)} collapsed={collapsed} />
+          ))}
+        </div>
+      </nav>
+
+      <div className={cn('border-t border-border p-3', collapsed && 'flex flex-col items-center gap-2')}>
+        <div className={cn('flex items-center', collapsed ? 'flex-col gap-2' : 'gap-3')}>
+          <span
+            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-on-primary"
+            title={collapsed ? user?.name : undefined}
+          >
+            {initials(user?.name, user?.email)}
+          </span>
+          {!collapsed && (
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-text-primary">{user?.name || 'You'}</p>
+              <p className="truncate text-xs text-text-tertiary">{user?.email}</p>
+            </div>
+          )}
           <button
             type="button"
-            onClick={onToggleCollapse}
-            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            className="inline-flex size-10 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary focus-visible:outline-2 focus-visible:outline-accent"
+            onClick={async () => {
+              await signOut()
+              router.replace('/auth/login')
+            }}
+            aria-label="Sign out"
+            title="Sign out"
+            className="pressable flex size-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] text-text-secondary hover:bg-surface-hover hover:text-expense"
           >
-            {collapsed ? <ChevronRight className="size-4" /> : <ChevronLeft className="size-4" />}
+            <LogOut className="size-[1.125rem]" aria-hidden />
           </button>
         </div>
+        <button
+          type="button"
+          onClick={onToggleCollapse}
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          className={cn(
+            'pressable mt-2 flex min-h-10 items-center justify-center gap-2 rounded-[var(--radius-md)] text-xs font-medium text-text-tertiary hover:bg-surface-hover hover:text-text-primary',
+            collapsed ? 'size-11' : 'w-full'
+          )}
+        >
+          {collapsed ? <ChevronsRight className="size-4" aria-hidden /> : <><ChevronsLeft className="size-4" aria-hidden /> Collapse</>}
+        </button>
       </div>
     </aside>
   )

@@ -5,7 +5,6 @@ import {
   ArrowDownRight, ArrowUpRight, Receipt, TrendingUp,
   Users, Calendar, Zap, BarChart3,
 } from 'lucide-react'
-import { FAB } from '@/components/nav/fab'
 import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/ui/empty-state'
 import { ErrorState } from '@/components/ui/error-state'
@@ -218,7 +217,6 @@ export default function SummaryPage() {
         </>
       )}
 
-      <FAB />
     </div>
   )
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { listPeople, createPerson, updatePerson, deletePerson } from '@/lib/supabase/data'
 import { peopleBalances } from '@/lib/calculations'
 import { convertMinor } from '@/lib/currency/currencies'
@@ -15,7 +15,7 @@ export interface PersonWithBalance extends Person {
   status: 'they-owe' | 'you-owe' | 'settled'
 }
 
-export function usePeople() {
+function usePeopleState() {
   const { user } = useAuth()
   const { defaultCurrency } = useSettings()
   const { rates } = useExchangeRates()
@@ -90,4 +90,22 @@ export function usePeople() {
   )
 
   return { people: enriched, loading: loading || txLoading, error: error ?? txError, refresh, add, update, remove }
+}
+
+type PeopleValue = ReturnType<typeof usePeopleState>
+const PeopleContext = createContext<PeopleValue | null>(null)
+
+/**
+ * One shared copy of the signed-in user's people, loaded once for the whole
+ * app. Every screen used to fetch its own on mount, so each tab switch
+ * refetched and flashed skeletons.
+ */
+export function PeopleProvider({ children }: { children: React.ReactNode }) {
+  return createElement(PeopleContext.Provider, { value: usePeopleState() }, children)
+}
+
+export function usePeople(): PeopleValue {
+  const ctx = useContext(PeopleContext)
+  if (!ctx) throw new Error('usePeople must be used within PeopleProvider')
+  return ctx
 }

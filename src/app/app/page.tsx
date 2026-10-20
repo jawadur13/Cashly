@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation'
 import { BalanceCard } from '@/components/home/balance-card'
 import { AccountBalances } from '@/components/home/account-balances'
 import { RecentTransactions } from '@/components/home/recent-transactions'
-import { FAB } from '@/components/nav/fab'
 import { useAccountBalances } from '@/hooks/use-account-balances'
 import { useAccounts } from '@/hooks/use-accounts'
 import { useTransactions } from '@/hooks/use-transactions'
@@ -46,7 +45,6 @@ export default function HomePage() {
         onSeeAll={() => router.push('/app/transactions')}
       />
 
-      <FAB />
     </div>
   )
 }
