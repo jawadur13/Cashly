@@ -1,131 +1,98 @@
 'use client'
 
-import { useMemo } from 'react'
-import { formatSignedMoney, formatDateTime, formatMoney } from '@/lib/currency/format'
+import { ArrowLeftRight, HandCoins, Handshake } from 'lucide-react'
+import { Amount } from '@/components/ui/amount'
 import { CategoryIcon } from '@/components/ui/category-icon'
+import { IconTile, ListRow } from '@/components/ui/list'
+import { formatDateTime, formatMoney, formatTime } from '@/lib/currency/format'
 import { readAmountMinor, readFromAmountMinor, readToAmountMinor } from '@/lib/money'
-import { cn } from '@/lib/utils'
 import type { Transaction } from '@/lib/types'
 
 interface TransactionRowProps {
   transaction: Transaction
-  /** Category – must be the category row for income/expense txns. */
   category?: { $id: string; name: string; icon?: string }
   /** Source account for income/expense, or the from-account for transfers. */
   account?: { $id: string; name: string; currency?: string }
   /** Destination account, only meaningful for transfers. */
   toAccount?: { $id: string; name: string; currency?: string }
-  /** Person for give/take transactions. */
   person?: { $id: string; name: string }
-  onClick?: () => void
+  /** Inside a day group the date is in the heading, so only the time is shown. */
+  timeOnly?: boolean
+  /** Hide the account on screens already filtered to one. */
+  hideAccount?: boolean
 }
 
-export function TransactionRow({ transaction, category, account, toAccount, person, onClick }: TransactionRowProps) {
-  const income = transaction.type === 'income'
-  const isExchange = transaction.type === 'exchange'
-  const isGive = transaction.type === 'give'
-  const isTake = transaction.type === 'take'
-  const isPersonType = isGive || isTake
-  const secondLine = [
-    transaction.payee,
-    transaction.note,
-    account ? `via ${account.name}` : '',
-  ]
-    .filter(Boolean)
-    .join(' · ')
+/** User-facing names for the stored types. Stored values never change. */
+export const TYPE_LABELS: Record<Transaction['type'], string> = {
+  income: 'Income',
+  expense: 'Expense',
+  exchange: 'Transfer',
+  give: 'Give',
+  take: 'Get',
+}
 
-  // Each leg is denominated in its own account's currency. They normally match
-  // — the form requires it — but older rows can cross currencies, and
-  // subtracting one from the other then would be meaningless.
-  const fromCurrency = account?.currency ?? transaction.currency
-  const toCurrency = toAccount?.currency ?? transaction.currency
-  const sameCurrency = fromCurrency === toCurrency
+export function TransactionRow({ transaction: t, category, account, toAccount, person, timeOnly, hideAccount }: TransactionRowProps) {
+  const when = timeOnly ? formatTime(t.date) : formatDateTime(t.date)
+  const href = `/app/transactions/${t.$id}`
 
-  const exchangeLabel = useMemo(() => {
-    if (!isExchange || !account || !toAccount) return ''
-    if (!sameCurrency) return 'Currency exchange'
-    const diff = readToAmountMinor(transaction) - readFromAmountMinor(transaction)
-    if (diff > 0) return `+${formatMoney(diff, toCurrency)}`
-    if (diff < 0) return `-${formatMoney(Math.abs(diff), toCurrency)}`
-    return 'No change'
-  }, [isExchange, account, toAccount, transaction, sameCurrency, toCurrency])
+  if (t.type === 'exchange') {
+    const fromCurrency = account?.currency ?? t.currency
+    const toCurrency = toAccount?.currency ?? t.currency
+    const sent = readFromAmountMinor(t)
+    const received = readToAmountMinor(t)
+    // Each leg is in its own account's currency; only same-currency legs can be
+    // subtracted into a fee or gain.
+    let detail: string | null = null
+    if (fromCurrency !== toCurrency) detail = `→ ${formatMoney(received, toCurrency)}`
+    else if (received < sent) detail = `Fee ${formatMoney(sent - received, fromCurrency)}`
+    else if (received > sent) detail = `Gain ${formatMoney(received - sent, fromCurrency)}`
+    return (
+      <ListRow
+        href={href}
+        leading={<IconTile tone="transfer"><ArrowLeftRight /></IconTile>}
+        title={`${account?.name ?? 'Account'} → ${toAccount?.name ?? 'Account'}`}
+        subtitle={[t.note || 'Transfer', when].join(' · ')}
+        trailing={<Amount value={sent} currency={fromCurrency} tone="transfer" />}
+        trailingSub={detail}
+        chevron={false}
+      />
+    )
+  }
 
-  const exchangeGainLoss = useMemo(() => {
-    if (!isExchange || !sameCurrency) return null
-    return readToAmountMinor(transaction) - readFromAmountMinor(transaction)
-  }, [isExchange, transaction, sameCurrency])
+  if (t.type === 'give' || t.type === 'take') {
+    const gave = t.type === 'give'
+    return (
+      <ListRow
+        href={href}
+        leading={<IconTile tone={gave ? 'expense' : 'income'}>{gave ? <HandCoins /> : <Handshake />}</IconTile>}
+        title={`${gave ? 'Gave to' : 'Got from'} ${person?.name ?? 'someone'}`}
+        subtitle={[t.note, !hideAccount && account?.name, when].filter(Boolean).join(' · ')}
+        trailing={
+          <Amount value={gave ? -readAmountMinor(t) : readAmountMinor(t)} currency={t.currency} tone={gave ? 'expense' : 'income'} showPlus />
+        }
+        chevron={false}
+      />
+    )
+  }
 
+  const income = t.type === 'income'
+  const categoryName = category?.name ?? 'Uncategorized'
+  const headline = t.payee || t.note
+  const subtitle = [headline ? categoryName : t.note, !hideAccount && account?.name, when].filter(Boolean).join(' · ')
   return (
-    <button
-      onClick={onClick}
-      className="flex w-full cursor-pointer items-center gap-3 rounded-[var(--radius-lg)] px-2.5 py-3.5 text-left transition-all duration-200 hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-accent"
-    >
-      <span
-        className={cn(
-          'flex size-11 shrink-0 items-center justify-center rounded-[var(--radius-md)] shadow-[var(--shadow-sm)]',
-          isExchange && 'bg-exchange-soft text-exchange',
-          isPersonType && isGive && 'bg-expense-soft text-expense',
-          isPersonType && isTake && 'bg-income-soft text-income',
-          !isExchange && !isPersonType && (income ? 'bg-income-soft text-income' : 'bg-expense-soft text-expense')
-        )}
-      >
-        <CategoryIcon name={isExchange ? 'arrow-left-right' : isPersonType ? 'users' : category?.icon} className="size-5" />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-[0.9375rem] font-medium text-text-primary">
-          {isExchange ? 'Transfer' : isPersonType ? (person?.name ?? 'Unknown') : (category?.name ?? 'Uncategorized')}
-        </span>
-        {isExchange && account && toAccount ? (
-          <span className="block truncate text-xs text-text-secondary">
-            {account.name} → {toAccount.name}
-          </span>
-        ) : isPersonType ? (
-          <span className="block truncate text-xs text-text-secondary">
-            {isGive ? 'Given to' : 'Received from'} {person?.name} · via {account?.name}
-          </span>
-        ) : (
-          <span className="block truncate text-xs text-text-secondary">
-            {secondLine || formatDateTime(transaction.date)}
-          </span>
-        )}
-        {isExchange && (
-          <span className="block text-xs text-text-tertiary">
-            {formatMoney(readFromAmountMinor(transaction), fromCurrency)} → {formatMoney(readToAmountMinor(transaction), toCurrency)} · {exchangeLabel}
-          </span>
-        )}
-        {!isExchange && (
-          <span className="block text-xs text-text-tertiary">
-            {isPersonType && transaction.note ? transaction.note : formatDateTime(transaction.date)}
-          </span>
-        )}
-      </span>
-      {isExchange ? (
-        <span
-          className={cn(
-            'shrink-0 text-[0.8125rem] font-medium tabular-nums',
-            exchangeGainLoss !== null && exchangeGainLoss > 0 && 'text-income',
-            exchangeGainLoss !== null && exchangeGainLoss < 0 && 'text-expense',
-            exchangeGainLoss === 0 && 'text-text-tertiary'
-          )}
-        >
-          {exchangeGainLoss !== null && exchangeGainLoss > 0 ? `+${formatMoney(exchangeGainLoss, transaction.currency)}` : null}
-          {exchangeGainLoss !== null && exchangeGainLoss < 0 ? formatMoney(exchangeGainLoss, transaction.currency) : null}
-          {exchangeGainLoss === 0 || exchangeGainLoss === null ? '—' : null}
-        </span>
-      ) : isPersonType ? (
-        <span className={cn('shrink-0 text-[0.9375rem] font-semibold tabular-nums', isGive ? 'text-expense' : 'text-income')}>
-          {formatSignedMoney(readAmountMinor(transaction), transaction.currency, transaction.type)}
-        </span>
-      ) : (
-        <span
-          className={cn(
-            'shrink-0 text-[0.9375rem] font-semibold tabular-nums',
-            income ? 'text-income' : 'text-expense'
-          )}
-        >
-          {formatSignedMoney(readAmountMinor(transaction), transaction.currency, income ? 'income' : 'expense')}
-        </span>
-      )}
-    </button>
+    <ListRow
+      href={href}
+      leading={
+        <IconTile tone={income ? 'income' : 'expense'}>
+          <CategoryIcon name={category?.icon} />
+        </IconTile>
+      }
+      title={headline || categoryName}
+      subtitle={subtitle}
+      trailing={
+        <Amount value={income ? readAmountMinor(t) : -readAmountMinor(t)} currency={t.currency} tone={income ? 'income' : 'neutral'} showPlus />
+      }
+      chevron={false}
+    />
   )
 }

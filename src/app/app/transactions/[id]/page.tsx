@@ -1,84 +1,102 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-import { ChevronLeft } from 'lucide-react'
-import { Loader } from '@/components/ui/loader'
+import { SearchX } from 'lucide-react'
+import { ListSkeleton } from '@/components/ui/skeleton'
+import { PageHeader } from '@/components/ui/page-header'
+import { EmptyState } from '@/components/ui/empty-state'
+import { ErrorState } from '@/components/ui/error-state'
+import { BUTTON_BASE, BUTTON_SIZES, BUTTON_VARIANTS } from '@/components/ui/button'
 import { TransactionForm } from '@/components/transactions/transaction-form'
+import { useTransactionActions } from '@/hooks/use-transactions'
 import { useAccounts } from '@/hooks/use-accounts'
-import { useCategories } from '@/hooks/use-categories'
-import { useTransactions } from '@/hooks/use-transactions'
+import { useAllTransactions } from '@/providers/all-transactions-provider'
 import { useToast } from '@/providers/toast-provider'
 import { getTransaction } from '@/lib/supabase/data'
+import { cn } from '@/lib/utils'
 import type { Transaction } from '@/lib/types'
-
-import { usePeople } from '@/hooks/use-people'
 
 export default function EditTransactionPage() {
   const params = useParams<{ id: string }>()
   const router = useRouter()
-  const { accounts, loading: accountsLoading } = useAccounts()
-  const { categories, loading: categoriesLoading } = useCategories()
-  const { people, loading: peopleLoading } = usePeople()
-  const { update, remove } = useTransactions({})
+  const { loading: accountsLoading } = useAccounts()
+  const { transactions, loading: historyLoading } = useAllTransactions()
+  const { restore } = useTransactionActions()
   const { toast } = useToast()
+  const cached = transactions.find((t) => t.$id === params.id) ?? null
+  const [fetched, setFetched] = useState<Transaction | null>(null)
+  const [state, setState] = useState<'idle' | 'missing' | 'error'>('idle')
+  const [attempt, setAttempt] = useState(0)
+
+  // Snapshot what is being edited so a background refresh doesn't reset the form.
   const [initial, setInitial] = useState<Transaction | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    // Once the form has its data (or the row was just deleted here), stop fetching.
+    if (cached || historyLoading || initial) return
     let active = true
     getTransaction(params.id)
       .then((t) => {
-        if (active) setInitial(t)
+        if (active) setFetched(t)
       })
-      .catch((e) => {
-        if (active) setError(e instanceof Error ? e.message : 'Failed to load transaction')
-      })
-      .finally(() => {
-        if (active) setLoading(false)
+      .catch((e: Error) => {
+        if (active) setState(/0 rows|not found|PGRST116/i.test(e.message) ? 'missing' : 'error')
       })
     return () => {
       active = false
     }
-  }, [params.id])
+  }, [cached, historyLoading, initial, params.id, attempt])
+
+  const source = cached ?? fetched
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (source && !initial) setInitial(source)
+  }, [source, initial])
+
+  const back = () => (window.history.length > 1 ? router.back() : router.push('/app/transactions'))
 
   return (
-    <div className="space-y-5">
-      <button
-        onClick={() => router.back()}
-        className="flex items-center gap-1 text-sm font-medium text-text-secondary hover:text-text-primary"
-      >
-        <ChevronLeft className="size-4" /> Back
-      </button>
-      <div>
-        <h1 className="text-xl font-bold tracking-tight text-text-primary">Edit transaction</h1>
-        <p className="mt-0.5 text-sm text-text-secondary">Update the details below</p>
-      </div>
-      {loading || accountsLoading || categoriesLoading || peopleLoading ? (
-        <Loader className="py-12" />
-      ) : error ? (
-        <p className="rounded-[var(--radius-md)] bg-expense-soft px-3.5 py-2.5 text-sm text-expense">
-          {error}
-        </p>
-      ) : initial ? (
+    <div className="mx-auto max-w-xl space-y-6">
+      <PageHeader title="Edit transaction" className="hidden md:flex" />
+      {state === 'missing' ? (
+        <EmptyState
+          icon={<SearchX />}
+          title="Transaction not found"
+          description="It may have been deleted on another device."
+          action={
+            <Link href="/app/transactions" className={cn(BUTTON_BASE, BUTTON_VARIANTS.primary, BUTTON_SIZES.md)}>
+              Back to Activity
+            </Link>
+          }
+        />
+      ) : state === 'error' ? (
+        <ErrorState what="this transaction" onRetry={() => { setState('idle'); setAttempt((a) => a + 1) }} />
+      ) : !initial || accountsLoading ? (
+        <ListSkeleton rows={5} />
+      ) : (
         <TransactionForm
-          accounts={accounts}
-          categories={categories}
-          people={people}
+          variant="page"
           initial={initial}
-          submitLabel="Save changes"
-          onCancel={() => router.back()}
-          onSubmit={async (values) => {
-            await update(initial.$id, values)
-            toast('Transaction updated', 'success')
+          onCancel={back}
+          onSaved={() => {
+            toast('Changes saved', 'success')
+            back()
           }}
-          onDelete={async () => {
-            await remove(initial.$id)
-            toast('Transaction deleted', 'success')
+          onDeleted={(deleted) => {
+            toast('Transaction deleted', 'success', {
+              action: {
+                label: 'Undo',
+                onClick: () => {
+                  restore(deleted).catch(() => toast("Couldn't restore it. Please add it again.", 'error'))
+                },
+              },
+            })
+            back()
           }}
         />
-      ) : null}
+      )}
     </div>
   )
 }

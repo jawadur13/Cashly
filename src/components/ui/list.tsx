@@ -128,7 +128,7 @@ export function SectionHeader({
   className?: string
 }) {
   return (
-    <div className={cn('mb-2.5 flex min-h-8 items-end justify-between gap-3 px-1', className)}>
+    <div className={cn('mb-1.5 flex min-h-11 items-center justify-between gap-3 px-1', className)}>
       <h2 className="text-xs font-semibold uppercase tracking-[0.06em] text-text-secondary">{title}</h2>
       {action}
     </div>

@@ -14,7 +14,12 @@ import type { Transaction } from '@/lib/types'
  * this one.
  *
  * Anything that writes a transaction must call `refresh`, or the derived
- * balances will keep showing the pre-write numbers.
+ * balances will keep showing the pre-write numbers. `upsertLocal` and
+ * `removeLocal` update the shared copy immediately so the screen answers at
+ * once; the refresh that follows brings it in line with the server.
+ *
+ * `loading` is only true until the first successful load. Later refreshes run
+ * in the background without blanking every screen into skeletons.
  */
 interface AllTransactionsValue {
   transactions: Transaction[]
@@ -23,6 +28,8 @@ interface AllTransactionsValue {
    *  failed load would read as a confident zero, so callers must show this. */
   error: string | null
   refresh: () => Promise<void>
+  upsertLocal: (transaction: Transaction) => void
+  removeLocal: (id: string) => void
 }
 
 const AllTransactionsContext = createContext<AllTransactionsValue | undefined>(undefined)
@@ -34,6 +41,8 @@ export function AllTransactionsProvider({ children }: { children: React.ReactNod
   const [error, setError] = useState<string | null>(null)
   // Guards against an earlier, slower fetch overwriting a later one.
   const seqRef = useRef(0)
+  // Whose history is on screen: a different user (or none) shows skeletons again.
+  const loadedFor = useRef<string | null>(null)
 
   const refresh = useCallback(async () => {
     const seq = ++seqRef.current
@@ -43,8 +52,7 @@ export function AllTransactionsProvider({ children }: { children: React.ReactNod
       setLoading(false)
       return
     }
-    setLoading(true)
-    setError(null)
+    if (loadedFor.current !== user.$id) setLoading(true)
     try {
       const PAGE_SIZE = 500
       let all: Transaction[] = []
@@ -58,10 +66,16 @@ export function AllTransactionsProvider({ children }: { children: React.ReactNod
         offset += res.documents.length
         if (res.documents.length === 0) break
       } while (offset < total)
-      if (seqRef.current === seq) setTransactions(all)
+      if (seqRef.current === seq) {
+        setTransactions(all)
+        setError(null)
+        loadedFor.current = user.$id
+      }
     } catch (e) {
       if (seqRef.current === seq) {
+        // Never leave numbers on screen that are known to be incomplete.
         setTransactions([])
+        loadedFor.current = null
         setError(e instanceof Error ? e.message : 'Failed to load transactions')
       }
     } finally {
@@ -74,8 +88,22 @@ export function AllTransactionsProvider({ children }: { children: React.ReactNod
     refresh()
   }, [refresh])
 
+  const upsertLocal = useCallback((transaction: Transaction) => {
+    setTransactions((prev) => {
+      const index = prev.findIndex((t) => t.$id === transaction.$id)
+      if (index === -1) return [transaction, ...prev]
+      const next = [...prev]
+      next[index] = transaction
+      return next
+    })
+  }, [])
+
+  const removeLocal = useCallback((id: string) => {
+    setTransactions((prev) => prev.filter((t) => t.$id !== id))
+  }, [])
+
   return (
-    <AllTransactionsContext.Provider value={{ transactions, loading, error, refresh }}>
+    <AllTransactionsContext.Provider value={{ transactions, loading, error, refresh, upsertLocal, removeLocal }}>
       {children}
     </AllTransactionsContext.Provider>
   )

@@ -1,51 +1,51 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
-import { ChevronLeft } from 'lucide-react'
-import { Loader } from '@/components/ui/loader'
+import { Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { ListSkeleton } from '@/components/ui/skeleton'
+import { PageHeader } from '@/components/ui/page-header'
 import { TransactionForm } from '@/components/transactions/transaction-form'
+import { TYPE_LABELS } from '@/components/transactions/transaction-row'
 import { useAccounts } from '@/hooks/use-accounts'
-import { useCategories } from '@/hooks/use-categories'
-import { useTransactions } from '@/hooks/use-transactions'
 import { useToast } from '@/providers/toast-provider'
+import type { TransactionType } from '@/lib/types'
 
-import { usePeople } from '@/hooks/use-people'
+const TYPES: TransactionType[] = ['expense', 'income', 'exchange', 'give', 'take']
 
-export default function NewTransactionPage() {
+function NewTransaction() {
   const router = useRouter()
-  const { accounts, loading: accountsLoading } = useAccounts()
-  const { categories, loading: categoriesLoading } = useCategories()
-  const { people, loading: peopleLoading } = usePeople()
-  const { add } = useTransactions({})
+  const params = useSearchParams()
+  const { loading } = useAccounts()
   const { toast } = useToast()
+  const typeParam = params.get('type') as TransactionType | null
+
+  if (loading) return <ListSkeleton rows={5} />
 
   return (
-    <div className="space-y-5">
-      <button
-        onClick={() => router.back()}
-        className="flex items-center gap-1 text-sm font-medium text-text-secondary hover:text-text-primary"
-      >
-        <ChevronLeft className="size-4" /> Back
-      </button>
-      <div>
-        <h1 className="text-xl font-bold tracking-tight text-text-primary">New transaction</h1>
-        <p className="text-sm text-text-secondary">Record income, expense, or transfer</p>
-      </div>
-      {(accountsLoading || categoriesLoading || peopleLoading) ? (
-        <Loader className="py-12" />
-      ) : (
-        <TransactionForm
-          accounts={accounts}
-          categories={categories}
-          people={people}
-          submitLabel="Save transaction"
-          onCancel={() => router.back()}
-          onSubmit={async (values) => {
-            await add(values)
-            toast('Transaction saved', 'success')
-          }}
-        />
-      )}
+    <TransactionForm
+      variant="page"
+      preset={{
+        type: typeParam && TYPES.includes(typeParam) ? typeParam : undefined,
+        accountId: params.get('account') ?? undefined,
+        personId: params.get('person') ?? undefined,
+      }}
+      onCancel={() => router.back()}
+      onSaved={(saved, { addAnother }) => {
+        toast(`${TYPE_LABELS[saved.type]} saved`, 'success')
+        if (!addAnother) router.back()
+      }}
+    />
+  )
+}
+
+/** Deep-linkable full-page version of the quick-add sheet. */
+export default function NewTransactionPage() {
+  return (
+    <div className="mx-auto max-w-xl space-y-6">
+      <PageHeader title="New transaction" className="hidden md:flex" />
+      <Suspense fallback={<ListSkeleton rows={5} />}>
+        <NewTransaction />
+      </Suspense>
     </div>
   )
 }

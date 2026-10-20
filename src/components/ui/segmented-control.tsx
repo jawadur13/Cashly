@@ -75,7 +75,7 @@ export function SegmentedControl<T extends string>({
             onClick={() => onChange(option.value)}
             onKeyDown={(e) => onKeyDown(e, index)}
             className={cn(
-              'relative z-10 min-h-11 truncate rounded-[var(--radius-full)] px-2 text-sm font-semibold transition-colors duration-[var(--dur-base)] cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring',
+              'relative z-10 min-h-11 truncate rounded-[var(--radius-full)] px-1 text-[0.8125rem] font-semibold min-[420px]:text-sm transition-colors duration-[var(--dur-base)] cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring',
               selected ? 'text-text-primary' : 'text-text-secondary hover:text-text-primary',
               selected && option.value === 'income' && 'text-income',
               selected && option.value === 'expense' && 'text-expense',

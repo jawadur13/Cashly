@@ -10,13 +10,15 @@ import type { Category, TransactionType } from '@/lib/types'
 
 interface CategoryFormProps {
   initial?: Category
+  /** Pre-selected type when creating, e.g. from inside an expense. */
+  defaultType?: TransactionType
   onSubmit: (values: { type: TransactionType; name: string; icon: string }) => Promise<void>
   onCancel: () => void
   submitLabel: string
 }
 
-export function CategoryForm({ initial, onSubmit, onCancel, submitLabel }: CategoryFormProps) {
-  const [type, setType] = useState<TransactionType>(initial?.type ?? 'expense')
+export function CategoryForm({ initial, defaultType, onSubmit, onCancel, submitLabel }: CategoryFormProps) {
+  const [type, setType] = useState<TransactionType>(initial?.type ?? defaultType ?? 'expense')
   const [name, setName] = useState(initial?.name ?? '')
   const [icon, setIcon] = useState(initial?.icon ?? 'receipt')
   const [error, setError] = useState<string | null>(null)

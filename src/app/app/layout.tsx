@@ -115,9 +115,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </main>
           </div>
 
-          <div className="md:hidden">
-            <BottomNav />
-          </div>
+          {/* Form screens have their own sticky save bar. */}
+          {!detail?.title.match(/transaction/i) && (
+            <div className="md:hidden">
+              <BottomNav />
+            </div>
+          )}
           <MeSheet open={meOpen} onClose={() => setMeOpen(false)} />
         </div>
       </QuickAddProvider>
