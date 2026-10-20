@@ -56,7 +56,7 @@ export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
         </Link>
       </div>
 
-      <div className={cn('pb-3 pt-1', collapsed ? 'px-3' : 'px-4')}>
+      <div className={cn('pb-4 pt-1', collapsed ? 'px-3' : 'px-4')}>
         <button
           type="button"
           onClick={() => open()}
@@ -72,14 +72,14 @@ export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
         </button>
       </div>
 
-      <nav aria-label="Main" className={cn('flex-1 space-y-6 overflow-y-auto py-2', collapsed ? 'px-3' : 'px-4')}>
-        <div className="space-y-1">
+      <nav aria-label="Main" className={cn('scrollbar-subtle min-h-0 flex-1 space-y-5 overflow-y-auto py-1', collapsed ? 'px-3' : 'px-4')}>
+        <div className="space-y-0.5">
           {!collapsed && <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-[0.06em] text-text-tertiary">Overview</p>}
           {PRIMARY_NAV.map((item) => (
             <NavLink key={item.href} item={item} active={isActive(pathname, item.href)} collapsed={collapsed} />
           ))}
         </div>
-        <div className="space-y-1">
+        <div className="space-y-0.5">
           {!collapsed && <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-[0.06em] text-text-tertiary">Manage</p>}
           {MANAGE_NAV.map((item) => (
             <NavLink key={item.href} item={item} active={isActive(pathname, item.href)} collapsed={collapsed} />
@@ -87,7 +87,7 @@ export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
         </div>
       </nav>
 
-      <div className={cn('border-t border-border p-3', collapsed && 'flex flex-col items-center gap-2')}>
+      <div className={cn('border-t border-border p-3', collapsed && 'flex flex-col items-center gap-1')}>
         <div className={cn('flex items-center', collapsed ? 'flex-col gap-2' : 'gap-3')}>
           <span
             className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-on-primary"
@@ -118,9 +118,10 @@ export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
           type="button"
           onClick={onToggleCollapse}
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           className={cn(
-            'pressable mt-2 flex min-h-11 items-center justify-center gap-2 rounded-[var(--radius-md)] text-xs font-medium text-text-tertiary hover:bg-surface-hover hover:text-text-primary',
-            collapsed ? 'size-11' : 'w-full'
+            'pressable flex items-center justify-center gap-2 rounded-[var(--radius-md)] text-xs font-medium text-text-tertiary hover:bg-surface-hover hover:text-text-primary',
+            collapsed ? 'mt-1 size-11' : 'mt-1 min-h-11 w-full'
           )}
         >
           {collapsed ? <ChevronsRight className="size-4" aria-hidden /> : <><ChevronsLeft className="size-4" aria-hidden /> Collapse</>}

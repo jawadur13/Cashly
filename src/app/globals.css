@@ -249,6 +249,25 @@
   .animate-page-in {
     animation: page-in var(--dur-base) var(--ease-out) both;
   }
+  /* Thin, transparent until hovered — for panels that only sometimes overflow. */
+  .scrollbar-subtle {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+  .scrollbar-subtle:hover,
+  .scrollbar-subtle:focus-within {
+    scrollbar-color: var(--border-strong) transparent;
+  }
+  .scrollbar-subtle::-webkit-scrollbar {
+    width: 6px;
+  }
+  .scrollbar-subtle::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: 999px;
+  }
+  .scrollbar-subtle:hover::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+  }
   .scrollbar-none {
     scrollbar-width: none;
   }
