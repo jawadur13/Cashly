@@ -3,9 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase/client'
-import { createAccount } from '@/lib/supabase/data'
 import { DEFAULT_CURRENCY } from '@/lib/currency/currencies'
-import { DEFAULT_ACCOUNTS } from '@/lib/constants'
 
 interface User {
   $id: string
@@ -68,18 +66,14 @@ async function loadUser(authUser: SupabaseUser): Promise<User> {
   }
 }
 
+/**
+ * New users start with only a profile. Accounts are chosen on /app/welcome:
+ * an account's currency can never change, so creating four BDT accounts before
+ * asking anything left non-BDT users deleting them.
+ */
 async function seedNewUser(userId: string): Promise<void> {
   const { error } = await supabase.from('profiles').update({ default_currency: DEFAULT_CURRENCY }).eq('id', userId)
   if (error) throw new Error(error.message)
-  for (const acc of DEFAULT_ACCOUNTS) {
-    await createAccount({
-      userId,
-      name: acc.name,
-      type: acc.type,
-      currency: DEFAULT_CURRENCY,
-      isDefault: true,
-    })
-  }
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {

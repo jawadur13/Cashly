@@ -33,7 +33,7 @@ export default function RegisterPage() {
     setLoading(true)
     try {
       await signUp(name, email, password)
-      router.replace('/app')
+      router.replace('/app/welcome')
     } catch (err) {
       setErrors({ form: err instanceof Error ? err.message : 'Registration failed' })
     } finally {
@@ -42,14 +42,15 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="rounded-[var(--radius-lg)] border border-border bg-surface p-6 shadow-[var(--shadow-lg)] md:p-8">
-      <h1 className="mb-1 text-xl font-bold text-text-primary">Create your account</h1>
-      <p className="mb-5 text-sm text-text-secondary">Start tracking your money in minutes.</p>
+    <div>
+      <h1 className="text-2xl font-semibold tracking-tight text-text-primary">Create your account</h1>
+      <p className="mb-6 mt-1 text-sm text-text-secondary">Free, private, and set up in under a minute.</p>
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
         <Input
           name="name"
           label="Name"
           autoComplete="name"
+          autoFocus
           value={name}
           onChange={(e) => setName(e.target.value)}
           error={errors.name}
@@ -85,13 +86,15 @@ export default function RegisterPage() {
           showPasswordToggle
         />
         {errors.form && (
-          <p className="rounded-[var(--radius-md)] border border-expense/30 bg-expense-soft px-3.5 py-2.5 text-sm font-medium text-expense">{errors.form}</p>
+          <p role="alert" className="rounded-[var(--radius-md)] border border-expense/30 bg-expense-soft px-3.5 py-2.5 text-sm font-medium text-expense">{errors.form}</p>
         )}
         <Button type="submit" fullWidth loading={loading}>Create account</Button>
       </form>
-      <p className="mt-4 text-center text-sm">
-        <span className="text-text-secondary">Already have an account? </span>
-        <Link href="/auth/login" className="font-medium text-accent hover:underline">Log in</Link>
+      <p className="mt-5 text-center text-sm text-text-secondary">
+        Already have an account?{' '}
+        <Link href="/auth/login" className="inline-flex min-h-11 items-center px-1 font-semibold text-accent hover:underline">
+          Log in
+        </Link>
       </p>
     </div>
   )

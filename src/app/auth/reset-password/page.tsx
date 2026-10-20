@@ -119,9 +119,9 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <div className="rounded-[var(--radius-lg)] border border-border bg-surface p-6 shadow-[var(--shadow-lg)] md:p-8">
-      <h1 className="mb-1 text-xl font-bold text-text-primary">Set a new password</h1>
-      <p className="mb-5 text-sm text-text-secondary">Choose a strong password for your account.</p>
+    <div>
+      <h1 className="text-2xl font-semibold tracking-tight text-text-primary">Set a new password</h1>
+      <p className="mb-6 mt-1 text-sm text-text-secondary">Choose a strong password for your account.</p>
       <Suspense fallback={<p className="text-sm text-text-tertiary">Loading…</p>}>
         <ResetPasswordForm />
       </Suspense>

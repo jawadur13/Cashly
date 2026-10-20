@@ -30,15 +30,16 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="rounded-[var(--radius-lg)] border border-border bg-surface p-6 shadow-[var(--shadow-lg)] md:p-8">
-      <h1 className="mb-1 text-xl font-bold tracking-tight text-text-primary">Welcome back</h1>
-      <p className="mb-5 text-sm text-text-secondary">Log in to your Cashly account.</p>
+    <div>
+      <h1 className="text-2xl font-semibold tracking-tight text-text-primary">Welcome back</h1>
+      <p className="mb-6 mt-1 text-sm text-text-secondary">Log in to see where your money stands.</p>
       <form onSubmit={handleSubmit} className="space-y-4">
         <Input
           name="email"
           type="email"
           label="Email"
           autoComplete="email"
+          autoFocus
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -54,16 +55,20 @@ export default function LoginPage() {
           showPasswordToggle
         />
         {error && (
-          <p className="rounded-[var(--radius-md)] border border-expense/30 bg-expense-soft px-3.5 py-2.5 text-sm font-medium text-expense">{error}</p>
+          <p role="alert" className="rounded-[var(--radius-md)] border border-expense/30 bg-expense-soft px-3.5 py-2.5 text-sm font-medium text-expense">{error}</p>
         )}
         <Button type="submit" fullWidth loading={loading}>Log in</Button>
       </form>
-      <div className="mt-4 space-y-1.5 text-center text-sm">
-        <div>
-          <span className="text-text-secondary">Don&apos;t have an account? </span>
-          <Link href="/auth/register" className="font-medium text-accent hover:underline">Register</Link>
-        </div>
-        <Link href="/auth/forgot-password" className="text-accent hover:underline">Forgot password?</Link>
+      <div className="mt-5 flex flex-col items-center gap-1 text-sm">
+        <Link href="/auth/forgot-password" className="inline-flex min-h-11 items-center px-2 font-medium text-accent hover:underline">
+          Forgot password?
+        </Link>
+        <p className="text-text-secondary">
+          New to Cashly?{' '}
+          <Link href="/auth/register" className="inline-flex min-h-11 items-center px-1 font-semibold text-accent hover:underline">
+            Create an account
+          </Link>
+        </p>
       </div>
     </div>
   )

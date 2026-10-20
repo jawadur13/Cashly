@@ -64,6 +64,7 @@ export async function GET(
   }
 
   return NextResponse.json({
+    asOf: new Date().toISOString(),
     personName: share.person_name,
     sharedByName: share.shared_by_name,
     currency,

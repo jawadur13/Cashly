@@ -7,7 +7,9 @@
  * their surfaces in both themes. See UI-UX-PREMIUM-PLAN.md §3.
  */
 
-:root {
+/* [data-theme="light"] lets a subtree (the landing preview) stay light inside dark mode. */
+:root,
+[data-theme="light"] {
   /* ——— Primitive layer ——— */
   --navy-950: #0b1220;
   --navy-900: #0f172a;

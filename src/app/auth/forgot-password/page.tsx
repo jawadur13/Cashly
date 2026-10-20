@@ -15,9 +15,9 @@ export default function ForgotPasswordPage() {
 
 function ContactForReset({ email }: { email: string }) {
   return (
-    <div className="rounded-[var(--radius-lg)] border border-border bg-surface p-6 shadow-[var(--shadow-lg)] md:p-8">
-      <h1 className="mb-1 text-xl font-bold text-text-primary">Reset your password</h1>
-      <p className="text-sm text-text-secondary">
+    <div>
+      <h1 className="text-2xl font-semibold tracking-tight text-text-primary">Reset your password</h1>
+      <p className="mt-2 text-sm text-text-secondary">
         Password reset by email is not available right now. Email{' '}
         <a href={`mailto:${email}?subject=Cashly%20password%20reset`} className="font-medium text-accent hover:underline">
           {email}
@@ -54,9 +54,9 @@ function ResetByEmail() {
   }
 
   return (
-    <div className="rounded-[var(--radius-lg)] border border-border bg-surface p-6 shadow-[var(--shadow-lg)] md:p-8">
-      <h1 className="mb-1 text-xl font-bold text-text-primary">Reset your password</h1>
-      <p className="mb-5 text-sm text-text-secondary">
+    <div>
+      <h1 className="text-2xl font-semibold tracking-tight text-text-primary">Reset your password</h1>
+      <p className="mb-6 mt-1 text-sm text-text-secondary">
         Enter your email and we&apos;ll send you a link to set a new password.
       </p>
       {sent ? (

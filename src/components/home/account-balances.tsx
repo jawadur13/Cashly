@@ -86,10 +86,10 @@ export function AccountBalances({ accounts, balances, defaultCurrency, loading, 
         </div>
       ) : accounts.length === 0 ? (
         <Link
-          href="/app/accounts"
+          href="/app/welcome"
           className="flex min-h-16 items-center justify-center gap-2 rounded-[var(--radius-lg)] border border-dashed border-border-strong text-sm font-semibold text-text-secondary hover:bg-surface"
         >
-          <Plus className="size-4" aria-hidden /> Add your first account
+          <Plus className="size-4" aria-hidden /> Set up your accounts
         </Link>
       ) : layout === 'carousel' ? (
         <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-2 scrollbar-none">
