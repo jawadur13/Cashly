@@ -3,11 +3,12 @@
  * proves the copy is exact. Appwrite is only read, through
  * lib/appwrite-readonly.mjs, for the final "did anything change" check.
  *
- *   npx vite-node --config vitest.config.ts scripts/copy-to-supabase.ts <snapshot.json>
+ *   npx vite-node --config vitest.config.ts scripts/copy-to-supabase.ts <snapshot.json> [--final]
  *
  * Until cutover every run starts by RESETTING Supabase: it deletes the users
- * and rows a previous run created, then copies again. Once migration.state has
- * a row (set at cutover) the script refuses to run at all.
+ * and rows a previous run created, then copies again. --final marks the copy
+ * as the one going live (migration.state) when, and only when, every check
+ * passed; from then on the script refuses to run at all.
  *
  * Exit code 0 only when every check passed.
  */
@@ -51,9 +52,11 @@ const step = (msg: string) => console.log(`\n== ${msg}`)
 
 // ---------------------------------------------------------------- load
 
-const snapshotFile = process.argv[2]
+const args = process.argv.slice(2)
+const isFinal = args.includes('--final')
+const snapshotFile = args.find((a) => !a.startsWith('--'))
 if (!snapshotFile) {
-  console.error('usage: copy-to-supabase.ts <snapshot.json>')
+  console.error('usage: copy-to-supabase.ts <snapshot.json> [--final]')
   process.exit(2)
 }
 const raw = readFileSync(snapshotFile, 'utf8')
@@ -409,6 +412,13 @@ for (const c of appwrite.COLLECTIONS as (keyof Snapshot['collections'])[]) {
   if (fingerprint(now.rows) !== fingerprint(snap.collections[c])) fail(`Appwrite ${c} changed after the snapshot was taken`)
 }
 console.log('  compared every id and $updatedAt')
+
+if (isFinal && failures.length === 0) {
+  await db.query('insert into migration.state (cutover_at) values (now())')
+  console.log('\nMarked as the live copy. This script will not reset Supabase again.')
+} else if (isFinal) {
+  console.log('\nNOT marked live: fix the problems below and run again.')
+}
 
 await finish()
 
