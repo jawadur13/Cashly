@@ -4,7 +4,7 @@
  * requests always go to the network. Bump CACHE_NAME whenever this file's
  * caching rules change, so old caches are dropped on activate.
  */
-const CACHE_NAME = 'cashly-v2'
+const CACHE_NAME = 'cashly-v3'
 const SHELL_URLS = ['/', '/auth/login', '/auth/register', '/manifest.webmanifest', '/icon', '/apple-icon']
 
 self.addEventListener('install', (event) => {
