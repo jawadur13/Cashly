@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dayKey, formatDayHeading, formatMoney, formatSignedMoney, MINUS, moneyParts } from './format'
+import { dayKey, formatCompact, formatDayHeading, formatMoney, formatSignedMoney, MINUS, moneyParts } from './format'
 
 // Intl output varies slightly by runtime (spacing, currency marker), so the
 // tests assert on the parts that matter: the figure, decimals and sign.
@@ -67,5 +67,13 @@ describe('day grouping', () => {
   it('adds the year only for other years', () => {
     expect(formatDayHeading(new Date(2025, 0, 3), now)).toMatch(/2025/)
     expect(formatDayHeading(new Date(2026, 0, 3), now)).not.toMatch(/2026/)
+  })
+})
+
+describe('formatCompact', () => {
+  it('shortens large figures for chart axes', () => {
+    expect(formatCompact(8500000)).toBe('85K')
+    expect(formatCompact(12500000000)).toBe('125M')
+    expect(formatCompact(0)).toBe('0')
   })
 })

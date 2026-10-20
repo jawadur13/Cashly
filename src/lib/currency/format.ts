@@ -137,3 +137,8 @@ export function formatDayHeading(date: string | Date, now: Date = new Date()): s
     ...(d.getFullYear() === now.getFullYear() ? {} : { year: 'numeric' }),
   })
 }
+
+/** Short figure for chart axes: 85000_00 → "85K". No currency, no decimals beyond one. */
+export function formatCompact(minorAmount: number): string {
+  return new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(fromMinorUnits(minorAmount))
+}

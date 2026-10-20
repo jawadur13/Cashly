@@ -1,19 +1,21 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import {
-  ArrowDownRight, ArrowUpRight, Receipt, TrendingUp,
-  Users, Calendar, Zap, BarChart3,
-} from 'lucide-react'
-import { Skeleton } from '@/components/ui/skeleton'
+import Link from 'next/link'
+import { BarChart3, ChevronLeft, ChevronRight, TrendingDown, TrendingUp } from 'lucide-react'
+import { Amount } from '@/components/ui/amount'
+import { Button } from '@/components/ui/button'
+import { CategoryIcon } from '@/components/ui/category-icon'
 import { EmptyState } from '@/components/ui/empty-state'
 import { ErrorState } from '@/components/ui/error-state'
-import { CategoryIcon } from '@/components/ui/category-icon'
-import { Select } from '@/components/ui/select'
+import { PageHeader } from '@/components/ui/page-header'
+import { SectionHeader } from '@/components/ui/list'
 import { SegmentedControl } from '@/components/ui/segmented-control'
-import { formatMoney } from '@/lib/currency/format'
+import { Skeleton } from '@/components/ui/skeleton'
+import { useQuickAdd } from '@/components/transactions/quick-add'
+import { formatCompact, formatMoney } from '@/lib/currency/format'
 import { monthPeriod, previousMonthPeriod, previousYearPeriod, yearPeriod } from '@/lib/calculations'
-import { CHART_HEIGHT, barHeightPx, chartScale } from '@/lib/chart'
+import { chartScale } from '@/lib/chart'
 import { cn } from '@/lib/utils'
 import { useSettings } from '@/providers/settings-provider'
 import { useCategories } from '@/hooks/use-categories'
@@ -28,386 +30,361 @@ const SCOPE_OPTIONS = [
   { value: 'all' as const, label: 'All time' },
 ]
 
-function buildMonthOptions() {
+const MONTHS_BACK = 36
+const YEARS_BACK = 6
+
+function monthKeyFor(offset: number) {
   const now = new Date()
-  const options: { key: string; label: string }[] = []
-  for (let i = 0; i < 24; i += 1) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-    const label = d.toLocaleString(undefined, { month: 'long', year: 'numeric' })
-    options.push({ key, label })
-  }
-  return options
+  const d = new Date(now.getFullYear(), now.getMonth() - offset, 1)
+  return { key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`, date: d }
 }
 
-function buildYearOptions() {
-  const current = new Date().getFullYear()
-  return Array.from({ length: 6 }, (_, i) => current - i)
+/** Trend chip. Whether rising is good depends on the metric (AGENTS.md). */
+function Trend({ value, goodWhenUp, label }: { value: number | null; goodWhenUp: boolean; label: string }) {
+  if (value === null || !Number.isFinite(value)) return null
+  const up = value > 0
+  const good = value === 0 ? null : up === goodWhenUp
+  const Icon = up ? TrendingUp : TrendingDown
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold',
+        good === null ? 'bg-white/10 text-hero-muted' : good ? 'bg-[var(--green-400)]/15 text-[var(--green-400)]' : 'bg-[var(--red-400)]/15 text-[var(--red-400)]'
+      )}
+    >
+      <Icon className="size-3.5" aria-hidden />
+      {label} {up ? '+' : ''}
+      {Math.round(value)}%
+    </span>
+  )
 }
 
-export default function SummaryPage() {
-  const monthOptions = useMemo(() => buildMonthOptions(), [])
-  const yearOptions = buildYearOptions()
+function Hero({ data, currency, periodLabel, compareLabel }: { data: SummaryData; currency: string; periodLabel: string; compareLabel: string | null }) {
+  const rate = data.savingsRate
+  const ring = Math.max(0, Math.min(1, rate ?? 0))
+  const c = 2 * Math.PI * 22
+  return (
+    <section aria-label="Overview" className="hero-panel gold-hairline overflow-hidden rounded-[var(--radius-xl)] p-5 shadow-[var(--shadow-lg)] md:p-7">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-hero-muted">Net saved · {periodLabel}</p>
+          <Amount
+            value={data.savings}
+            currency={currency}
+            className="mt-1 text-[2.125rem] font-semibold leading-tight tracking-tight md:text-[2.5rem]"
+            currencyClassName="text-[0.5em] font-medium opacity-70"
+          />
+        </div>
+        {rate !== null && (
+          <div className="relative shrink-0" aria-label={`${Math.round(rate * 100)} percent of income saved`}>
+            <svg viewBox="0 0 52 52" className="size-16 -rotate-90" aria-hidden>
+              <circle cx="26" cy="26" r="22" fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="5" />
+              <circle cx="26" cy="26" r="22" fill="none" stroke="var(--gold-300)" strokeWidth="5" strokeLinecap="round" strokeDasharray={`${ring * c} ${c}`} />
+            </svg>
+            <span className="absolute inset-0 flex flex-col items-center justify-center text-sm font-semibold leading-none">
+              {Math.round(Math.max(-99, Math.min(100, rate * 100)))}%
+              <span className="mt-0.5 text-[0.625rem] font-medium text-hero-muted">saved</span>
+            </span>
+          </div>
+        )}
+      </div>
+      <dl className="mt-5 grid grid-cols-2 gap-3 border-t border-white/10 pt-4">
+        <div>
+          <dt className="text-xs font-medium text-hero-muted">Income</dt>
+          <dd><Amount value={data.income} currency={currency} className="text-base font-semibold" /></dd>
+        </div>
+        <div>
+          <dt className="text-xs font-medium text-hero-muted">Spending</dt>
+          <dd><Amount value={data.expense} currency={currency} className="text-base font-semibold" /></dd>
+        </div>
+      </dl>
+      {compareLabel && (data.incomeTrend !== null || data.expenseTrend !== null) && (
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <span className="text-xs text-hero-muted">vs {compareLabel}</span>
+          <Trend value={data.incomeTrend} goodWhenUp label="Income" />
+          <Trend value={data.expenseTrend} goodWhenUp={false} label="Spending" />
+        </div>
+      )}
+    </section>
+  )
+}
 
+function CashFlowChart({ months, currency }: { months: MonthlyBar[]; currency: string }) {
+  const [selected, setSelected] = useState<number | null>(null)
+  const height = 160
+  const scale = chartScale(months.flatMap((m) => [m.income, m.expense]))
+  const ticks = [scale, scale / 2]
+  const focus = selected !== null ? months[selected] : null
+  const px = (v: number) => (v <= 0 ? 0 : Math.max(3, Math.round((v / scale) * height)))
+
+  return (
+    <section aria-label="Cash flow">
+      <SectionHeader title="Cash flow · 12 months" />
+      <div className="rounded-[var(--radius-lg)] bg-surface p-4 shadow-[var(--shadow-sm)] ring-1 ring-border md:p-5">
+        <div className="mb-4 flex min-h-11 flex-wrap items-center justify-between gap-x-4 gap-y-1">
+          {focus ? (
+            <p className="text-sm text-text-secondary">
+              <span className="font-semibold text-text-primary">{focus.label}</span> · In{' '}
+              <Amount value={focus.income} currency={currency} tone="income" className="font-semibold" /> · Out{' '}
+              <Amount value={focus.expense} currency={currency} className="font-semibold" />
+            </p>
+          ) : (
+            <p className="text-sm text-text-tertiary">Tap a month for its numbers</p>
+          )}
+          <div className="flex items-center gap-3 text-xs text-text-secondary" aria-hidden>
+            <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-sm bg-income" /> Income</span>
+            <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-sm bg-[var(--navy-700)] [[data-theme=dark]_&]:bg-accent" /> Spending</span>
+          </div>
+        </div>
+        <div className="relative" aria-hidden>
+          <div className="pointer-events-none absolute inset-x-0 top-0" style={{ height }}>
+            {ticks.map((t, i) => (
+              <div key={i} className="absolute inset-x-0 flex items-center gap-2" style={{ top: `${i * 50}%` }}>
+                <span className="w-9 shrink-0 text-right text-[0.6875rem] tabular-nums text-text-tertiary">{formatCompact(t)}</span>
+                <span className="h-px flex-1 border-t border-dashed border-border" />
+              </div>
+            ))}
+            <div className="absolute inset-x-0 bottom-0 ml-11 h-px bg-border-strong" />
+          </div>
+          <div className="ml-11 flex items-end gap-1" style={{ height }}>
+            {months.map((m, i) => (
+              <button
+                key={m.month}
+                type="button"
+                tabIndex={-1}
+                onClick={() => setSelected(selected === i ? null : i)}
+                className={cn(
+                  'flex h-full flex-1 cursor-pointer items-end justify-center gap-[2px] rounded-t-[6px] transition-colors',
+                  selected === i ? 'bg-surface-hover' : 'hover:bg-surface-hover/60'
+                )}
+              >
+                <span className="w-full max-w-3 rounded-t-[3px] bg-income transition-[height] duration-500" style={{ height: px(m.income) }} />
+                <span className="w-full max-w-3 rounded-t-[3px] bg-[var(--navy-700)] transition-[height] duration-500 [[data-theme=dark]_&]:bg-accent" style={{ height: px(m.expense) }} />
+              </button>
+            ))}
+          </div>
+          <div className="ml-11 mt-2 flex gap-1">
+            {months.map((m, i) => (
+              <span key={m.month} className={cn('flex-1 text-center text-[0.6875rem]', selected === i ? 'font-semibold text-text-primary' : 'text-text-tertiary')}>
+                {m.label.slice(0, 1)}
+                <span className="hidden sm:inline">{m.label.slice(1, 3)}</span>
+              </span>
+            ))}
+          </div>
+        </div>
+        <table className="sr-only">
+          <caption>Income and spending by month</caption>
+          <thead>
+            <tr><th>Month</th><th>Income</th><th>Spending</th></tr>
+          </thead>
+          <tbody>
+            {months.map((m) => (
+              <tr key={m.month}>
+                <td>{m.label}</td>
+                <td>{formatMoney(m.income, currency)}</td>
+                <td>{formatMoney(m.expense, currency)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  )
+}
+
+function Breakdown({
+  title,
+  items,
+  tone,
+  currency,
+  categoryName,
+  categoryIcon,
+  hrefFor,
+}: {
+  title: string
+  items: CategoryBreakdownItem[]
+  tone: 'income' | 'expense'
+  currency: string
+  categoryName: (id: string) => string
+  categoryIcon: (id: string) => string | undefined
+  hrefFor: (categoryId: string) => string
+}) {
+  if (items.length === 0) return null
+  const max = items[0]?.amount || 1
+  return (
+    <section aria-label={title}>
+      <SectionHeader title={title} />
+      <div className="space-y-1 rounded-[var(--radius-lg)] bg-surface p-2 shadow-[var(--shadow-sm)] ring-1 ring-border">
+        {items.map((item) => (
+          <Link key={item.categoryId} href={hrefFor(item.categoryId)} className="block rounded-[var(--radius-md)] px-2.5 py-2.5 transition-colors hover:bg-surface-hover">
+            <div className="flex items-center gap-3">
+              <span className={cn('flex size-8 shrink-0 items-center justify-center rounded-[var(--radius-sm)]', tone === 'income' ? 'bg-income-soft text-income' : 'bg-expense-soft text-expense')}>
+                <CategoryIcon name={categoryIcon(item.categoryId)} className="size-4" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-medium text-text-primary">{categoryName(item.categoryId)}</span>
+                <span className="block text-xs text-text-tertiary">{item.count} transaction{item.count === 1 ? '' : 's'}</span>
+              </span>
+              <span className="text-right">
+                <Amount value={item.amount} currency={currency} className="block text-sm font-semibold" />
+                <span className="block text-xs tabular-nums text-text-tertiary">{Math.round(item.share * 100)}%</span>
+              </span>
+            </div>
+            <div className="ml-11 mt-2 h-1.5 overflow-hidden rounded-full bg-surface-sunken">
+              <div
+                className={cn('h-full rounded-full', tone === 'income' ? 'bg-income' : 'bg-[var(--navy-700)] [[data-theme=dark]_&]:bg-accent')}
+                style={{ width: `${(item.amount / max) * 100}%` }}
+              />
+            </div>
+          </Link>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+export default function InsightsPage() {
   const [scope, setScope] = useState<Scope>('month')
-  const [monthKey, setMonthKey] = useState(monthOptions[0].key)
-  const [year, setYear] = useState(yearOptions[0])
-
+  const [monthOffset, setMonthOffset] = useState(0)
+  const [yearOffset, setYearOffset] = useState(0)
   const { defaultCurrency } = useSettings()
   const { categories } = useCategories()
   const { people } = usePeople()
+  const { open } = useQuickAdd()
 
-  const { range, periodLabel } = useMemo<{ range: SummaryRange; periodLabel: string }>(() => {
+  const { range, periodLabel, compareLabel, monthKey } = useMemo(() => {
     if (scope === 'all') {
       return {
-        range: { start: -Infinity, end: Infinity, hasOpening: false, previous: null },
+        range: { start: -Infinity, end: Infinity, hasOpening: false, previous: null } as SummaryRange,
         periodLabel: 'All time',
+        compareLabel: null,
+        monthKey: undefined,
       }
     }
     if (scope === 'year') {
+      const year = new Date().getFullYear() - yearOffset
       return {
-        range: { ...yearPeriod(year), hasOpening: true, previous: previousYearPeriod(year) },
+        range: { ...yearPeriod(year), hasOpening: true, previous: previousYearPeriod(year) } as SummaryRange,
         periodLabel: String(year),
+        compareLabel: String(year - 1),
+        monthKey: undefined,
       }
     }
-    const [y, m] = monthKey.split('-').map(Number)
+    const { key, date } = monthKeyFor(monthOffset)
+    const prev = new Date(date.getFullYear(), date.getMonth() - 1, 1)
     return {
-      range: { ...monthPeriod(y, m), hasOpening: true, previous: previousMonthPeriod(y, m) },
-      periodLabel: monthOptions.find((o) => o.key === monthKey)?.label ?? '',
+      range: {
+        ...monthPeriod(date.getFullYear(), date.getMonth() + 1),
+        hasOpening: true,
+        previous: previousMonthPeriod(date.getFullYear(), date.getMonth() + 1),
+      } as SummaryRange,
+      periodLabel: date.toLocaleDateString(undefined, { month: 'long', year: 'numeric' }),
+      compareLabel: prev.toLocaleDateString(undefined, { month: 'long' }),
+      monthKey: key,
     }
-  }, [scope, monthKey, year, monthOptions])
+  }, [scope, monthOffset, yearOffset])
 
   const { data, loading, error, refresh } = useSummary(range)
 
-  const categoryName = useMemo(() => {
-    const map = new Map(categories.map((c) => [c.$id, c]))
-    return (id: string) => map.get(id)?.name ?? 'Uncategorized'
-  }, [categories])
-  const categoryIcon = useMemo(() => {
-    const map = new Map(categories.map((c) => [c.$id, c]))
-    return (id: string) => map.get(id)?.icon
-  }, [categories])
-  const personName = useMemo(() => {
-    const map = new Map(people.map((p) => [p.$id, p]))
-    return (id: string) => map.get(id)?.name ?? 'Unknown'
-  }, [people])
+  const catMap = useMemo(() => new Map(categories.map((c) => [c.$id, c])), [categories])
+  const categoryName = (id: string) => catMap.get(id)?.name ?? 'Uncategorized'
+  const categoryIcon = (id: string) => catMap.get(id)?.icon
+  const personName = (id: string) => people.find((p) => p.$id === id)?.name ?? 'Someone'
+  const hrefFor = (type: 'income' | 'expense') => (categoryId: string) =>
+    `/app/transactions?type=${type}&category=${categoryId}${monthKey ? `&month=${monthKey}` : ''}`
 
-  const fmt = (v: number) => formatMoney(v, defaultCurrency)
+  const canBack = scope === 'month' ? monthOffset < MONTHS_BACK : yearOffset < YEARS_BACK
+  const canForward = scope === 'month' ? monthOffset > 0 : yearOffset > 0
+  const step = (dir: 1 | -1) => (scope === 'month' ? setMonthOffset((o) => o + dir) : setYearOffset((o) => o + dir))
   const hasData = data.transactionCount > 0
-  const peopleNet = data.peopleNet
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-bold tracking-tight text-text-primary">Summary</h1>
-        <p className="mt-0.5 text-sm text-text-secondary">{periodLabel}</p>
-      </div>
+    <div className="mx-auto max-w-5xl space-y-6">
+      <PageHeader title="Insights" subtitle="Where your money came from and where it went" />
 
-      <div className="space-y-3">
-        <SegmentedControl value={scope} onChange={(s) => setScope(s)} options={SCOPE_OPTIONS} />
-        {scope === 'month' && (
-          <Select name="month" aria-label="Month" value={monthKey} onChange={(e) => setMonthKey(e.target.value)}>
-            {monthOptions.map((m) => (<option key={m.key} value={m.key}>{m.label}</option>))}
-          </Select>
-        )}
-        {scope === 'year' && (
-          <Select name="year" aria-label="Year" value={year} onChange={(e) => setYear(Number(e.target.value))}>
-            {yearOptions.map((y) => (<option key={y} value={y}>{y}</option>))}
-          </Select>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <SegmentedControl label="Period" value={scope} onChange={setScope} options={SCOPE_OPTIONS} className="sm:w-80" />
+        {scope !== 'all' && (
+          <div className="flex items-center justify-between gap-1 rounded-[var(--radius-full)] bg-surface p-1 shadow-[var(--shadow-sm)] ring-1 ring-border sm:min-w-64">
+            <button type="button" onClick={() => step(1)} disabled={!canBack} aria-label="Previous period" className="pressable flex size-11 items-center justify-center rounded-full text-text-secondary hover:bg-surface-hover disabled:opacity-30">
+              <ChevronLeft className="size-5" />
+            </button>
+            <span className="text-sm font-semibold text-text-primary" aria-live="polite">{periodLabel}</span>
+            <button type="button" onClick={() => step(-1)} disabled={!canForward} aria-label="Next period" className="pressable flex size-11 items-center justify-center rounded-full text-text-secondary hover:bg-surface-hover disabled:opacity-30">
+              <ChevronRight className="size-5" />
+            </button>
+          </div>
         )}
       </div>
 
       {loading ? (
-        <div className="space-y-3">
-          <Skeleton className="h-20 rounded-[var(--radius-lg)]" />
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <Skeleton className="h-16 rounded-[var(--radius-md)]" />
-            <Skeleton className="h-16 rounded-[var(--radius-md)]" />
-            <Skeleton className="h-16 rounded-[var(--radius-md)]" />
-            <Skeleton className="h-16 rounded-[var(--radius-md)]" />
-          </div>
+        <div className="space-y-4">
+          <Skeleton className="h-56 rounded-[var(--radius-xl)]" />
+          <Skeleton className="h-64 rounded-[var(--radius-lg)]" />
         </div>
       ) : error ? (
-        <ErrorState what="your summary" error={error} onRetry={refresh} />
+        <ErrorState what="your insights" error={error} onRetry={refresh} />
+      ) : !hasData ? (
+        <EmptyState
+          icon={<BarChart3 />}
+          title={`Nothing recorded in ${periodLabel}`}
+          description="Insights fill in as you record income and spending."
+          action={<Button onClick={() => open()}>Add a transaction</Button>}
+        />
       ) : (
-        <>
-          <IncomeExpenseSavings data={data} fmt={fmt} />
-
-          {range.hasOpening && (
-            <section className="grid grid-cols-2 gap-3">
-              <div className="card-lift rounded-[var(--radius-lg)] border border-border bg-surface px-4 py-3.5 shadow-[var(--shadow-sm)]">
-                <p className="text-xs font-medium text-text-secondary">Opening balance</p>
-                <p className="mt-1 text-base font-bold tabular-nums text-text-primary">{fmt(data.openingBalance)}</p>
-                <p className="mt-0.5 text-xs text-text-tertiary">Start of {periodLabel}</p>
-              </div>
-              <div className="card-lift rounded-[var(--radius-lg)] border border-border bg-surface px-4 py-3.5 shadow-[var(--shadow-sm)]">
-                <p className="text-xs font-medium text-text-secondary">Closing balance</p>
-                <p className={cn('mt-1 text-base font-bold tabular-nums', data.closingBalance >= data.openingBalance ? 'text-text-primary' : 'text-expense')}>
-                  {fmt(data.closingBalance)}
-                </p>
-                <p className="mt-0.5 text-xs text-text-tertiary">End of {periodLabel}</p>
-              </div>
-            </section>
-          )}
-
-          {!hasData ? (
-            <EmptyState
-              icon={<TrendingUp className="size-6" />}
-              title="No activity in this period"
-              description="No income, expenses, transfers, or give/take transactions were recorded here."
-            />
-          ) : (
-            <>
-              <NetSavingsHero data={data} fmt={fmt} />
-
-              <TrendRow
-                incomeTrend={data.incomeTrend}
-                expenseTrend={data.expenseTrend}
-                savingsTrend={data.savingsTrend}
-              />
-
-              <section className="grid grid-cols-2 gap-3">
-                <StatTile icon={<Receipt className="size-4" />} label="Transactions" value={String(data.transactionCount)} />
-                <StatTile icon={<Zap className="size-4" />} label="Avg. txn" value={fmt(data.avgTransaction)} />
-                <StatTile icon={<Users className="size-4" />} label="People net" value={peopleNet >= 0 ? `+${fmt(peopleNet)}` : fmt(peopleNet)} tone={peopleNet > 0 ? 'expense' : peopleNet < 0 ? 'income' : undefined} />
-                <StatTile icon={<Calendar className="size-4" />} label="≈ per day" value={fmt(data.dailyAverage)} tone="expense" />
-              </section>
-
-              <CashFlowChart months={data.months} fmt={fmt} />
-
-              {data.personBreakdown.length > 0 && (
-                <section className="space-y-2">
-                  <h2 className="text-sm font-bold uppercase tracking-wide text-text-secondary">People activity</h2>
-                  <div className="space-y-2 rounded-[var(--radius-lg)] border border-border bg-surface p-4 shadow-[var(--shadow-sm)]">
-                    {data.personBreakdown.slice(0, 5).map((item) => (
-                      <div key={item.personId} className="flex items-center justify-between text-sm">
-                        <span className="font-medium text-text-primary">{personName(item.personId)}</span>
-                        <span className="flex items-center gap-3 tabular-nums">
-                          <span className="text-xs text-expense">-{fmt(item.given)}</span>
-                          <span className="text-xs text-income">+{fmt(item.taken)}</span>
-                          <span className={cn('font-semibold', item.amount > 0 ? 'text-expense' : item.amount < 0 ? 'text-income' : 'text-text-tertiary')}>
-                            {item.amount === 0 ? '—' : fmt(item.amount)}
-                          </span>
-                        </span>
-                      </div>
-                    ))}
+        <div className="space-y-6 lg:grid lg:grid-cols-5 lg:gap-6 lg:space-y-0">
+          <div className="space-y-6 lg:col-span-3">
+            <Hero data={data} currency={defaultCurrency} periodLabel={periodLabel} compareLabel={compareLabel} />
+            <CashFlowChart months={data.months} currency={defaultCurrency} />
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {[
+                { label: 'Average spend / day', value: data.dailyAverage, show: data.dailyAverage > 0 },
+                { label: 'Largest expense', value: data.largestExpense, show: data.largestExpense > 0 },
+                // Transfers net to received − sent: negative is fees paid, positive a gain.
+                { label: data.exchange < 0 ? 'Transfer fees' : 'Transfer gains', value: Math.abs(data.exchange), show: data.exchange !== 0 },
+              ]
+                .filter((s) => s.show)
+                .map((s) => (
+                  <div key={s.label} className="rounded-[var(--radius-lg)] bg-surface p-4 shadow-[var(--shadow-sm)] ring-1 ring-border">
+                    <p className="text-xs font-medium text-text-tertiary">{s.label}</p>
+                    <Amount value={s.value} currency={defaultCurrency} className="mt-1 text-base font-semibold" />
                   </div>
-                </section>
-              )}
-
-              <Breakdown
-                title="Top spending"
-                items={data.expenseByCategory.slice(0, 6)}
-                tone="expense"
-                fmt={fmt}
-                name={categoryName}
-                icon={categoryIcon}
-              />
-
-              <Breakdown
-                title="Income sources"
-                items={data.incomeByCategory.slice(0, 6)}
-                tone="income"
-                fmt={fmt}
-                name={categoryName}
-                icon={categoryIcon}
-              />
-            </>
-          )}
-        </>
-      )}
-
-    </div>
-  )
-}
-
-function TrendRow({
-  incomeTrend, expenseTrend, savingsTrend,
-}: {
-  incomeTrend: number | null
-  expenseTrend: number | null
-  savingsTrend: number | null
-}) {
-  if (incomeTrend == null && expenseTrend == null && savingsTrend == null) return null
-
-  /**
-   * The arrow always shows which way the number moved. The colour shows whether
-   * that movement is good news, which is the opposite for spending: earning more
-   * is green, spending more is red.
-   */
-  const badge = (label: string, trend: number | null, risingIsGood: boolean) => {
-    if (trend == null) return null
-    const rising = trend > 0
-    const good = rising === risingIsGood
-    return (
-      <div className={cn('flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold', good ? 'bg-income-soft text-income' : 'bg-expense-soft text-expense')}>
-        {rising ? <ArrowUpRight className="size-3.5" /> : <ArrowDownRight className="size-3.5" />}
-        {label}: {Number.isFinite(trend) ? `${Math.abs(trend).toFixed(0)}%` : 'New'}
-      </div>
-    )
-  }
-  return (
-    <section className="flex flex-wrap gap-2">
-      {badge('Income', incomeTrend, true)}
-      {badge('Expense', expenseTrend, false)}
-      {badge('Savings', savingsTrend, true)}
-    </section>
-  )
-}
-
-function NetSavingsHero({ data, fmt }: { data: SummaryData; fmt: (v: number) => string }) {
-  return (
-    <section className="hero-panel card-lift rounded-[var(--radius-lg)] p-5 shadow-[var(--shadow-md)] md:p-6">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-white/70">Net savings</p>
-        <span className={cn('rounded-full px-2.5 py-1 text-xs font-semibold', data.savings >= 0 ? 'bg-white/15 text-white' : 'bg-expense-soft text-expense')}>
-          {data.savingsRate == null ? 'No income' : `${(data.savingsRate * 100).toFixed(0)}% saved`}
-        </span>
-      </div>
-      <p className={cn('mt-1 break-words text-[1.75rem] font-bold tabular-nums tracking-tight text-white')}>
-        {fmt(data.savings)}
-      </p>
-      <div className="mt-3 flex gap-4 text-sm font-medium text-white">
-        <span className="inline-flex items-center gap-1"><ArrowUpRight className="size-4 text-income" /> {fmt(data.income)}</span>
-        <span className="inline-flex items-center gap-1"><ArrowDownRight className="size-4 text-expense" /> {fmt(data.expense)}</span>
-      </div>
-    </section>
-  )
-}
-
-function IncomeExpenseSavings({ data, fmt }: { data: SummaryData; fmt: (v: number) => string }) {
-  const cell = (label: string, value: number, tone: 'income' | 'expense' | 'exchange' | 'neutral', signed = false) => (
-    <div className="card-lift overflow-hidden rounded-[var(--radius-lg)] border border-border bg-surface shadow-[var(--shadow-sm)]">
-      <div className={cn('h-1', tone === 'income' && 'bg-income', tone === 'expense' && 'bg-expense', tone === 'exchange' && 'bg-exchange', tone === 'neutral' && 'bg-primary')} />
-      <div className="px-3.5 py-3">
-      <p className="text-xs font-medium text-text-secondary">{label}</p>
-      <p className={cn('mt-1 text-base font-bold tabular-nums', tone === 'income' && 'text-income', tone === 'expense' && 'text-expense', tone === 'exchange' && 'text-exchange', tone === 'neutral' && data.savings < 0 && 'text-expense', tone === 'neutral' && data.savings >= 0 && 'text-text-primary')}>
-        {signed ? (value >= 0 ? `+${fmt(value)}` : `-${fmt(Math.abs(value))}`) : fmt(value)}
-      </p>
-      </div>
-    </div>
-  )
-  return (
-    <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
-      {cell('Income', data.income, 'income')}
-      {cell('Expense', data.expense, 'expense')}
-      {cell('Transfer fees', data.exchange, 'exchange', true)}
-      {cell('Savings', data.savings, 'neutral')}
-    </section>
-  )
-}
-
-/**
- * Income and expense per month, side by side.
- *
- * Bar heights are computed in pixels rather than as percentages: the bars used
- * to be sized as a % of a parent whose own height was left undefined (the row
- * is `items-end`, so columns size to their content), which browsers resolve to
- * zero. They were also stacked, so a month at the top of the scale needed 200%
- * of the available height.
- *
- * Income is always the left bar and expense always the right. That fixed order
- * is deliberate: the app's income/expense green and red sit at a deutan ΔE of
- * 5.0, so colour alone does not separate them for red-green colourblind
- * readers. Position, the legend and per-bar labels carry the identity.
- */
-function CashFlowChart({ months, fmt }: { months: MonthlyBar[]; fmt: (v: number) => string }) {
-  const scale = chartScale(months.flatMap((m) => [m.income, m.expense]))
-  const barHeight = (value: number) => barHeightPx(value, scale)
-
-  return (
-    <section className="space-y-2">
-      <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-text-secondary">
-        <BarChart3 className="size-4" /> Cash flow — last 12 months
-      </h2>
-      <div className="card-lift rounded-[var(--radius-lg)] border border-border bg-surface p-4 shadow-[var(--shadow-sm)]">
-        <div className="overflow-x-auto">
-          <div className="min-w-[280px]">
-            <div className="flex items-end gap-1 border-b border-border" style={{ height: CHART_HEIGHT }}>
-              {months.map((m) => (
-                <div
-                  key={m.month}
-                  className="flex flex-1 items-end justify-center gap-[2px]"
-                  style={{ height: CHART_HEIGHT }}
-                >
-                  <span
-                    className="w-1/2 max-w-[10px] rounded-t-[3px] bg-income"
-                    style={{ height: barHeight(m.income) }}
-                    title={`${m.label} · Income ${fmt(m.income)}`}
-                    aria-label={`${m.label} income ${fmt(m.income)}`}
-                  />
-                  <span
-                    className="w-1/2 max-w-[10px] rounded-t-[3px] bg-expense"
-                    style={{ height: barHeight(m.expense) }}
-                    title={`${m.label} · Expense ${fmt(m.expense)}`}
-                    aria-label={`${m.label} expense ${fmt(m.expense)}`}
-                  />
+                ))}
+              <div className="rounded-[var(--radius-lg)] bg-surface p-4 shadow-[var(--shadow-sm)] ring-1 ring-border">
+                <p className="text-xs font-medium text-text-tertiary">Transactions</p>
+                <p className="mt-1 text-base font-semibold tabular-nums">{data.transactionCount}</p>
+              </div>
+            </div>
+            {range.hasOpening && (
+              <p className="rounded-[var(--radius-lg)] bg-surface-sunken px-4 py-3 text-sm text-text-secondary">
+                Balance moved from <Amount value={data.openingBalance} currency={defaultCurrency} className="font-semibold text-text-primary" /> to{' '}
+                <Amount value={data.closingBalance} currency={defaultCurrency} className="font-semibold text-text-primary" /> over {periodLabel}.
+              </p>
+            )}
+          </div>
+          <div className="space-y-6 lg:col-span-2">
+            <Breakdown title="Spending by category" items={data.expenseByCategory} tone="expense" currency={defaultCurrency} categoryName={categoryName} categoryIcon={categoryIcon} hrefFor={hrefFor('expense')} />
+            <Breakdown title="Income sources" items={data.incomeByCategory} tone="income" currency={defaultCurrency} categoryName={categoryName} categoryIcon={categoryIcon} hrefFor={hrefFor('income')} />
+            {data.personBreakdown.length > 0 && (
+              <section aria-label="People this period">
+                <SectionHeader title="People this period" />
+                <div className="rounded-[var(--radius-lg)] bg-surface shadow-[var(--shadow-sm)] ring-1 ring-border">
+                  {data.personBreakdown.map((p, i) => (
+                    <Link key={p.personId} href={`/app/people/${p.personId}`} className={cn('flex min-h-14 items-center gap-3 px-4 py-2.5 transition-colors hover:bg-surface-hover', i > 0 && 'border-t border-border')}>
+                      <span className="min-w-0 flex-1 truncate text-sm font-medium text-text-primary">{personName(p.personId)}</span>
+                      <span className="text-right text-xs text-text-tertiary">
+                        {p.given > 0 && <>Gave <Amount value={p.given} currency={defaultCurrency} className="font-semibold text-text-secondary" /></>}
+                        {p.given > 0 && p.taken > 0 && ' · '}
+                        {p.taken > 0 && <>Got <Amount value={p.taken} currency={defaultCurrency} className="font-semibold text-text-secondary" /></>}
+                      </span>
+                    </Link>
+                  ))}
                 </div>
-              ))}
-            </div>
-            <div className="mt-2 flex gap-1">
-              {months.map((m) => (
-                <span key={m.month} className="flex-1 text-center text-xs font-medium text-text-secondary" title={m.label}>
-                  {m.label.slice(0, 3)}
-                </span>
-              ))}
-            </div>
+              </section>
+            )}
           </div>
         </div>
-        <div className="mt-3 flex gap-4 text-xs text-text-secondary">
-          <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-sm bg-income" /> Income <span className="text-text-tertiary">(left)</span></span>
-          <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-sm bg-expense" /> Expense <span className="text-text-tertiary">(right)</span></span>
-        </div>
-      </div>
-    </section>
-  )
-}
-
-function StatTile({ icon, label, value, tone }: { icon: React.ReactNode; label: string; value: string; tone?: 'income' | 'expense' }) {
-  return (
-    <div className="card-lift rounded-[var(--radius-lg)] border border-border bg-surface px-3.5 py-3 shadow-[var(--shadow-sm)]">
-      <div className="flex items-center gap-1.5 text-text-secondary">
-        {icon}
-        <span className="text-xs font-medium">{label}</span>
-      </div>
-      <p className={cn('mt-1 text-base font-bold tabular-nums', tone === 'income' && 'text-income', tone === 'expense' && 'text-expense', !tone && 'text-text-primary')}>{value}</p>
+      )}
     </div>
-  )
-}
-
-interface BreakdownProps {
-  title: string
-  items: CategoryBreakdownItem[]
-  tone: 'income' | 'expense' | 'exchange'
-  fmt: (v: number) => string
-  name: (id: string) => string
-  icon: (id: string) => string | undefined
-}
-
-function Breakdown({ title, items, tone, fmt, name, icon }: BreakdownProps) {
-  if (items.length === 0) return null
-  return (
-    <section className="space-y-2">
-      <h2 className="text-sm font-bold uppercase tracking-wide text-text-secondary">{title}</h2>
-      <div className="space-y-3 rounded-[var(--radius-lg)] border border-border bg-surface p-4 shadow-[var(--shadow-sm)]">
-        {items.map((item) => (
-          <div key={item.categoryId} className="space-y-1">
-            <div className="flex items-center gap-2.5">
-              <span className={cn('flex size-8 shrink-0 items-center justify-center rounded-full', tone === 'income' ? 'bg-income-soft text-income' : tone === 'expense' ? 'bg-expense-soft text-expense' : 'bg-exchange-soft text-exchange')}>
-                <CategoryIcon name={icon(item.categoryId)} className="size-4" />
-              </span>
-              <span className="min-w-0 flex-1 truncate text-sm font-medium text-text-primary">{name(item.categoryId)}</span>
-              <span className="shrink-0 text-right text-sm font-semibold tabular-nums text-text-primary">
-                {fmt(item.amount)}
-                <span className="ml-1 text-xs font-normal text-text-tertiary">{(item.share * 100).toFixed(0)}%</span>
-              </span>
-            </div>
-            <div className="ml-[2.625rem] h-1.5 overflow-hidden rounded-full bg-surface-hover">
-              <div className={cn('h-full rounded-full', tone === 'income' ? 'bg-income' : tone === 'expense' ? 'bg-expense' : 'bg-exchange')} style={{ width: `${Math.max(item.share * 100, 2)}%` }} />
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
   )
 }

@@ -121,10 +121,12 @@ export function useSummary(range: SummaryRange) {
       ? (curr.income + curr.expense) / (curr.incomeCount + curr.expenseCount)
       : 0
 
+    // Twelve months ending with the selected period: Jan–Dec for a year, the
+    // year leading up to it for a month, the last twelve for all time.
     const months: MonthlyBar[] = []
-    const now = new Date()
+    const anchor = Number.isFinite(end) ? new Date(end - 1) : new Date()
     for (let i = 11; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      const d = new Date(anchor.getFullYear(), anchor.getMonth() - i, 1)
       const mStart = new Date(d.getFullYear(), d.getMonth(), 1).getTime()
       const mEnd = new Date(d.getFullYear(), d.getMonth() + 1, 1).getTime()
       const bucket = aggregatePeriod(transactions, {
