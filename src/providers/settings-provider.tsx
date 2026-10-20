@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
-import { account } from '@/lib/appwrite/client'
+import { supabase } from '@/lib/supabase/client'
 import { DEFAULT_CURRENCY, isSupportedCurrency } from '@/lib/currency/currencies'
 import type { CurrencyCode } from '@/lib/currency/currencies'
 import { useAuth } from './auth-provider'
@@ -31,9 +31,11 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   }, [user, status])
 
   const setDefaultCurrency = useCallback(async (code: CurrencyCode) => {
-    await account.updatePrefs({ defaultCurrency: code })
+    if (!user) throw new Error('Not authenticated')
+    const { error } = await supabase.from('profiles').update({ default_currency: code }).eq('id', user.$id)
+    if (error) throw new Error(error.message)
     setCurrency(code)
-  }, [])
+  }, [user])
 
   return (
     <SettingsContext.Provider value={{ defaultCurrency, setDefaultCurrency }}>

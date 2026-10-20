@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { listAccounts, createAccount, updateAccount, reassignAndDeleteAccount } from '@/lib/appwrite/collections'
+import { listAccounts, createAccount, updateAccount, reassignAndDeleteAccount } from '@/lib/supabase/data'
 import { useAllTransactions } from '@/providers/all-transactions-provider'
 import { useAuth } from '@/providers/auth-provider'
 import type { Account, AccountType } from '@/lib/types'

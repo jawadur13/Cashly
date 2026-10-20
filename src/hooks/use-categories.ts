@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { listCategories, createCategory, deleteCategory } from '@/lib/appwrite/collections'
+import { listCategories, createCategory, deleteCategory } from '@/lib/supabase/data'
 import { useAuth } from '@/providers/auth-provider'
 import type { Category, TransactionType } from '@/lib/types'
 

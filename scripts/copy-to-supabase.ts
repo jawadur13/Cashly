@@ -32,6 +32,8 @@ import type { Transaction } from '../src/lib/types'
 process.loadEnvFile('.env.appwrite.local')
 process.loadEnvFile('.env.supabase.local')
 
+// Snapshot documents are raw Appwrite JSON; their fields are checked, not typed.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Doc = Record<string, any>
 interface Snapshot {
   takenAt: string

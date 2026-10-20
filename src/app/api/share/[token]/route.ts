@@ -1,13 +1,11 @@
 import { NextResponse } from 'next/server'
-import { Client, Databases, Query } from 'node-appwrite'
-import { DATABASE_ID, COLLECTIONS } from '@/lib/appwrite/config'
+import { createClient } from '@supabase/supabase-js'
 
-const client = new Client()
-  .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
-  .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID!)
-  .setKey(process.env.APPWRITE_API_KEY!)
-
-const databases = new Databases(client)
+// The secret key bypasses Row Level Security, so this route is the only thing
+// that decides what a share link reveals: one person's give/take rows, nothing else.
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SECRET_KEY!, {
+  auth: { persistSession: false, autoRefreshToken: false },
+})
 
 export async function GET(
   _request: Request,
@@ -15,11 +13,14 @@ export async function GET(
 ) {
   const { token } = await params
 
-  const shareRes = await databases.listDocuments(DATABASE_ID, COLLECTIONS.shares, [
-    Query.equal('shareToken', token),
-    Query.limit(1),
-  ])
-  const share = shareRes.documents[0]
+  const { data: share, error: shareError } = await supabase
+    .from('shares')
+    .select('person_name, shared_by_name, person_id, user_id, data')
+    .eq('share_token', token)
+    .maybeSingle()
+  if (shareError) {
+    return NextResponse.json({ error: 'Could not load share link' }, { status: 500 })
+  }
   if (!share) {
     return NextResponse.json({ error: 'Share link not found' }, { status: 404 })
   }
@@ -32,39 +33,39 @@ export async function GET(
     // fall back to BDT on malformed data
   }
 
-  const PAGE_SIZE = 500
+  const PAGE_SIZE = 1000
   const transactions: { type: string; amountMinor: number; currency: string; date: string; note: string }[] = []
-  let offset = 0
-  let total = 0
-  do {
-    const res = await databases.listDocuments(DATABASE_ID, COLLECTIONS.transactions, [
-      Query.equal('userId', share.userId),
-      Query.equal('personId', share.personId),
-      Query.equal('type', ['give', 'take']),
-      // `$id` makes the sort total. `date` alone leaves ties unspecified, and
+  for (let offset = 0; ; offset += PAGE_SIZE) {
+    const { data: page, error } = await supabase
+      .from('transactions')
+      .select('type, amount, amount_minor, currency, date, note')
+      .eq('user_id', share.user_id)
+      .eq('person_id', share.person_id)
+      .in('type', ['give', 'take'])
+      // `id` makes the sort total. `date` alone leaves ties unspecified, and
       // offset pagination assumes a total order.
-      Query.orderDesc('date'),
-      Query.orderDesc('$id'),
-      Query.limit(PAGE_SIZE),
-      Query.offset(offset),
-    ])
+      .order('date', { ascending: false })
+      .order('id', { ascending: false })
+      .range(offset, offset + PAGE_SIZE - 1)
+    if (error) {
+      return NextResponse.json({ error: 'Could not load transactions' }, { status: 500 })
+    }
     transactions.push(
-      ...res.documents.map((t) => ({
+      ...page.map((t) => ({
         type: t.type,
         // Minor units, falling back for rows written before the migration.
-        amountMinor: t.amountMinor ?? Math.round((t.amount ?? 0) * 100),
+        amountMinor: t.amount_minor != null ? Number(t.amount_minor) : Math.round((t.amount ?? 0) * 100),
         currency: t.currency,
         date: t.date,
-        note: t.note,
+        note: t.note ?? '',
       }))
     )
-    total = res.total
-    offset += res.documents.length
-  } while (offset < total)
+    if (page.length < PAGE_SIZE) break
+  }
 
   return NextResponse.json({
-    personName: share.personName,
-    sharedByName: share.sharedByName,
+    personName: share.person_name,
+    sharedByName: share.shared_by_name,
     currency,
     transactions,
   })

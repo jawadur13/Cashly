@@ -1,16 +1,20 @@
  'use client'
 
 import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/providers/auth-provider'
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
+  const pathname = usePathname()
   const { status } = useAuth()
+  // A password reset link signs the user in so they can set a new password;
+  // sending them on to /app would skip the form.
+  const isPasswordReset = pathname === '/auth/reset-password'
 
   useEffect(() => {
-    if (status === 'authenticated') router.replace('/app')
-  }, [router, status])
+    if (status === 'authenticated' && !isPasswordReset) router.replace('/app')
+  }, [router, status, isPasswordReset])
 
   if (status === 'loading') {
     return (

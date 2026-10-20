@@ -11,8 +11,8 @@ import { useTheme } from '@/providers/theme-provider'
 import { useSettings } from '@/providers/settings-provider'
 import { useAuth } from '@/providers/auth-provider'
 import { useToast } from '@/providers/toast-provider'
-import { deleteUserData } from '@/lib/appwrite/collections'
-import { account } from '@/lib/appwrite/client'
+import { deleteUserData } from '@/lib/supabase/data'
+import { supabase } from '@/lib/supabase/client'
 import { CURRENCIES } from '@/lib/currency/currencies'
 import { cn } from '@/lib/utils'
 import type { Theme } from '@/providers/theme-provider'
@@ -64,7 +64,9 @@ export default function SettingsPage() {
     if (!name.trim() || name.trim() === user?.name) return
     setSavingName(true)
     try {
-      await account.updateName(name.trim())
+      if (!user) return
+      const { error } = await supabase.from('profiles').update({ name: name.trim() }).eq('id', user.$id)
+      if (error) throw error
       await refresh()
       toast('Name updated', 'success')
     } catch {

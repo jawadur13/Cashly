@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
-import { listTransactions } from '@/lib/appwrite/collections'
+import { listTransactions } from '@/lib/supabase/data'
 import { useAuth } from './auth-provider'
 import type { Transaction } from '@/lib/types'
 

@@ -6,7 +6,7 @@ import {
   createTransaction,
   updateTransaction,
   deleteTransaction,
-} from '@/lib/appwrite/collections'
+} from '@/lib/supabase/data'
 import { useAllTransactions } from '@/providers/all-transactions-provider'
 import { useAuth } from '@/providers/auth-provider'
 import { useCategories } from './use-categories'

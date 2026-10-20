@@ -13,7 +13,7 @@ import { useToast } from '@/providers/toast-provider'
 import { useCategories } from '@/hooks/use-categories'
 import { useAccounts } from '@/hooks/use-accounts'
 import { usePeople } from '@/hooks/use-people'
-import { generateShareToken, removeShareToken } from '@/lib/appwrite/collections'
+import { generateShareToken, removeShareToken } from '@/lib/supabase/data'
 import { useAllTransactions } from '@/providers/all-transactions-provider'
 
 export default function PersonDetailPage() {

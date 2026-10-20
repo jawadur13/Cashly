@@ -9,7 +9,7 @@ import { useAccounts } from '@/hooks/use-accounts'
 import { useCategories } from '@/hooks/use-categories'
 import { useTransactions } from '@/hooks/use-transactions'
 import { useToast } from '@/providers/toast-provider'
-import { getTransaction } from '@/lib/appwrite/collections'
+import { getTransaction } from '@/lib/supabase/data'
 import type { Transaction } from '@/lib/types'
 
 import { usePeople } from '@/hooks/use-people'

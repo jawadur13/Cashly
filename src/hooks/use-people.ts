@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { listPeople, createPerson, updatePerson, deletePerson } from '@/lib/appwrite/collections'
+import { listPeople, createPerson, updatePerson, deletePerson } from '@/lib/supabase/data'
 import { peopleBalances } from '@/lib/calculations'
 import { convertMinor } from '@/lib/currency/currencies'
 import { useAllTransactions } from '@/providers/all-transactions-provider'

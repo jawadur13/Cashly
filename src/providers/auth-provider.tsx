@@ -1,9 +1,9 @@
 'use client'
 
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
-import { ID } from 'appwrite'
-import { account } from '@/lib/appwrite/client'
-import { createAccount } from '@/lib/appwrite/collections'
+import type { User as SupabaseUser } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabase/client'
+import { createAccount } from '@/lib/supabase/data'
 import { DEFAULT_CURRENCY } from '@/lib/currency/currencies'
 import { DEFAULT_ACCOUNTS } from '@/lib/constants'
 
@@ -28,14 +28,14 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
-const APPWRITE_CONNECTION_HINT =
-  'Cashly could not reach Appwrite from this domain. In Appwrite Cloud, add your Vercel domain under Platforms > Web and verify the endpoint, project id, and database id.'
+const SUPABASE_CONNECTION_HINT =
+  'Cashly could not reach Supabase. Check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY for this deployment.'
 
 function normalizeAuthError(error: unknown, fallbackMessage: string): Error {
   if (error instanceof Error) {
     const message = error.message.trim()
     if (/failed to fetch|networkerror|cors|fetch/i.test(message)) {
-      return new Error(`${fallbackMessage} ${APPWRITE_CONNECTION_HINT}`)
+      return new Error(`${fallbackMessage} ${SUPABASE_CONNECTION_HINT}`)
     }
     return error
   }
@@ -43,8 +43,25 @@ function normalizeAuthError(error: unknown, fallbackMessage: string): Error {
   return new Error(fallbackMessage)
 }
 
+/** The app's user: Supabase's login plus the name and preferences kept in `profiles`. */
+async function loadUser(authUser: SupabaseUser): Promise<User> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('name, default_currency')
+    .eq('id', authUser.id)
+    .single()
+  if (error) throw new Error(error.message)
+  return {
+    $id: authUser.id,
+    name: data.name,
+    email: authUser.email ?? '',
+    prefs: { defaultCurrency: data.default_currency },
+  }
+}
+
 async function seedNewUser(userId: string): Promise<void> {
-  await account.updatePrefs({ defaultCurrency: DEFAULT_CURRENCY })
+  const { error } = await supabase.from('profiles').update({ default_currency: DEFAULT_CURRENCY }).eq('id', userId)
+  if (error) throw new Error(error.message)
   for (const acc of DEFAULT_ACCOUNTS) {
     await createAccount({
       userId,
@@ -62,8 +79,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refresh = useCallback(async () => {
     try {
-      const res = await account.get()
-      setUser({ $id: res.$id, name: res.name, email: res.email, prefs: res.prefs })
+      const { data, error } = await supabase.auth.getUser()
+      if (error || !data.user) throw error ?? new Error('Not signed in')
+      setUser(await loadUser(data.user))
       setStatus('authenticated')
     } catch {
       setUser(null)
@@ -74,11 +92,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     refresh()
+    // A session can also end on its own (expired refresh token, sign-out in
+    // another tab). Sign-ins are handled by the callers, which refresh.
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') {
+        setUser(null)
+        setStatus('anonymous')
+      }
+    })
+    return () => data.subscription.unsubscribe()
   }, [refresh])
 
   const signIn = useCallback(async (email: string, password: string) => {
     try {
-      await account.createEmailPasswordSession(email, password)
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) throw error
       await refresh()
     } catch (error) {
       throw normalizeAuthError(error, 'Log in failed.')
@@ -87,10 +115,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = useCallback(async (name: string, email: string, password: string) => {
     try {
-      await account.create(ID.unique(), email, password, name)
-      await account.createEmailPasswordSession(email, password)
-      const res = await account.get()
-      await seedNewUser(res.$id)
+      const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { name } } })
+      if (error) throw error
+      // No session means the project asks new users to confirm their email
+      // first, which Cashly is not set up for.
+      if (!data.session || !data.user) {
+        throw new Error('Account created, but email confirmation is required before logging in.')
+      }
+      await seedNewUser(data.user.id)
       await refresh()
     } catch (error) {
       throw normalizeAuthError(error, 'Registration failed.')
@@ -99,7 +131,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(async () => {
     try {
-      await account.deleteSession('current')
+      await supabase.auth.signOut()
     } finally {
       setUser(null)
       setStatus('anonymous')
@@ -108,7 +140,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const resetPassword = useCallback(async (email: string) => {
     try {
-      await account.createRecovery(email, `${window.location.origin}/auth/reset-password`)
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      })
+      if (error) throw error
     } catch (error) {
       throw normalizeAuthError(error, 'Could not send reset email.')
     }

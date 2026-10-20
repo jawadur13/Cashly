@@ -1,21 +1,45 @@
 'use client'
 
-import { Suspense, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { Suspense, useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { account } from '@/lib/appwrite/client'
+import { supabase } from '@/lib/supabase/client'
+
+type LinkState = 'checking' | 'valid' | 'invalid'
 
 function ResetPasswordForm() {
   const router = useRouter()
-  const params = useSearchParams()
-  const userId = params.get('userId') ?? ''
-  const secret = params.get('secret') ?? ''
+  // The emailed link signs the user in with a short-lived recovery session,
+  // which the Supabase client picks up from the URL on load.
+  const [link, setLink] = useState<LinkState>('checking')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState(false)
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    let settled = false
+    const settle = (state: LinkState) => {
+      if (settled) return
+      settled = true
+      setLink(state)
+    }
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY' && session) settle('valid')
+    })
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) settle('valid')
+      else if (window.location.hash.includes('error')) settle('invalid')
+    })
+    // The URL is processed asynchronously; give it a moment before giving up.
+    const timer = setTimeout(() => settle('invalid'), 4000)
+    return () => {
+      data.subscription.unsubscribe()
+      clearTimeout(timer)
+    }
+  }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -30,7 +54,10 @@ function ResetPasswordForm() {
     setError(null)
     setLoading(true)
     try {
-      await account.updateRecovery(userId, secret, password)
+      const { error } = await supabase.auth.updateUser({ password })
+      if (error) throw error
+      // Log in fresh with the new password, as before the move to Supabase.
+      await supabase.auth.signOut()
       setDone(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Reset failed')
@@ -39,7 +66,11 @@ function ResetPasswordForm() {
     }
   }
 
-  if (!userId || !secret) {
+  if (link === 'checking' && !done) {
+    return <p className="text-sm text-text-tertiary">Checking your reset link…</p>
+  }
+
+  if (link === 'invalid' && !done) {
     return (
       <p className="rounded-[var(--radius-md)] border border-expense/30 bg-expense-soft px-3.5 py-2.5 text-sm font-medium text-expense">
         Invalid or expired reset link. Request a new one from the forgot password page.

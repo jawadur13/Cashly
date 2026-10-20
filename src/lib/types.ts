@@ -1,9 +1,14 @@
-import type { Models } from 'appwrite'
+/** Fields every stored row carries, named after the Appwrite fields the app was written against. */
+export interface BaseDocument {
+  $id: string
+  $createdAt: string
+  $updatedAt: string
+}
 
 export type TransactionType = 'income' | 'expense' | 'exchange' | 'give' | 'take'
 export type AccountType = 'cash' | 'bank' | 'mobile-wallet'
 
-export interface Account extends Models.Document {
+export interface Account extends BaseDocument {
   userId: string
   name: string
   type: AccountType
@@ -11,7 +16,7 @@ export interface Account extends Models.Document {
   isDefault: boolean
 }
 
-export interface Transaction extends Models.Document {
+export interface Transaction extends BaseDocument {
   userId: string
   accountId: string
   type: TransactionType
@@ -38,7 +43,7 @@ export interface Transaction extends Models.Document {
   personId?: string
 }
 
-export interface Person extends Models.Document {
+export interface Person extends BaseDocument {
   userId: string
   name: string
   note: string
@@ -46,7 +51,7 @@ export interface Person extends Models.Document {
   sharedByName?: string
 }
 
-export interface Category extends Models.Document {
+export interface Category extends BaseDocument {
   type: TransactionType
   name: string
   icon: string
