@@ -4,6 +4,7 @@ import { ArrowDownLeft, ArrowUpRight, Eye, EyeOff } from 'lucide-react'
 import { Amount } from '@/components/ui/amount'
 import { useSettings } from '@/providers/settings-provider'
 import { useBalanceVisibility } from '@/providers/balance-visibility-provider'
+import { HelpTip } from '@/components/help/help-tip'
 
 interface BalanceCardProps {
   balance: number
@@ -96,7 +97,14 @@ export function BalanceCard({ balance, loading, month }: BalanceCardProps) {
                   {Math.round(Math.max(-99, Math.min(100, month.rate * 100)))}%
                 </span>
               </div>
-              <span className="text-xs text-hero-muted">saved</span>
+              <span className="flex items-center text-xs text-hero-muted">
+                saved
+                <HelpTip title="Savings rate" guide="net-saved" onDark className="-my-3 -mr-3 ml-0">
+                  <p>The share of this month’s income you kept: income minus spending, divided by income.</p>
+                  <p>Earn 10,000 and spend 7,500, and you saved 25%. A negative number means you spent more than you earned this month.</p>
+                  <p>Transfers and Give/Get aren’t counted.</p>
+                </HelpTip>
+              </span>
             </div>
           )}
         </div>

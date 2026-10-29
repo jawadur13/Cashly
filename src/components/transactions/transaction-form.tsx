@@ -10,6 +10,7 @@ import { Sheet } from '@/components/ui/sheet'
 import { CategoryIcon, AccountIcon } from '@/components/ui/category-icon'
 import { Amount } from '@/components/ui/amount'
 import { CategoryForm } from '@/components/categories/category-form'
+import { HelpTip } from '@/components/help/help-tip'
 import { minorToInputValue, readAmountMinor, readFromAmountMinor, readToAmountMinor, toMinorUnits } from '@/lib/money'
 import { formatMoney } from '@/lib/currency/format'
 import { categoryUsage, personRecency, recentPayees } from '@/lib/activity'
@@ -397,6 +398,7 @@ export function TransactionForm({ initial, preset, onSaved, onDeleted, onCancel,
             exclude={fromAccountId}
           />
           <div className="space-y-3">
+            <div className="flex items-center gap-1">
             <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm text-text-primary">
               <input
                 type="checkbox"
@@ -409,6 +411,15 @@ export function TransactionForm({ initial, preset, onSaved, onDeleted, onCancel,
               />
               A different amount arrived (fee or gain)
             </label>
+              <HelpTip title="Transfer fees" guide="transfer-fees" className="ml-1">
+                <p>Cashing out bKash or using some ATMs costs a fee, so less arrives than was sent.</p>
+                <p>
+                  Enter the amount that left the first account above, tick this box, and enter what actually reached the
+                  second account. The difference is recorded as a fee and shown in Insights.
+                </p>
+                <p>A transfer itself isn’t income or spending — your total only changes by the fee.</p>
+              </HelpTip>
+            </div>
             {differentReceived && (
               <Input
                 name="received"
@@ -443,8 +454,19 @@ export function TransactionForm({ initial, preset, onSaved, onDeleted, onCancel,
 
           {isPerson ? (
             <fieldset className="min-w-0">
-              <legend className="mb-2 text-sm font-medium text-text-secondary">
+              <legend className="mb-2 flex items-center gap-1.5 text-sm font-medium text-text-secondary">
                 {type === 'give' ? 'Gave to' : 'Got from'}
+                <HelpTip title="Give and Get" guide="give-vs-get">
+                  <p>
+                    <strong className="text-text-primary">Give</strong> is money you hand to someone — lending to them, or paying
+                    back money you owed.
+                  </p>
+                  <p>
+                    <strong className="text-text-primary">Get</strong> is money you receive — borrowing from them, or being paid
+                    back.
+                  </p>
+                  <p>Cashly keeps the balance between you, and neither counts as income or spending.</p>
+                </HelpTip>
               </legend>
               <div className="flex flex-wrap gap-2" data-error={errors.personId ? true : undefined}>
                 {sortedPeople.map((p) => (

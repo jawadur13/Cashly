@@ -1,4 +1,4 @@
-import { ArrowLeftRight, FolderKanban, Home, Landmark, PieChart, Settings, Users, type LucideIcon } from 'lucide-react'
+import { ArrowLeftRight, FolderKanban, HelpCircle, Home, Landmark, PieChart, Settings, Users, type LucideIcon } from 'lucide-react'
 
 export interface NavItem {
   href: string
@@ -19,6 +19,7 @@ export const MANAGE_NAV: NavItem[] = [
   { href: '/app/accounts', label: 'Accounts', icon: Landmark },
   { href: '/app/categories', label: 'Categories', icon: FolderKanban },
   { href: '/app/settings', label: 'Settings', icon: Settings },
+  { href: '/help', label: 'Help & guide', icon: HelpCircle },
 ]
 
 /** Home matches only itself; every other item also owns its sub-routes. */

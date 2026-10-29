@@ -49,7 +49,12 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           {children}
         </div>
       )}
-      <p className="mt-6 text-center text-sm text-white/60">Your money, beautifully clear.</p>
+      <p className="mt-6 text-center text-sm text-white/60">
+        Your money, beautifully clear. ·{' '}
+        <Link href="/help" className="inline-flex min-h-11 items-center font-medium text-white/80 underline-offset-2 hover:text-white hover:underline">
+          Help & guide
+        </Link>
+      </p>
     </AuthBackdrop>
   )
 }

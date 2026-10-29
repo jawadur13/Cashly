@@ -13,6 +13,7 @@ import { SectionHeader } from '@/components/ui/list'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useQuickAdd } from '@/components/transactions/quick-add'
+import { HelpTip } from '@/components/help/help-tip'
 import { formatCompact, formatMoney } from '@/lib/currency/format'
 import { monthPeriod, previousMonthPeriod, previousYearPeriod, yearPeriod } from '@/lib/calculations'
 import { chartScale } from '@/lib/chart'
@@ -67,7 +68,14 @@ function Hero({ data, currency, periodLabel, compareLabel }: { data: SummaryData
     <section aria-label="Overview" className="hero-panel gold-hairline overflow-hidden rounded-[var(--radius-xl)] p-5 shadow-[var(--shadow-lg)] md:p-7">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-sm font-medium text-hero-muted">Net saved · {periodLabel}</p>
+          <p className="flex items-center gap-1 text-sm font-medium text-hero-muted">
+            Net saved · {periodLabel}
+            <HelpTip title="Net saved and savings rate" guide="net-saved" onDark>
+              <p>Net saved is your income minus your spending for the period.</p>
+              <p>The ring shows the share of income you kept. Negative means you spent more than you earned.</p>
+              <p>Transfers between your own accounts and Give/Get with people aren’t counted as income or spending.</p>
+            </HelpTip>
+          </p>
           <Amount
             value={data.savings}
             currency={currency}

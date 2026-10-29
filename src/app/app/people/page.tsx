@@ -12,6 +12,7 @@ import { ErrorState } from '@/components/ui/error-state'
 import { PageHeader } from '@/components/ui/page-header'
 import { ListGroup, ListRow, SectionHeader } from '@/components/ui/list'
 import { initials } from '@/components/nav/nav-config'
+import { HelpTip } from '@/components/help/help-tip'
 import { personRecency } from '@/lib/activity'
 import { formatDate } from '@/lib/currency/format'
 import { cn } from '@/lib/utils'
@@ -106,7 +107,17 @@ export default function PeoplePage() {
       ) : (
         <>
           {(owedToYou > 0 || youOwe > 0) && (
-            <div className="grid grid-cols-2 divide-x divide-border rounded-[var(--radius-lg)] bg-surface py-4 text-center shadow-[var(--shadow-sm)] ring-1 ring-border">
+            <div className="relative grid grid-cols-2 divide-x divide-border rounded-[var(--radius-lg)] bg-surface py-4 text-center shadow-[var(--shadow-sm)] ring-1 ring-border">
+              <span className="absolute right-3 top-3">
+                <HelpTip title="Who owes whom" guide="people-balance">
+                  <p>Cashly works this out from your Give and Get transactions with each person.</p>
+                  <p>
+                    <span className="font-semibold text-income">Owes you</span> means they owe you that amount.{' '}
+                    <span className="font-semibold text-expense">You owe</span> means you owe them. Settled means you’re even.
+                  </p>
+                  <p>Open a person and tap Settle up to clear a balance in one step.</p>
+                </HelpTip>
+              </span>
               <div>
                 <p className="text-xs font-medium text-text-tertiary">Owed to you</p>
                 <Amount value={owedToYou} currency={defaultCurrency} tone={owedToYou ? 'income' : 'muted'} className="mt-0.5 text-lg font-semibold" />

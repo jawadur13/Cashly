@@ -168,6 +168,10 @@ export default function Landing() {
       <footer className="border-t border-border">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-8 pb-[calc(2rem+env(safe-area-inset-bottom))] text-sm text-text-tertiary md:flex-row md:px-8">
           <Logo className="text-text-primary" markClassName="size-7" />
+          <nav className="flex items-center gap-1" aria-label="Footer">
+            <Link href="/help" className="flex min-h-11 items-center px-3 font-medium text-text-secondary hover:text-text-primary">Help & guide</Link>
+            <Link href="/auth/login" className="flex min-h-11 items-center px-3 font-medium text-text-secondary hover:text-text-primary">Log in</Link>
+          </nav>
           <p>© {new Date().getFullYear()} Cashly</p>
         </div>
       </footer>

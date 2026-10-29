@@ -4,6 +4,7 @@ import { BalanceCard } from '@/components/home/balance-card'
 import { AccountBalances } from '@/components/home/account-balances'
 import { RecentTransactions } from '@/components/home/recent-transactions'
 import { QuickActions } from '@/components/home/quick-actions'
+import { GettingStarted } from '@/components/home/getting-started'
 import { PeopleGlance, SpendingGlance } from '@/components/home/glance'
 import { ErrorState } from '@/components/ui/error-state'
 import { useAccountBalances } from '@/hooks/use-account-balances'
@@ -74,6 +75,7 @@ export default function HomePage() {
           <p className="mt-1 text-sm text-text-secondary">Here&apos;s where your money stands.</p>
         </div>
         <BalanceCard balance={total} loading={loading} month={month} />
+        {!loading && <GettingStarted transactionCount={transactions.length} />}
         <QuickActions />
         <div className="lg:hidden">
           <AccountBalances accounts={accounts} balances={balances} defaultCurrency={defaultCurrency} loading={loading} />

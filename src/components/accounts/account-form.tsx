@@ -9,6 +9,7 @@ import { AccountIcon } from '@/components/ui/category-icon'
 import { CURRENCIES } from '@/lib/currency/currencies'
 import { cn } from '@/lib/utils'
 import { useSettings } from '@/providers/settings-provider'
+import { HelpTip } from '@/components/help/help-tip'
 import type { Account, AccountType } from '@/lib/types'
 
 const ACCOUNT_TYPES: { value: AccountType; label: string }[] = [
@@ -92,10 +93,10 @@ export function AccountForm({ initial, onSubmit, onCancel, submitLabel }: Accoun
           </p>
         </div>
       ) : (
+        <div className="space-y-2">
         <Select
           name="currency"
           label="Currency"
-          hint="This can’t be changed later."
           value={currency}
           onChange={(e) => setCurrency(e.target.value)}
         >
@@ -105,6 +106,14 @@ export function AccountForm({ initial, onSubmit, onCancel, submitLabel }: Accoun
             </option>
           ))}
         </Select>
+        <p className="flex items-center gap-1 text-xs text-text-tertiary">
+          This can’t be changed later.
+          <HelpTip title="Account currency" guide="account-currency" className="-my-3">
+            <p>Every amount in an account is stored in its currency, so changing it later would change the value of everything already recorded.</p>
+            <p>Need another currency? Create a separate account for it — for example a USD account for Payoneer.</p>
+          </HelpTip>
+        </p>
+        </div>
       )}
       <div className="flex gap-2 pt-1">
         <Button variant="secondary" fullWidth onClick={onCancel}>Cancel</Button>

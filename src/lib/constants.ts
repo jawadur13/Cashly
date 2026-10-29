@@ -28,3 +28,6 @@ export const TRANSACTION_TYPE_LABELS: Record<TransactionType, string> = {
  * self-service form on /auth/forgot-password.
  */
 export const PASSWORD_RESET_CONTACT: string | null = 'contact@jawadurrafid.com'
+
+/** Where users can reach a person for help (the guide's "Still stuck?"). */
+export const SUPPORT_EMAIL = 'contact@jawadurrafid.com'

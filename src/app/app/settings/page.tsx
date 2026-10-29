@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { AlertTriangle, Download, Info, Link2, LogOut, Trash2 } from 'lucide-react'
+import { AlertTriangle, Download, HelpCircle, Info, Link2, LogOut, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
@@ -201,6 +201,12 @@ export default function SettingsPage() {
       <section aria-label="Account">
         <SectionHeader title="Account" />
         <ListGroup>
+          <ListRow
+            href="/help"
+            leading={<IconTile><HelpCircle /></IconTile>}
+            title="Help & guide"
+            subtitle="How everything in Cashly works"
+          />
           <ListRow
             onClick={async () => {
               await signOut()
